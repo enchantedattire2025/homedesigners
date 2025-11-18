@@ -613,9 +613,6 @@ const Home = () => {
                                   </div>
                                 )}
 
-                                <button className="w-full bg-sky-600 hover:bg-sky-700 text-white py-3 px-6 rounded-lg font-medium transition-colors">
-                                  Claim This Deal
-                                </button>
                               </div>
                             </div>
                           </div>
