@@ -507,46 +507,6 @@ const DesignerMaterialPricing = () => {
                     />
                   </div>
                 </div>
-
-       
-
-                {formData.is_discounted && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Discount Price (₹) *
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="number"
-                        name="discount_price"
-                        value={formData.discount_price || ''}
-                        onChange={handleInputChange}
-                        min="0"
-                        step="0.01"
-                        className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        required={formData.is_discounted}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="is_available"
-                    name="is_available"
-                    checked={formData.is_available}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      is_available: e.target.checked
-                    }))}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <label htmlFor="is_available" className="text-sm font-medium text-gray-700">
-                    Available for Projects
-                  </label>
-                </div>
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">
