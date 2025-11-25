@@ -55,7 +55,7 @@ const DesignerMaterialPricing = () => {
     name: '',
     description: '',
     unit: 'sq.ft',
-    base_price: 0,
+    base_price: '' as any,
     discount_price: null,
     is_discounted: false,
     brand: '',

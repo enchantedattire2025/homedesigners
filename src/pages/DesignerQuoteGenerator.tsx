@@ -303,7 +303,7 @@ const DesignerQuoteGenerator = () => {
       description: '',
       quantity: 1,
       unit: 'sq.ft',
-      unit_price: 0,
+      unit_price: '' as any,
       discount_percent: 0,
       amount: 0
     };
@@ -987,7 +987,7 @@ const DesignerQuoteGenerator = () => {
                             <input
                               type="number"
                               value={item.unit_price}
-                              onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                              onChange={(e) => handleItemChange(index, 'unit_price', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                               min="0"
                               step="0.01"
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
