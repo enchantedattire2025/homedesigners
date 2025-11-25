@@ -110,71 +110,64 @@ const CustomerQuotes = () => {
       
       console.log('Quotes data:', quotesData);
       
-      // If no quotes data from RPC, try using the view
+      // If no quotes data from RPC, try direct query filtered by user
       if (!quotesData || quotesData.length === 0) {
-        console.log('No quotes from RPC, trying view...');
-        const { data: viewQuotes, error: viewError } = await supabase
-          .from('customer_quotes_with_items')
-          .select('*');
-          
-        if (viewError) {
-          console.error('Error in view quotes query:', viewError);
-          
-          // Last resort: try direct query
-          const { data: customerProjects, error: projectsError } = await supabase
-            .from('customers')
-            .select('id')
-            .eq('user_id', user.id);
+        console.log('No quotes from RPC, trying direct query...');
 
-          if (projectsError) throw projectsError;
-          
-          if (!customerProjects || customerProjects.length === 0) {
-            setQuotes([]);
-            setLoading(false);
-            return;
-          }
+        // Get user's projects first
+        const { data: customerProjects, error: projectsError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id);
 
-          const projectIds = customerProjects.map(p => p.id);
-          
-          console.log('Project IDs:', projectIds);
-          
-          // Direct query as last resort
-          const { data: directQuotes, error: directError } = await supabase
-            .from('designer_quotes')
-            .select(`
-              *,
-              designer:designers(id, name, email, phone, specialization, profile_image),
-              project:customers(id, project_name, user_id, assigned_designer_id)
-            `)
-            .in('project_id', projectIds)
-            .order('created_at', { ascending: false });
-            
-          if (directError) {
-            console.error('Error in direct quotes query:', directError);
-          } else if (directQuotes) {
-            console.log('Direct quotes found:', directQuotes.length);
-            
-            // For each quote, fetch its items
-            const quotesWithItems = await Promise.all(directQuotes.map(async (quote) => {
-              const { data: items, error: itemsError } = await supabase
-                .from('quote_items')
-                .select('*')
-                .eq('quote_id', quote.id);
-                
-              if (itemsError) {
-                console.error('Error fetching quote items:', itemsError);
-                return { ...quote, items: [] };
-              }
-              
-              return { ...quote, items: items || [] };
-            }));
-            
-            setQuotes(quotesWithItems);
-            return;
-          }
-        } else if (viewQuotes) {
-          console.log('View quotes found:', viewQuotes.length);
-          setQuotes(viewQuotes);
+        if (projectsError) throw projectsError;
+
+        if (!customerProjects || customerProjects.length === 0) {
+          setQuotes([]);
+          setLoading(false);
+          return;
+        }
+
+        const projectIds = customerProjects.map(p => p.id);
+
+        console.log('Project IDs:', projectIds);
+
+        // Direct query filtered by user's projects
+        const { data: directQuotes, error: directError } = await supabase
+          .from('designer_quotes')
+          .select(`
+            *,
+            designer:designers(id, name, email, phone, specialization, profile_image),
+            project:customers(id, project_name, user_id, assigned_designer_id)
+          `)
+          .in('project_id', projectIds)
+          .order('created_at', { ascending: false });
+
+        if (directError) {
+          console.error('Error in direct quotes query:', directError);
+          throw directError;
+        }
+
+        if (directQuotes) {
+          console.log('Direct quotes found:', directQuotes.length);
+
+          // For each quote, fetch its items
+          const quotesWithItems = await Promise.all(directQuotes.map(async (quote) => {
+            const { data: items, error: itemsError } = await supabase
+              .from('quote_items')
+              .select('*')
+              .eq('quote_id', quote.id);
+
+            if (itemsError) {
+              console.error('Error fetching quote items:', itemsError);
+              return { ...quote, items: [] };
+            }
+
+            return { ...quote, items: items || [] };
+          }));
+
+          setQuotes(quotesWithItems);
+          setLoading(false);
           return;
         }
       }
