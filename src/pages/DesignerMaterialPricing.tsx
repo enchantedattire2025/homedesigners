@@ -508,22 +508,7 @@ const DesignerMaterialPricing = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="is_discounted"
-                    name="is_discounted"
-                    checked={formData.is_discounted}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      is_discounted: e.target.checked
-                    }))}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <label htmlFor="is_discounted" className="text-sm font-medium text-gray-700">
-                    Offer Discount
-                  </label>
-                </div>
+       
 
                 {formData.is_discounted && (
                   <div>
