@@ -94,109 +94,46 @@ const VastuAnalysisModal: React.FC<VastuAnalysisModalProps> = ({
     }, 200);
   };
   
-  const simulateAnalysis = () => {
-    // Use shorter delay when existing image is provided to improve UX
-    const delay = existingLayoutUrl ? 1200 : 3000;
-    setTimeout(() => {
-      // Generate Vastu score between 65-95
-      const score = Math.floor(Math.random() * 31) + 65;
-      setVastuScore(score);
-      
-      // Generate mock recommendations
-      const mockRecommendations: VastuRecommendation[] = [
-        {
-          zone: 'North-East (Ishanya)',
-          element: 'Water',
-          status: score > 80 ? 'good' : 'warning',
-          recommendation: score > 80 
-            ? 'Well placed water element. Maintain this area for prayer or meditation.'
-            : 'Consider adding a water feature or prayer space in this zone for better energy flow.',
-          priority: score > 80 ? 'low' : 'medium'
-        },
-        {
-          zone: 'South-East (Agneya)',
-          element: 'Fire',
-          status: score > 75 ? 'good' : 'bad',
-          recommendation: score > 75
-            ? 'Kitchen is well positioned in the South-East. Maintain this placement.'
-            : 'Kitchen should be relocated to the South-East corner for proper fire element alignment.',
-          priority: score > 75 ? 'low' : 'high'
-        },
-        {
-          zone: 'South (Yama)',
-          element: 'Earth',
-          status: Math.random() > 0.5 ? 'good' : 'warning',
-          recommendation: 'Ensure heavy furniture or storage is placed in the southern zone. Avoid sleeping with head facing south.',
-          priority: 'medium'
-        },
-        {
-          zone: 'South-West (Nairutya)',
-          element: 'Earth',
-          status: Math.random() > 0.7 ? 'good' : 'warning',
-          recommendation: 'Master bedroom is ideally placed in South-West. Ensure this area has solid walls and minimal windows.',
-          priority: 'medium'
-        },
-        {
-          zone: 'West (Varuna)',
-          element: 'Water',
-          status: Math.random() > 0.6 ? 'good' : 'warning',
-          recommendation: 'Good placement for children\'s bedroom or study room. Ensure proper ventilation in this area.',
-          priority: 'low'
-        },
-        {
-          zone: 'North-West (Vayavya)',
-          element: 'Air',
-          status: Math.random() > 0.5 ? 'warning' : 'bad',
-          recommendation: 'Guest room or storage should be in this area. Avoid placing toilets in the North-West zone.',
-          priority: 'high'
-        },
-        {
-          zone: 'North (Kubera)',
-          element: 'Water',
-          status: Math.random() > 0.4 ? 'good' : 'warning',
-          recommendation: 'Ideal for wealth storage or home office. Ensure this area is clutter-free for prosperity.',
-          priority: 'medium'
-        },
-        {
-          zone: 'Center (Brahma)',
-          element: 'Space',
-          status: Math.random() > 0.8 ? 'good' : 'bad',
-          recommendation: 'Keep the center of your home open and free from heavy furniture or beams for positive energy flow.',
-          priority: 'high'
-        }
-      ];
-      
-      // Sort by priority
-      mockRecommendations.sort((a, b) => {
-        const priorityOrder = { high: 0, medium: 1, low: 2 };
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
-      });
-      
-      setRecommendations(mockRecommendations);
-      setStep('results');
-      
-      // If project ID is provided, save the analysis to the database
-      if (projectId) {
-        saveAnalysisToProject(projectId, score, mockRecommendations);
-      }
-    }, delay);
-  };
-  
-  const saveAnalysisToProject = async (projectId: string, score: number, recommendations: VastuRecommendation[]) => {
+  const simulateAnalysis = async () => {
     try {
-      // In a real implementation, you would save this to a vastu_analysis table
-      console.log('Saving Vastu analysis for project:', projectId, {
-        score,
-        recommendations,
-        analyzed_at: new Date().toISOString()
-      });
-      
-      // For now, we'll just log it
+      // Call the Vastu analysis Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/vastu-analysis`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
+          },
+          body: JSON.stringify({
+            projectId: projectId,
+            layoutImageUrl: uploadedImage || existingLayoutUrl
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze floor plan');
+      }
+
+      const data = await response.json();
+
+      const score = data.score;
+      setVastuScore(score);
+
+      setRecommendations(data.recommendations);
+      setStep('results');
     } catch (error) {
-      console.error('Error saving Vastu analysis:', error);
+      console.error('Error analyzing floor plan:', error);
+      setError('Failed to analyze floor plan. Please try again.');
+      setStep('upload');
     }
   };
-  
+
   const getStatusIcon = (status: 'good' | 'warning' | 'bad') => {
     switch (status) {
       case 'good':
