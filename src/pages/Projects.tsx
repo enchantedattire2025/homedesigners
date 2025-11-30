@@ -38,9 +38,9 @@ const Projects = () => {
             *,
             assigned_designer:designers(id, name, email, specialization, rating, total_reviews, experience, profile_image)
           `)
-          .eq('assignment_status', 'completed')
+          .eq('status', 'completed')
           .order('updated_at', { ascending: false });
-        
+
         projectsData = data;
         projectsError = error;
       } catch (dbError) {
