@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Home, FileText, X, Plus, ExternalLink, Heart, CheckCircle, IndianRupee as Rupee, Compass } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Home, FileText, X, Plus, ExternalLink, Heart, CheckCircle, IndianRupee as Rupee } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import WelcomeModal from '../components/WelcomeModal';
-import VastuAnalysisModal from '../components/VastuAnalysisModal';
 import ImageUploader from '../components/ImageUploader';
 
 interface Designer {
@@ -22,7 +21,6 @@ const CustomerRegistration = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [showVastuModal, setShowVastuModal] = useState(false);
   const [designers, setDesigners] = useState<Designer[]>([]);
   const [loadingDesigners, setLoadingDesigners] = useState(false);
   const [formData, setFormData] = useState({
@@ -529,21 +527,8 @@ const CustomerRegistration = () => {
                     onImageUploaded={(url) => setFormData(prev => ({ ...prev, layout_image_url: url }))}
                     existingImageUrl={formData.layout_image_url}
                     label="2D Home Layout Image"
-                    helpText="Upload your floor plan to help designers understand your space better. You can also run a Vastu analysis on your layout."
+                    helpText="Upload your floor plan to help designers understand your space better."
                   />
-                  
-                  {formData.layout_image_url && (
-                    <div className="mt-4">
-                      <button
-                        type="button"
-                        onClick={() => setShowVastuModal(true)}
-                        className="bg-accent-500 hover:bg-accent-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 mx-auto"
-                      >
-                        <Compass className="w-4 h-4" />
-                        <span>Run Vastu Analysis on Layout</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -640,13 +625,6 @@ const CustomerRegistration = () => {
         isOpen={showWelcomeModal}
         onClose={handleWelcomeModalClose}
         userType="customer"
-      />
-      
-      {/* Vastu Analysis Modal */}
-      <VastuAnalysisModal
-        isOpen={showVastuModal}
-        onClose={() => setShowVastuModal(false)}
-        existingLayoutUrl={formData.layout_image_url || undefined}
       />
     </>
   );
