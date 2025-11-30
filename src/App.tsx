@@ -24,8 +24,10 @@ import DesignerMaterialPricing from './pages/DesignerMaterialPricing';
 import DesignerQuotes from './pages/DesignerQuotes';
 import DesignerQuoteGenerator from './pages/DesignerQuoteGenerator';
 import CustomerQuotes from './pages/CustomerQuotes';
+import DesignerSubscription from './pages/DesignerSubscription';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDealsManagement from './pages/AdminDealsManagement';
+import AdminSubscriptionManagement from './pages/AdminSubscriptionManagement';
 import AdminSignup from './pages/AdminSignup';
 import AdminLogin from './pages/AdminLogin';
 import DebugPage from './pages/DebugPage';
@@ -118,9 +120,11 @@ function App() {
             <Route path="/designer-material-pricing" element={<DesignerMaterialPricing />} />
             <Route path="/designer-quotes" element={<DesignerQuotes />} />
             <Route path="/customer-quotes" element={<CustomerQuotes />} />
+            <Route path="/designer-subscription" element={<DesignerSubscription />} />
             <Route path="/generate-quote/:id" element={<DesignerQuoteGenerator />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/deals" element={<AdminDealsManagement />} />
+            <Route path="/admin/subscriptions" element={<AdminSubscriptionManagement />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin-signup" element={<AdminSignup />} />
             <Route path="/debug" element={<DebugPage />} />

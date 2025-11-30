@@ -41,6 +41,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
+import SubscriptionBanner from '../components/SubscriptionBanner';
 
 interface DashboardStats {
   totalProjects: number;
@@ -781,6 +782,12 @@ const DesignerDashboard = () => {
             </div>
             <div className="flex space-x-4">
               <button
+                onClick={() => navigate('/designer-subscription')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Manage Subscription
+              </button>
+              <button
                 onClick={() => navigate('/customer-projects')}
                 className="btn-secondary"
               >
@@ -798,6 +805,8 @@ const DesignerDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SubscriptionBanner />
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div 
