@@ -38,7 +38,7 @@ const Projects = () => {
             *,
             assigned_designer:designers(id, name, email, specialization, rating, total_reviews, experience, profile_image)
           `)
-          .eq('status', 'completed')
+          .eq('assignment_status', 'completed')
           .order('updated_at', { ascending: false });
 
         projectsData = data;
