@@ -167,6 +167,7 @@ const DesignerQuoteGenerator = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [showAddItemsModal, setShowAddItemsModal] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState<{[key: string]: number}>({});
+  const [materialSearchQuery, setMaterialSearchQuery] = useState('');
   const [quoteData, setQuoteData] = useState<QuoteData>({
     title: '',
     description: '',
@@ -1336,20 +1337,42 @@ const DesignerQuoteGenerator = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-secondary-800">Add Items to Quote</h2>
-                <p className="text-gray-600 mt-1">Select materials and set quantities</p>
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-secondary-800">Add Items to Quote</h2>
+                  <p className="text-gray-600 mt-1">Select materials and set quantities</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAddItemsModal(false);
+                    setSelectedMaterials({});
+                    setMaterialSearchQuery('');
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  setShowAddItemsModal(false);
-                  setSelectedMaterials({});
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={materialSearchQuery}
+                  onChange={(e) => setMaterialSearchQuery(e.target.value)}
+                  placeholder="Search materials by name, category, brand..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                {materialSearchQuery && (
+                  <button
+                    onClick={() => setMaterialSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Modal Body */}
@@ -1359,18 +1382,51 @@ const DesignerQuoteGenerator = () => {
                   <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">No materials available. Please add materials in Material Pricing first.</p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Group materials by category */}
-                  {Object.entries(
-                    materials.reduce((acc, material) => {
-                      if (!acc[material.category]) {
-                        acc[material.category] = [];
-                      }
-                      acc[material.category].push(material);
-                      return acc;
-                    }, {} as {[key: string]: Material[]})
-                  ).map(([category, categoryMaterials]) => (
+              ) : (() => {
+                // Filter materials based on search query
+                const filteredMaterials = materialSearchQuery.trim()
+                  ? materials.filter(material =>
+                      material.name.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
+                      material.category.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
+                      (material.brand && material.brand.toLowerCase().includes(materialSearchQuery.toLowerCase())) ||
+                      (material.description && material.description.toLowerCase().includes(materialSearchQuery.toLowerCase()))
+                    )
+                  : materials;
+
+                if (filteredMaterials.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">No materials found matching "{materialSearchQuery}"</p>
+                      <button
+                        onClick={() => setMaterialSearchQuery('')}
+                        className="text-primary-600 hover:text-primary-700 font-medium"
+                      >
+                        Clear search
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {materialSearchQuery && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm text-blue-800">
+                          Showing <span className="font-semibold">{filteredMaterials.length}</span> material{filteredMaterials.length !== 1 ? 's' : ''} matching "{materialSearchQuery}"
+                        </p>
+                      </div>
+                    )}
+                    {/* Group materials by category */}
+                    {Object.entries(
+                      filteredMaterials.reduce((acc, material) => {
+                        if (!acc[material.category]) {
+                          acc[material.category] = [];
+                        }
+                        acc[material.category].push(material);
+                        return acc;
+                      }, {} as {[key: string]: Material[]})
+                    ).map(([category, categoryMaterials]) => (
                     <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
                       <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                         <h3 className="font-semibold text-secondary-800">{category}</h3>
@@ -1452,9 +1508,10 @@ const DesignerQuoteGenerator = () => {
                         ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Modal Footer */}
@@ -1477,6 +1534,7 @@ const DesignerQuoteGenerator = () => {
                   onClick={() => {
                     setShowAddItemsModal(false);
                     setSelectedMaterials({});
+                    setMaterialSearchQuery('');
                   }}
                   className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors"
                 >
