@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Calendar, Star, TrendingUp, Clock, CheckCircle, AlertCircle, DollarSign, Eye, MessageSquare, Award, Target, Activity, FileText, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, ArrowLeft, Filter, Search, Edit, Trash2, Send, Plus, ThumbsDown } from 'lucide-react';
+import { BarChart3, Users, Calendar, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, MessageSquare, Award, Target, Activity, FileText, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, ArrowLeft, Filter, Search, Edit, Trash2, Send, Plus, ThumbsDown } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
