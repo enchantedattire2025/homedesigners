@@ -443,11 +443,12 @@ export default function AdminDealsManagement() {
                   <input
                     type="number"
                     name="original_price"
-                    value={formData.original_price}
+                    value={formData.original_price === 0 ? '' : formData.original_price}
                     onChange={handleInputChange}
                     required
                     min="0"
                     step="0.01"
+                    placeholder="0"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                   />
                 </div>
@@ -459,12 +460,13 @@ export default function AdminDealsManagement() {
                   <input
                     type="number"
                     name="discount_percentage"
-                    value={formData.discount_percentage}
+                    value={formData.discount_percentage === 0 ? '' : formData.discount_percentage}
                     onChange={handleInputChange}
                     required
                     min="0"
                     max="100"
                     step="0.01"
+                    placeholder="0"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                   />
                 </div>

@@ -1001,11 +1001,12 @@ const DesignerQuoteGenerator = () => {
                             </label>
                             <input
                               type="number"
-                              value={item.discount_percent}
+                              value={item.discount_percent === 0 ? '' : item.discount_percent}
                               onChange={(e) => handleItemChange(index, 'discount_percent', parseFloat(e.target.value) || 0)}
                               min="0"
                               max="100"
                               step="0.01"
+                              placeholder="0"
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
                           </div>
@@ -1201,10 +1202,11 @@ const DesignerQuoteGenerator = () => {
                     <input
                       type="number"
                       name="discount_amount"
-                      value={quoteData.discount_amount}
+                      value={quoteData.discount_amount === 0 ? '' : quoteData.discount_amount}
                       onChange={handleInputChange}
                       min="0"
                       step="0.01"
+                      placeholder="0"
                       className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
