@@ -20,7 +20,10 @@ import {
   Clock,
   ChevronRight,
   ChevronLeft,
-  Home
+  Home,
+  Search,
+  X,
+  ShoppingCart
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
@@ -162,6 +165,8 @@ const DesignerQuoteGenerator = () => {
   ]);
   
   const [currentStep, setCurrentStep] = useState(1);
+  const [showAddItemsModal, setShowAddItemsModal] = useState(false);
+  const [selectedMaterials, setSelectedMaterials] = useState<{[key: string]: number}>({});
   const [quoteData, setQuoteData] = useState<QuoteData>({
     title: '',
     description: '',
@@ -306,11 +311,59 @@ const DesignerQuoteGenerator = () => {
       discount_percent: 0,
       amount: 0
     };
-    
+
     setQuoteData(prev => ({
       ...prev,
       items: [...prev.items, newItem]
     }));
+  };
+
+  const handleAddMultipleItems = () => {
+    const newItems: QuoteItem[] = [];
+
+    Object.entries(selectedMaterials).forEach(([materialId, quantity]) => {
+      if (quantity > 0) {
+        const material = materials.find(m => m.id === materialId);
+        if (material) {
+          const unitPrice = material.is_discounted && material.discount_price !== null
+            ? material.discount_price
+            : material.base_price;
+
+          newItems.push({
+            material_id: material.id,
+            item_type: 'material',
+            name: material.name,
+            description: material.description || '',
+            quantity: quantity,
+            unit: material.unit,
+            unit_price: unitPrice,
+            discount_percent: 0,
+            amount: quantity * unitPrice
+          });
+        }
+      }
+    });
+
+    setQuoteData(prev => ({
+      ...prev,
+      items: [...prev.items, ...newItems]
+    }));
+
+    setSelectedMaterials({});
+    setShowAddItemsModal(false);
+  };
+
+  const handleMaterialQuantityChange = (materialId: string, quantity: number) => {
+    setSelectedMaterials(prev => {
+      if (quantity <= 0) {
+        const { [materialId]: removed, ...rest } = prev;
+        return rest;
+      }
+      return {
+        ...prev,
+        [materialId]: quantity
+      };
+    });
   };
 
   const removeItem = (index: number) => {
@@ -719,13 +772,22 @@ const DesignerQuoteGenerator = () => {
               <div className="bg-white rounded-xl shadow-lg p-6 animate-fadeIn">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-secondary-800">Quote Items</h2>
-                  <button
-                    onClick={addItem}
-                    className="bg-primary-500 hover:bg-primary-600 text-white px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Item</span>
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setShowAddItemsModal(true)}
+                      className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Multiple Items</span>
+                    </button>
+                    <button
+                      onClick={addItem}
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Custom</span>
+                    </button>
+                  </div>
                 </div>
                 
                 {quoteData.items.length === 0 ? (
@@ -733,10 +795,10 @@ const DesignerQuoteGenerator = () => {
                     <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-4">No items added yet</p>
                     <button
-                      onClick={addItem}
+                      onClick={() => setShowAddItemsModal(true)}
                       className="btn-primary"
                     >
-                      Add Your First Item
+                      Add Items from Materials
                     </button>
                   </div>
                 ) : (
@@ -1268,6 +1330,171 @@ const DesignerQuoteGenerator = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Multiple Items Modal */}
+      {showAddItemsModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-secondary-800">Add Items to Quote</h2>
+                <p className="text-gray-600 mt-1">Select materials and set quantities</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddItemsModal(false);
+                  setSelectedMaterials({});
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {materials.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No materials available. Please add materials in Material Pricing first.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Group materials by category */}
+                  {Object.entries(
+                    materials.reduce((acc, material) => {
+                      if (!acc[material.category]) {
+                        acc[material.category] = [];
+                      }
+                      acc[material.category].push(material);
+                      return acc;
+                    }, {} as {[key: string]: Material[]})
+                  ).map(([category, categoryMaterials]) => (
+                    <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                        <h3 className="font-semibold text-secondary-800">{category}</h3>
+                      </div>
+                      <div className="divide-y divide-gray-100">
+                        {categoryMaterials.map((material) => (
+                          <div
+                            key={material.id}
+                            className="p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-medium text-secondary-800">{material.name}</h4>
+                                  {material.is_discounted && material.discount_price && (
+                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                                      Discounted
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-600 mb-2">{material.description}</p>
+                                <div className="flex items-center gap-4 text-sm">
+                                  <span className="text-gray-600">Brand: <span className="font-medium">{material.brand || 'N/A'}</span></span>
+                                  <span className="text-gray-600">Grade: <span className="font-medium">{material.quality_grade}</span></span>
+                                  <span className="text-gray-600">Unit: <span className="font-medium">{material.unit}</span></span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2">
+                                  {material.is_discounted && material.discount_price ? (
+                                    <>
+                                      <span className="text-lg font-bold text-primary-600">
+                                        {formatCurrency(material.discount_price)}/{material.unit}
+                                      </span>
+                                      <span className="text-sm text-gray-500 line-through">
+                                        {formatCurrency(material.base_price)}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-lg font-bold text-gray-800">
+                                      {formatCurrency(material.base_price)}/{material.unit}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleMaterialQuantityChange(
+                                    material.id,
+                                    Math.max(0, (selectedMaterials[material.id] || 0) - 1)
+                                  )}
+                                  disabled={!selectedMaterials[material.id]}
+                                  className="w-8 h-8 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={selectedMaterials[material.id] || ''}
+                                  onChange={(e) => handleMaterialQuantityChange(
+                                    material.id,
+                                    parseFloat(e.target.value) || 0
+                                  )}
+                                  placeholder="0"
+                                  className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-center focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                />
+                                <button
+                                  onClick={() => handleMaterialQuantityChange(
+                                    material.id,
+                                    (selectedMaterials[material.id] || 0) + 1
+                                  )}
+                                  className="w-8 h-8 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm text-gray-600">
+                  <span className="font-semibold text-secondary-800">
+                    {Object.keys(selectedMaterials).length}
+                  </span> material{Object.keys(selectedMaterials).length !== 1 ? 's' : ''} selected
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">Total Items</div>
+                  <div className="text-xl font-bold text-primary-600">
+                    {Object.values(selectedMaterials).reduce((sum, qty) => sum + qty, 0).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAddItemsModal(false);
+                    setSelectedMaterials({});
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddMultipleItems}
+                  disabled={Object.keys(selectedMaterials).length === 0}
+                  className="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  <span>Add {Object.keys(selectedMaterials).length} Item{Object.keys(selectedMaterials).length !== 1 ? 's' : ''} to Quote</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
