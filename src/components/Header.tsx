@@ -150,11 +150,10 @@ const Header = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3">
               <img
-                src="/logo.png"
+                src="/homedesignerslogo.jpg"
                 alt="TheHomeDesigners Logo"
-                className="h-10 w-auto"
+                className="h-12 w-auto"
               />
-              <span className="text-xl font-bold text-secondary-800 hidden sm:inline">TheHomeDesigners</span>
             </Link>
 
             {/* Desktop Navigation */}
