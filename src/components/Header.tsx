@@ -148,11 +148,13 @@ const Header = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
-                <HomeIcon className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-secondary-800">TheHomeDesigners</span>
+            <Link to="/" className="flex items-center space-x-3">
+              <img
+                src="/logo.png"
+                alt="TheHomeDesigners Logo"
+                className="h-10 w-auto"
+              />
+              <span className="text-xl font-bold text-secondary-800 hidden sm:inline">TheHomeDesigners</span>
             </Link>
 
             {/* Desktop Navigation */}
