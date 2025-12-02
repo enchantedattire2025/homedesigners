@@ -33,6 +33,10 @@
   .animate-fadeIn {
     animation: fadeIn 0.5s ease-in-out;
   }
+
+  .animate-slideUp {
+    animation: slideUp 0.4s ease-out;
+  }
 }
 
 @keyframes fadeIn {
@@ -44,6 +48,18 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* Analytics modal animation */
 .analytics-modal-enter {
@@ -84,7 +100,6 @@
 
 .stat-icon {
   transition: transform 0.3s ease;
-}
 }
 
 /* Chatbot input focus styles */

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Icon Generator</title>
+</head>
+<body>
+  <h1>Generating App Icons...</h1>
+  <canvas id="canvas"></canvas>
+  <script>
+    const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+
+    sizes.forEach(size => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#4F46E5');
+      gradient.addColorStop(1, '#7C3AED');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Icon - Simple house shape
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = size * 0.05;
+
+      // House roof
+      ctx.beginPath();
+      ctx.moveTo(size * 0.5, size * 0.25);
+      ctx.lineTo(size * 0.2, size * 0.5);
+      ctx.lineTo(size * 0.8, size * 0.5);
+      ctx.closePath();
+      ctx.fill();
+
+      // House body
+      ctx.fillRect(size * 0.25, size * 0.5, size * 0.5, size * 0.35);
+
+      // Door
+      ctx.fillStyle = '#4F46E5';
+      ctx.fillRect(size * 0.42, size * 0.62, size * 0.16, size * 0.23);
+
+      // Window
+      ctx.fillRect(size * 0.62, size * 0.58, size * 0.12, size * 0.12);
+
+      // Download
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `icon-${size}x${size}.png`;
+        a.click();
+      });
+    });
+
+    setTimeout(() => {
+      document.body.innerHTML += '<p>Icons generated! Check your downloads folder.</p>';
+    }, 1000);
+  </script>
+</body>
+</html>

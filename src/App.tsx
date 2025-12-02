@@ -6,6 +6,7 @@ import { detectUserTypeAndRedirect } from './utils/userTypeDetection';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
+import InstallPrompt from './components/InstallPrompt';
 import Home from './pages/Home';
 import Designers from './pages/Designers';
 import Projects from './pages/Projects';
@@ -134,9 +135,10 @@ function App() {
             <Route path="/share-photo" element={<SharePhotoForm />} />
             <Route path="/clear-session" element={<ClearSession />} />
           </Routes>
-        </main>       
+        </main>
         <Footer />
         <Chatbot />
+        <InstallPrompt />
       </div>
     </Router>
   );
