@@ -24,6 +24,7 @@ import DesignerMaterialPricing from './pages/DesignerMaterialPricing';
 import DesignerQuotes from './pages/DesignerQuotes';
 import DesignerQuoteGenerator from './pages/DesignerQuoteGenerator';
 import CustomerQuotes from './pages/CustomerQuotes';
+import QuoteViewer from './pages/QuoteViewer';
 import DesignerSubscription from './pages/DesignerSubscription';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDealsManagement from './pages/AdminDealsManagement';
@@ -122,6 +123,7 @@ function App() {
             <Route path="/customer-quotes" element={<CustomerQuotes />} />
             <Route path="/designer-subscription" element={<DesignerSubscription />} />
             <Route path="/generate-quote/:id" element={<DesignerQuoteGenerator />} />
+            <Route path="/view-quote/:id" element={<QuoteViewer />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/deals" element={<AdminDealsManagement />} />
             <Route path="/admin/subscriptions" element={<AdminSubscriptionManagement />} />

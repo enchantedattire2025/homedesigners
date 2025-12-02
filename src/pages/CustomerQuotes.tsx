@@ -573,7 +573,7 @@ const CustomerQuotes = () => {
                     )}
                     
                     <button
-                      onClick={() => window.open(`/generate-quote/${quote.project_id}?view=true&id=${quote.id}`, '_blank')}
+                      onClick={() => window.open(`/view-quote/${quote.project_id}?id=${quote.id}`, '_blank')}
                       className="bg-secondary-500 hover:bg-secondary-600 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
                     >
                       <Download className="w-4 h-4" />
