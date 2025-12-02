@@ -1,63 +1,165 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Icon Generator</title>
+  <title>Icon Generator - TheHomeDesigners</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+    }
+    .upload-area {
+      border: 2px dashed #4F46E5;
+      padding: 40px;
+      text-align: center;
+      margin: 20px 0;
+      border-radius: 8px;
+      background: #f8f9ff;
+    }
+    input[type="file"] {
+      margin: 20px 0;
+    }
+    button {
+      background: #4F46E5;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #4338ca;
+    }
+    .preview {
+      margin: 20px 0;
+      text-align: center;
+    }
+    .preview img {
+      max-width: 200px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .instructions {
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+      border-left: 4px solid #ffc107;
+    }
+  </style>
 </head>
 <body>
-  <h1>Generating App Icons...</h1>
-  <canvas id="canvas"></canvas>
+  <div class="container">
+    <h1>🏠 PWA Icon Generator</h1>
+    <p>Generate optimized PWA icons from your logo image</p>
+
+    <div class="instructions">
+      <strong>Note:</strong> Your logo is already set up! This tool is for generating resized versions if needed.
+      <br>Current logo: <code>public/logo.png</code>
+    </div>
+
+    <div class="upload-area">
+      <p>Upload your logo image (PNG recommended)</p>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div class="preview" id="preview"></div>
+
+    <button onclick="generateIcons()" style="display: none;" id="generateBtn">
+      Generate All Icon Sizes
+    </button>
+
+    <div class="status" id="status"></div>
+  </div>
+
   <script>
-    const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const generateBtn = document.getElementById('generateBtn');
+    const status = document.getElementById('status');
+    let uploadedImage = null;
 
-    sizes.forEach(size => {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-      // Background
-      const gradient = ctx.createLinearGradient(0, 0, size, size);
-      gradient.addColorStop(0, '#4F46E5');
-      gradient.addColorStop(1, '#7C3AED');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, size, size);
-
-      // Icon - Simple house shape
-      ctx.fillStyle = 'white';
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = size * 0.05;
-
-      // House roof
-      ctx.beginPath();
-      ctx.moveTo(size * 0.5, size * 0.25);
-      ctx.lineTo(size * 0.2, size * 0.5);
-      ctx.lineTo(size * 0.8, size * 0.5);
-      ctx.closePath();
-      ctx.fill();
-
-      // House body
-      ctx.fillRect(size * 0.25, size * 0.5, size * 0.5, size * 0.35);
-
-      // Door
-      ctx.fillStyle = '#4F46E5';
-      ctx.fillRect(size * 0.42, size * 0.62, size * 0.16, size * 0.23);
-
-      // Window
-      ctx.fillRect(size * 0.62, size * 0.58, size * 0.12, size * 0.12);
-
-      // Download
-      canvas.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `icon-${size}x${size}.png`;
-        a.click();
-      });
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          uploadedImage = img;
+          preview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+          generateBtn.style.display = 'block';
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
     });
 
-    setTimeout(() => {
-      document.body.innerHTML += '<p>Icons generated! Check your downloads folder.</p>';
-    }, 1000);
+    function generateIcons() {
+      if (!uploadedImage) return;
+
+      const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+      let generated = 0;
+
+      status.style.display = 'block';
+      status.className = 'status';
+      status.textContent = 'Generating icons...';
+
+      sizes.forEach((size, index) => {
+        setTimeout(() => {
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          // Draw the image scaled to fit
+          ctx.drawImage(uploadedImage, 0, 0, size, size);
+
+          // Download
+          canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `icon-${size}x${size}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            generated++;
+            if (generated === sizes.length) {
+              status.className = 'status success';
+              status.textContent = '✓ All icons generated! Check your downloads folder. Copy them to public/icons/ folder.';
+            }
+          });
+        }, index * 100);
+      });
+    }
   </script>
 </body>
 </html>
