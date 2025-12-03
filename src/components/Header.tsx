@@ -150,7 +150,7 @@ const Header = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3">
               <img
-                src="/logo.png"
+                src="/thehomedesigners.png"
                 alt="TheHomeDesigners Logo"
                 className="h-10 w-auto"
               />
