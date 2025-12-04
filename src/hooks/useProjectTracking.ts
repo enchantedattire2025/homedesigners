@@ -113,6 +113,33 @@ export const useProjectTracking = (projectId?: string) => {
         throw new Error('Designer not found or inactive');
       }
 
+      // Check if designer can accept new assignments (quota validation)
+      const { data: quotaCheck, error: quotaError } = await supabase
+        .rpc('can_designer_accept_assignment', { p_designer_id: designer.id });
+
+      if (quotaError) {
+        console.error('Error checking designer quota:', quotaError);
+        throw new Error('Failed to validate designer availability');
+      }
+
+      if (!quotaCheck.allowed) {
+        // Throw specific error based on reason
+        if (quotaCheck.reason === 'quota_exceeded') {
+          throw new Error(
+            `This designer has reached their monthly quote limit (${quotaCheck.quotes_used}/${quotaCheck.max_quotes} on ${quotaCheck.plan_name} plan). ` +
+            `Their quota will reset on ${new Date(quotaCheck.period_end).toLocaleDateString()}.`
+          );
+        } else if (quotaCheck.reason === 'subscription_inactive') {
+          throw new Error(
+            `This designer's subscription is ${quotaCheck.status}. They cannot accept new projects at this time.`
+          );
+        } else if (quotaCheck.reason === 'no_subscription') {
+          throw new Error('This designer does not have an active subscription.');
+        } else {
+          throw new Error(quotaCheck.message || 'Designer cannot accept new assignments');
+        }
+      }
+
       // Update the project with assignment
       const { error: updateError } = await supabase
         .from('customers')
@@ -138,6 +165,14 @@ export const useProjectTracking = (projectId?: string) => {
         });
 
       if (assignmentError) throw assignmentError;
+
+      // Increment the designer's quote usage counter
+      const { error: usageError } = await supabase
+        .rpc('increment_designer_quote_usage', { p_designer_id: designer.id });
+
+      if (usageError) {
+        console.error('Error updating designer usage:', usageError);
+      }
 
       return { success: true };
     } catch (error: any) {
