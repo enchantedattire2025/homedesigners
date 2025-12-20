@@ -92,14 +92,24 @@ const DesignTool = () => {
 
   // Check authentication and authorization
   useEffect(() => {
+    console.log('DesignTool auth check:', {
+      user: !!user,
+      isDesigner,
+      designerLoading
+    });
+
     if (!user) {
+      console.log('DesignTool: No user, redirecting to home');
       navigate('/');
       return;
     }
 
     // Only redirect if we've finished loading and user is not a designer
     if (!designerLoading && !isDesigner) {
+      console.log('DesignTool: User is not a designer, redirecting to my-projects');
       navigate('/my-projects');
+    } else if (!designerLoading && isDesigner) {
+      console.log('DesignTool: Designer verified, loading tool');
     }
   }, [user, isDesigner, designerLoading, navigate]);
 

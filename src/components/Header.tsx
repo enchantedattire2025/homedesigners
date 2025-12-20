@@ -226,6 +226,11 @@ const Header = () => {
                               </button>
                               <button
                                 onClick={() => {
+                                  console.log('Header: Navigating to design-tool', {
+                                    isDesigner,
+                                    designerLoading,
+                                    designer: !!designer
+                                  });
                                   navigate('/design-tool');
                                   setShowUserMenu(false);
                                 }}
@@ -414,6 +419,11 @@ const Header = () => {
                             </button>
                             <button
                               onClick={() => {
+                                console.log('Header (mobile): Navigating to design-tool', {
+                                  isDesigner,
+                                  designerLoading,
+                                  designer: !!designer
+                                });
                                 navigate('/design-tool');
                                 setIsMenuOpen(false);
                               }}
