@@ -212,36 +212,38 @@ const CustomerQuotes = () => {
 
     try {
       setSubmitting(true);
+      setError(null);
 
-      // First, get the quote to find the project_id
-      const { data: quoteData, error: quoteError } = await supabase
-        .from('designer_quotes')
-        .select('project_id, designer_id')
-        .eq('id', quoteId)
-        .single();
-
-      if (quoteError) throw quoteError;
-
-      // Update the quote
-      const { error } = await supabase
+      // Update the quote with acceptance info and get the project_id in one operation
+      const { data: updatedQuote, error: updateError } = await supabase
         .from('designer_quotes')
         .update({
           customer_accepted: true,
+          acceptance_date: new Date().toISOString(),
           customer_feedback: feedbackText || 'Quote accepted',
           status: 'accepted'
         })
-        .eq('id', quoteId);
+        .eq('id', quoteId)
+        .select('project_id, designer_id')
+        .maybeSingle();
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('Error updating quote:', updateError);
+        throw new Error(updateError.message || 'Failed to accept quote');
+      }
+
+      if (!updatedQuote) {
+        throw new Error('Quote not found or you do not have permission to accept it');
+      }
 
       // Update the customer project status from 'shared' to 'assigned'
-      if (quoteData?.project_id) {
+      if (updatedQuote.project_id) {
         const { error: projectError } = await supabase
           .from('customers')
           .update({
             assignment_status: 'assigned'
           })
-          .eq('id', quoteData.project_id)
+          .eq('id', updatedQuote.project_id)
           .eq('user_id', user.id);
 
         if (projectError) {
@@ -249,20 +251,26 @@ const CustomerQuotes = () => {
         }
       }
 
-      setSuccessMessage('Quote accepted successfully!');
+      setSuccessMessage('Quote accepted successfully! The project has been assigned to your designer.');
       setSelectedQuote(null);
       setFeedbackText('');
 
       // Refresh quotes
-      fetchQuotes();
+      await fetchQuotes();
 
-      // Clear success message after 3 seconds
+      // Clear success message after 5 seconds
       setTimeout(() => {
         setSuccessMessage(null);
-      }, 3000);
+      }, 5000);
     } catch (error: any) {
       console.error('Error accepting quote:', error);
-      setError(error.message || 'Failed to accept quote');
+      const errorMessage = error.message || 'Failed to accept quote. Please make sure you have permission to accept this quote.';
+      setError(errorMessage);
+
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
     } finally {
       setSubmitting(false);
     }
@@ -270,35 +278,51 @@ const CustomerQuotes = () => {
   
   const handleRejectQuote = async (quoteId: string) => {
     if (!user || !feedbackText) return;
-    
+
     try {
       setSubmitting(true);
-      
-      const { error } = await supabase
+      setError(null);
+
+      const { data: updatedQuote, error: updateError } = await supabase
         .from('designer_quotes')
         .update({
           customer_accepted: false,
           customer_feedback: feedbackText,
           status: 'rejected'
         })
-        .eq('id', quoteId);
-        
-      if (error) throw error;
-      
+        .eq('id', quoteId)
+        .select()
+        .maybeSingle();
+
+      if (updateError) {
+        console.error('Error updating quote:', updateError);
+        throw new Error(updateError.message || 'Failed to reject quote');
+      }
+
+      if (!updatedQuote) {
+        throw new Error('Quote not found or you do not have permission to reject it');
+      }
+
       setSuccessMessage('Quote rejected. Your feedback has been sent to the designer.');
       setSelectedQuote(null);
       setFeedbackText('');
-      
+
       // Refresh quotes
-      fetchQuotes();
-      
-      // Clear success message after 3 seconds
+      await fetchQuotes();
+
+      // Clear success message after 5 seconds
       setTimeout(() => {
         setSuccessMessage(null);
-      }, 3000);
+      }, 5000);
     } catch (error: any) {
       console.error('Error rejecting quote:', error);
-      setError(error.message || 'Failed to reject quote');
+      const errorMessage = error.message || 'Failed to reject quote. Please make sure you have permission to reject this quote.';
+      setError(errorMessage);
+
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
     } finally {
       setSubmitting(false);
     }
