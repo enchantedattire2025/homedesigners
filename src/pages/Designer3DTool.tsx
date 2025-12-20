@@ -5,12 +5,10 @@ import {
   Save,
   Download,
   Upload,
-  Eye,
   Clock,
   MapPin,
   IndianRupee as Rupee,
   User,
-  FileText,
   Image as ImageIcon,
   AlertCircle,
   CheckCircle,
@@ -61,7 +59,6 @@ const Designer3DTool = () => {
   const [saving, setSaving] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true);
   const [availableProjects, setAvailableProjects] = useState<ProjectData[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
 
@@ -667,37 +664,68 @@ const Designer3DTool = () => {
         </div>
 
         <div className="flex-1 flex flex-col bg-white">
-          {showInstructions && (
-            <div className="bg-blue-50 border-b border-blue-200 p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-blue-900 mb-2">How to use Sweet Home 3D</h3>
-                  <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                    <li>Use the tool below to create your 3D floor plan and design</li>
-                    <li>When finished, use File → Save to download the .sh3d file</li>
-                    <li>Upload the .sh3d file using the upload button in the left panel</li>
-                    <li>Take screenshots of your 3D views and upload as preview images</li>
-                    <li>Add design notes explaining your choices</li>
-                    <li>Click "Submit Design" to send to the customer for review</li>
-                  </ol>
+          <div className="flex-1 relative flex items-center justify-center bg-gray-50">
+            <div className="text-center max-w-2xl px-6">
+              <Box className="w-20 h-20 text-primary-500 mx-auto mb-6" />
+              <h2 className="text-3xl font-bold text-secondary-800 mb-4">
+                Launch 3D Design Tool
+              </h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Sweet Home 3D is a powerful free interior design application that lets you create floor plans,
+                place furniture, and generate 3D views. Click the button below to open the tool in a new tab.
+              </p>
+
+              <button
+                onClick={() => {
+                  const newWindow = window.open('https://www.sweethome3d.com/SweetHome3DJSOnline.jsp', '_blank', 'width=1400,height=900');
+                  if (newWindow) newWindow.focus();
+                }}
+                className="btn-primary inline-flex items-center text-lg px-8 py-4 mb-8"
+              >
+                <Box className="w-6 h-6 mr-3" />
+                Open Sweet Home 3D
+              </button>
+
+              <div className="bg-white rounded-xl shadow-lg p-6 text-left">
+                <h3 className="text-lg font-semibold text-secondary-800 mb-4">Quick Start Guide:</h3>
+                <ol className="space-y-3 text-gray-700">
+                  <li className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold mr-3">1</span>
+                    <span>Click the button above to open Sweet Home 3D in a new window</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold mr-3">2</span>
+                    <span>Create your floor plan by drawing walls and adding rooms</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold mr-3">3</span>
+                    <span>Drag and drop furniture from the catalog into your design</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold mr-3">4</span>
+                    <span>Switch to 3D view to see your design in three dimensions</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold mr-3">5</span>
+                    <span>Save your work using <strong>File → Save</strong> to download a .sh3d file</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold mr-3">6</span>
+                    <span>Upload the .sh3d file and preview images using the panel on the left</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-blue-800 text-left">
+                    <strong>Note:</strong> Sweet Home 3D opens in a new window due to browser security restrictions.
+                    Make sure to allow pop-ups for this site if prompted.
+                  </p>
                 </div>
-                <button
-                  onClick={() => setShowInstructions(false)}
-                  className="text-blue-600 hover:text-blue-800 ml-4"
-                >
-                  <FileText className="w-5 h-5" />
-                </button>
               </div>
             </div>
-          )}
-
-          <div className="flex-1 relative">
-            <iframe
-              src="https://www.sweethome3d.com/SweetHome3DJSOnline.jsp"
-              className="w-full h-full border-0"
-              title="Sweet Home 3D Design Tool"
-              allow="fullscreen"
-            />
           </div>
         </div>
       </div>
