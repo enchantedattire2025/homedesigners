@@ -249,10 +249,10 @@ const DesignPreview: React.FC<DesignPreviewProps> = ({ projectId, isCustomer = f
                     className="flex items-center space-x-2 text-primary-600 hover:text-primary-700 font-medium"
                   >
                     <Download className="w-5 h-5" />
-                    <span>Download 3D Design File (.sh3d)</span>
+                    <span>Download 3D Design File</span>
                   </a>
                   <p className="text-sm text-gray-500 mt-2">
-                    You can open this file with Sweet Home 3D software to view and interact with the 3D design.
+                    Download the design file to view and interact with the 3D design.
                   </p>
                 </div>
               )}

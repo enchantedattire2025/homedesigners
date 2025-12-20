@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, IndianRupee as Rupee, Clock, User, Mail, Phone, MessageSquare, ArrowLeft, Loader2, AlertCircle, RefreshCw, FileText, Upload, Eye, BarChart3, Users, Star, TrendingUp, CheckCircle, Award, Target, Activity, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, Filter, Search, Edit, Trash2, Send, Plus, Box } from 'lucide-react';
+import { Calendar, MapPin, IndianRupee as Rupee, Clock, User, Mail, Phone, MessageSquare, ArrowLeft, Loader2, AlertCircle, RefreshCw, FileText, Upload, Eye, BarChart3, Users, Star, TrendingUp, CheckCircle, Award, Target, Activity, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, Filter, Search, Edit, Trash2, Send, Plus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
@@ -731,13 +731,6 @@ interface Quote {
                         className="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2 px-3 rounded-lg font-medium transition-colors text-center"
                       >
                         View Details
-                      </button>
-                      <button
-                        onClick={() => navigate(`/designer-3d-tool/${project.id}`)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg font-medium transition-colors"
-                        title="3D Design Tool"
-                      >
-                        <Box className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => navigate(`/project-detail/${project.id}?tab=updates`)}

@@ -980,13 +980,6 @@ const DesignerDashboard = () => {
               <h3 className="text-lg font-bold text-secondary-800 mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <button
-                  onClick={() => navigate('/designer-3d-tool')}
-                  className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3 border-2 border-primary-200 bg-primary-50"
-                >
-                  <Box className="w-5 h-5 text-primary-600" />
-                  <span className="font-medium text-gray-700">3D Design Tool</span>
-                </button>
-                <button
                   onClick={() => navigate(`/designers/${designer.id}`)}
                   className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3"
                 >
