@@ -399,7 +399,7 @@ const ProjectDetailWithTracking = () => {
                       
                       <div className="mt-4 text-right">
                         <button
-                          onClick={() => navigate(`/designer-quote/${project.id}`)}
+                          onClick={() => navigate(`/view-quote/${project.id}?id=${acceptedQuote.id}`)}
                           className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center space-x-1 justify-end"
                         >
                           <FileText className="w-4 h-4" />
