@@ -14,7 +14,8 @@ import {
   Image as ImageIcon,
   AlertCircle,
   CheckCircle,
-  Home
+  Home,
+  Box
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
@@ -61,6 +62,8 @@ const Designer3DTool = () => {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [availableProjects, setAvailableProjects] = useState<ProjectData[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
 
   useEffect(() => {
     if (!user || !isDesigner) {
@@ -71,8 +74,31 @@ const Designer3DTool = () => {
     if (projectId) {
       fetchProjectData();
       fetchDesigns();
+    } else if (designer) {
+      fetchAvailableProjects();
     }
-  }, [projectId, user, isDesigner]);
+  }, [projectId, user, isDesigner, designer]);
+
+  const fetchAvailableProjects = async () => {
+    if (!designer) return;
+
+    try {
+      setLoadingProjects(true);
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('assigned_designer_id', designer.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAvailableProjects(data || []);
+    } catch (err: any) {
+      console.error('Error fetching projects:', err);
+    } finally {
+      setLoadingProjects(false);
+      setLoading(false);
+    }
+  };
 
   const fetchProjectData = async () => {
     if (!projectId) return;
@@ -284,12 +310,105 @@ const Designer3DTool = () => {
     }
   };
 
-  if (loading) {
+  if (loading || loadingProjects) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading project...</p>
+          <p className="text-gray-600">{projectId ? 'Loading project...' : 'Loading your projects...'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!projectId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => navigate('/designer-dashboard')}
+                  className="flex items-center text-primary-600 hover:text-primary-700"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Dashboard
+                </button>
+                <h1 className="text-2xl font-bold text-secondary-800">3D Design Tool</h1>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="text-center mb-8">
+              <Box className="w-16 h-16 text-primary-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-secondary-800 mb-2">Select a Project</h2>
+              <p className="text-gray-600">
+                Choose a project to start creating 3D designs, or access the tool directly.
+              </p>
+            </div>
+
+            {availableProjects.length > 0 ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-secondary-800 mb-4">Your Projects</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {availableProjects.map((proj) => (
+                    <button
+                      key={proj.id}
+                      onClick={() => navigate(`/designer-3d-tool/${proj.id}`)}
+                      className="text-left p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all"
+                    >
+                      <h4 className="font-semibold text-secondary-800 mb-2">{proj.project_name}</h4>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <User className="w-4 h-4 mr-2" />
+                          {proj.name}
+                        </div>
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {proj.location}
+                        </div>
+                        <div className="flex items-center">
+                          <Home className="w-4 h-4 mr-2" />
+                          {proj.property_type}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">You don't have any assigned projects yet.</p>
+                <button
+                  onClick={() => navigate('/customer-projects')}
+                  className="btn-primary"
+                >
+                  View All Projects
+                </button>
+              </div>
+            )}
+
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <h3 className="text-lg font-semibold text-secondary-800 mb-4">Or Use Without Project</h3>
+              <p className="text-gray-600 mb-4">
+                Access Sweet Home 3D directly to practice or create designs without linking to a specific project.
+              </p>
+              <button
+                onClick={() => {
+                  const newWindow = window.open('https://www.sweethome3d.com/SweetHome3DJSOnline.jsp', '_blank');
+                  if (newWindow) newWindow.focus();
+                }}
+                className="btn-secondary"
+              >
+                Open Sweet Home 3D (New Tab)
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -302,8 +421,8 @@ const Designer3DTool = () => {
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Project</h2>
           <p className="text-gray-600 mb-6">{error || 'Project not found'}</p>
-          <button onClick={() => navigate('/designer-dashboard')} className="btn-primary">
-            Back to Dashboard
+          <button onClick={() => navigate('/designer-3d-tool')} className="btn-primary">
+            Back to Project Selection
           </button>
         </div>
       </div>
