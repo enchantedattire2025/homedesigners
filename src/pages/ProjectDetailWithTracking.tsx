@@ -147,7 +147,9 @@ const ProjectDetailWithTracking = () => {
 
   const isProjectOwner = project?.user_id === user?.id;
   const isAssignedDesigner = isDesigner && project?.assigned_designer_id === designer?.id;
-  const canEdit = isProjectOwner || isAssignedDesigner;
+  const hasAcceptedQuote = acceptedQuote !== null;
+  // Customers cannot edit after quote acceptance, designers can still update
+  const canEdit = isAssignedDesigner || (isProjectOwner && !hasAcceptedQuote);
 
   if (loading || designerLoading) {
     return (
@@ -403,6 +405,22 @@ const ProjectDetailWithTracking = () => {
                           <FileText className="w-4 h-4" />
                           View Full Quote
                         </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Project Locked Message for Customers */}
+                {isProjectOwner && hasAcceptedQuote && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold text-blue-800 mb-1">Project Details Locked</h4>
+                        <p className="text-sm text-blue-700">
+                          Since you have accepted a quote, the project details are now locked to maintain the scope of work.
+                          If you need to make changes, please contact your assigned designer directly.
+                        </p>
                       </div>
                     </div>
                   </div>

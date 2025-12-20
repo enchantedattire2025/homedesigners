@@ -108,14 +108,14 @@ const EditProject = () => {
 
   const fetchProject = async () => {
     if (!user || !id) return;
-    
+
     try {
       setFetchLoading(true);
       setError(null);
-      
+
       console.log('Fetching project with ID:', id);
       console.log('User info:', { userId: user.id, isDesigner, designerId: designer?.id });
-      
+
       // Build the query - RLS policies will handle access control
       const query = supabase
         .from('customers')
@@ -135,11 +135,30 @@ const EditProject = () => {
         console.error('Database error:', error);
         throw error;
       }
-      
+
       if (!data) {
         throw new Error('Project not found or you do not have access to this project');
       }
-      
+
+      // Check if customer is trying to edit a project with an accepted quote
+      if (!isDesigner && data.user_id === user.id) {
+        const { data: acceptedQuote, error: quoteError } = await supabase
+          .from('designer_quotes')
+          .select('id, quote_number, customer_accepted')
+          .eq('project_id', id)
+          .eq('customer_accepted', true)
+          .eq('status', 'accepted')
+          .maybeSingle();
+
+        if (quoteError) {
+          console.error('Error checking quote:', quoteError);
+        }
+
+        if (acceptedQuote) {
+          throw new Error('This project cannot be edited because a quote has been accepted. Please contact your assigned designer for any changes.');
+        }
+      }
+
       setProject(data);
       
       // Populate form with project data
@@ -254,8 +273,24 @@ const EditProject = () => {
       return;
     }
 
+    // Double-check quote acceptance status before saving (for customers)
+    if (!isDesigner && project.user_id === user.id) {
+      const { data: acceptedQuote } = await supabase
+        .from('designer_quotes')
+        .select('id')
+        .eq('project_id', project.id)
+        .eq('customer_accepted', true)
+        .eq('status', 'accepted')
+        .maybeSingle();
+
+      if (acceptedQuote) {
+        setError('This project cannot be edited because a quote has been accepted. Please contact your assigned designer for any changes.');
+        return;
+      }
+    }
+
     setLoading(true);
-    
+
     try {
       // Filter out empty strings from arrays
       const cleanedData = {
