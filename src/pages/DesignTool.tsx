@@ -94,8 +94,11 @@ const DesignTool = () => {
   useEffect(() => {
     if (!user) {
       navigate('/');
-    } else if (!designerLoading && !isDesigner) {
-      // Redirect non-designers away from design tool
+      return;
+    }
+
+    // Only redirect if we've finished loading and user is not a designer
+    if (!designerLoading && !isDesigner) {
       navigate('/my-projects');
     }
   }, [user, isDesigner, designerLoading, navigate]);
@@ -421,12 +424,26 @@ const DesignTool = () => {
     redrawCanvas();
   }, [redrawCanvas]);
 
-  if (!user || designerLoading) {
+  if (!user) {
+    return null;
+  }
+
+  if (designerLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading design tool...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isDesigner) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Access denied. Designer account required.</p>
         </div>
       </div>
     );
