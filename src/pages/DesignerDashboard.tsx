@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   BarChart3,
-  Users, 
+  Users,
   Calendar,
-  Star, 
-  TrendingUp, 
-  Clock, 
-  CheckCircle, 
+  Star,
+  TrendingUp,
+  Clock,
+  CheckCircle,
   AlertCircle,
   DollarSign,
   Eye,
@@ -19,7 +19,8 @@ import {
   X,
   BarChart as BarChartIcon,
   PieChart as PieChartIcon,
-  LineChart as LineChartIcon
+  LineChart as LineChartIcon,
+  Box
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -977,7 +978,14 @@ const DesignerDashboard = () => {
             {/* Quick Actions */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-lg font-bold text-secondary-800 mb-4">Quick Actions</h3>
-              <div className="space-y-3">               
+              <div className="space-y-3">
+                <button
+                  onClick={() => navigate('/designer-3d-tool')}
+                  className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3 border-2 border-primary-200 bg-primary-50"
+                >
+                  <Box className="w-5 h-5 text-primary-600" />
+                  <span className="font-medium text-gray-700">3D Design Tool</span>
+                </button>
                 <button
                   onClick={() => navigate(`/designers/${designer.id}`)}
                   className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-3"
@@ -1000,7 +1008,7 @@ const DesignerDashboard = () => {
                   <span className="font-medium text-gray-700">Manage Quotes</span>
                 </button>
               </div>
-              
+
             </div>
             
             {/* Performance Tips */}
