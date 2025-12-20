@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Square, Move, Trash2, Save, Undo, Redo, Grid, Calculator, IndianRupee as Rupee, Plus, Minus, ArrowLeft, Palette, Sofa, Bed, Table, Armchair as Chair, Tv, Lamp } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useDesignerProfile } from '../hooks/useDesignerProfile';
 
 interface Point {
   x: number;
@@ -49,6 +50,7 @@ interface DesignData {
 const DesignTool = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isDesigner } = useDesignerProfile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tool, setTool] = useState<'select' | 'room' | 'furniture'>('select');
   const [selectedFurnitureType, setSelectedFurnitureType] = useState<string>('sofa');
@@ -428,11 +430,11 @@ const DesignTool = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/my-projects')}
+                onClick={() => navigate(isDesigner ? '/designer-dashboard' : '/my-projects')}
                 className="flex items-center text-primary-600 hover:text-primary-700"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Projects
+                {isDesigner ? 'Back to Dashboard' : 'Back to Projects'}
               </button>
               <h1 className="text-2xl font-bold text-secondary-800">2D Home Designer</h1>
             </div>
