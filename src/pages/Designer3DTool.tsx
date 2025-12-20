@@ -61,6 +61,7 @@ const Designer3DTool = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [availableProjects, setAvailableProjects] = useState<ProjectData[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [popupBlocked, setPopupBlocked] = useState(false);
 
   useEffect(() => {
     if (!user || !isDesigner) {
@@ -677,14 +678,40 @@ const Designer3DTool = () => {
 
               <button
                 onClick={() => {
-                  const newWindow = window.open('https://www.sweethome3d.com/SweetHome3DJSOnline.jsp', '_blank', 'width=1400,height=900');
-                  if (newWindow) newWindow.focus();
+                  try {
+                    const newWindow = window.open('https://www.sweethome3d.com/SweetHome3DJSOnline.jsp', '_blank');
+                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                      setPopupBlocked(true);
+                    } else {
+                      newWindow.focus();
+                      setPopupBlocked(false);
+                    }
+                  } catch (error) {
+                    console.error('Error opening window:', error);
+                    setPopupBlocked(true);
+                  }
                 }}
                 className="btn-primary inline-flex items-center text-lg px-8 py-4 mb-8"
               >
                 <Box className="w-6 h-6 mr-3" />
                 Open Sweet Home 3D
               </button>
+
+              {popupBlocked && (
+                <div className="mb-8 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <p className="text-sm text-yellow-800 mb-3">
+                    <strong>Pop-up blocked!</strong> Please allow pop-ups for this site, or use the direct link below:
+                  </p>
+                  <a
+                    href="https://www.sweethome3d.com/SweetHome3DJSOnline.jsp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-600 hover:text-primary-700 font-medium underline"
+                  >
+                    Click here to open Sweet Home 3D directly →
+                  </a>
+                </div>
+              )}
 
               <div className="bg-white rounded-xl shadow-lg p-6 text-left">
                 <h3 className="text-lg font-semibold text-secondary-800 mb-4">Quick Start Guide:</h3>
@@ -719,10 +746,23 @@ const Designer3DTool = () => {
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-start">
                   <AlertCircle className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-blue-800 text-left">
-                    <strong>Note:</strong> Sweet Home 3D opens in a new window due to browser security restrictions.
-                    Make sure to allow pop-ups for this site if prompted.
-                  </p>
+                  <div className="text-left">
+                    <p className="text-sm text-blue-800 mb-2">
+                      <strong>Note:</strong> Sweet Home 3D opens in a new window due to browser security restrictions.
+                      Make sure to allow pop-ups for this site if prompted.
+                    </p>
+                    <p className="text-sm text-blue-800">
+                      <strong>Alternative:</strong> If the button doesn't work,{' '}
+                      <a
+                        href="https://www.sweethome3d.com/SweetHome3DJSOnline.jsp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-900 font-semibold underline hover:text-blue-700"
+                      >
+                        click this link to open Sweet Home 3D
+                      </a>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
