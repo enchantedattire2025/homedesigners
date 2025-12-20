@@ -52,7 +52,7 @@ const DesignTool = () => {
   const { user, loading: authLoading } = useAuth();
   const { isDesigner, loading: designerLoading } = useDesignerProfile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [tool, setTool] = useState<'select' | 'room' | 'furniture'>('select');
+  const [tool, setTool] = useState<'select' | 'wall' | 'room' | 'furniture'>('select');
   const [selectedFurnitureType, setSelectedFurnitureType] = useState<string>('sofa');
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -60,6 +60,7 @@ const DesignTool = () => {
   const [showGrid, setShowGrid] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [wallThickness, setWallThickness] = useState(6);
   
   const [designData, setDesignData] = useState<DesignData>({
     rooms: [],
@@ -126,22 +127,44 @@ const DesignTool = () => {
   // Canvas drawing functions
   const drawGrid = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     if (!showGrid) return;
-    
-    ctx.strokeStyle = '#e0e0e0';
-    ctx.lineWidth = 0.5;
-    
+
     const gridSize = designData.gridSize * zoom;
     const offsetX = pan.x % gridSize;
     const offsetY = pan.y % gridSize;
-    
+    const majorGridSize = gridSize * 5;
+    const majorOffsetX = pan.x % majorGridSize;
+    const majorOffsetY = pan.y % majorGridSize;
+
+    // Draw minor grid lines (light gray)
+    ctx.strokeStyle = '#f0f0f0';
+    ctx.lineWidth = 0.5;
+
     for (let x = offsetX; x < canvas.width; x += gridSize) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
     }
-    
+
     for (let y = offsetY; y < canvas.height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    // Draw major grid lines (darker)
+    ctx.strokeStyle = '#d0d0d0';
+    ctx.lineWidth = 1;
+
+    for (let x = majorOffsetX; x < canvas.width; x += majorGridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+
+    for (let y = majorOffsetY; y < canvas.height; y += majorGridSize) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(canvas.width, y);
@@ -151,69 +174,231 @@ const DesignTool = () => {
 
   const drawRoom = useCallback((ctx: CanvasRenderingContext2D, room: Room) => {
     if (room.points.length < 3) return;
-    
-    ctx.fillStyle = room.color;
-    ctx.strokeStyle = selectedItem === room.id ? '#2196F3' : '#333';
-    ctx.lineWidth = selectedItem === room.id ? 3 : 2;
-    
+
     ctx.beginPath();
     const firstPoint = room.points[0];
     ctx.moveTo(firstPoint.x * zoom + pan.x, firstPoint.y * zoom + pan.y);
-    
+
     room.points.slice(1).forEach(point => {
       ctx.lineTo(point.x * zoom + pan.x, point.y * zoom + pan.y);
     });
-    
+
     ctx.closePath();
+
+    // Add subtle shadow for depth
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+
+    ctx.fillStyle = room.color;
     ctx.fill();
+
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Draw border
+    ctx.strokeStyle = selectedItem === room.id ? '#2196F3' : '#666';
+    ctx.lineWidth = selectedItem === room.id ? 3 : 1.5;
     ctx.stroke();
-    
-    // Draw room label
+
+    // Draw room label with background
     const centerX = room.points.reduce((sum, p) => sum + p.x, 0) / room.points.length;
     const centerY = room.points.reduce((sum, p) => sum + p.y, 0) / room.points.length;
-    
-    ctx.fillStyle = '#333';
-    ctx.font = '14px Inter';
+
+    const displayX = centerX * zoom + pan.x;
+    const displayY = centerY * zoom + pan.y;
+
+    ctx.font = `${Math.max(12, 14 * zoom)}px Inter`;
     ctx.textAlign = 'center';
-    ctx.fillText(room.name, centerX * zoom + pan.x, centerY * zoom + pan.y);
+    ctx.textBaseline = 'middle';
+
+    const textMetrics = ctx.measureText(room.name);
+    const padding = 8;
+
+    // Draw label background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillRect(
+      displayX - textMetrics.width / 2 - padding,
+      displayY - 10,
+      textMetrics.width + padding * 2,
+      20
+    );
+
+    // Draw label text
+    ctx.fillStyle = '#333';
+    ctx.fillText(room.name, displayX, displayY);
   }, [zoom, pan, selectedItem]);
 
   const drawFurniture = useCallback((ctx: CanvasRenderingContext2D, furniture: Furniture) => {
     ctx.save();
-    
+
     const x = furniture.x * zoom + pan.x;
     const y = furniture.y * zoom + pan.y;
     const width = furniture.width * zoom;
     const height = furniture.height * zoom;
-    
+
     ctx.translate(x + width/2, y + height/2);
     ctx.rotate(furniture.rotation * Math.PI / 180);
-    
-    ctx.fillStyle = furniture.color;
+
     ctx.strokeStyle = selectedItem === furniture.id ? '#2196F3' : '#666';
-    ctx.lineWidth = selectedItem === furniture.id ? 3 : 1;
-    
-    ctx.fillRect(-width/2, -height/2, width, height);
-    ctx.strokeRect(-width/2, -height/2, width, height);
-    
-    // Draw furniture icon/label
+    ctx.lineWidth = selectedItem === furniture.id ? 3 : 1.5;
+
+    // Draw realistic furniture shapes based on type
+    switch (furniture.type) {
+      case 'sofa':
+        // Draw L-shaped sofa
+        ctx.fillStyle = furniture.color;
+        // Main seat
+        ctx.fillRect(-width/2, -height/2, width, height * 0.7);
+        // Backrest
+        ctx.fillRect(-width/2, -height/2, width, height * 0.15);
+        // Armrests
+        ctx.fillRect(-width/2, -height/2, width * 0.15, height * 0.7);
+        ctx.fillRect(width/2 - width * 0.15, -height/2, width * 0.15, height * 0.7);
+        // Cushions
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          ctx.strokeRect(-width/2 + width * 0.15 + i * (width * 0.7 / 3), -height/2 + height * 0.15, width * 0.7 / 3, height * 0.55);
+        }
+        ctx.strokeStyle = selectedItem === furniture.id ? '#2196F3' : '#666';
+        ctx.lineWidth = selectedItem === furniture.id ? 3 : 1.5;
+        ctx.strokeRect(-width/2, -height/2, width, height * 0.7);
+        break;
+
+      case 'bed':
+        // Draw bed with headboard
+        ctx.fillStyle = furniture.color;
+        // Mattress
+        ctx.fillRect(-width/2, -height/2 + height * 0.15, width, height * 0.85);
+        ctx.strokeRect(-width/2, -height/2 + height * 0.15, width, height * 0.85);
+        // Headboard
+        ctx.fillStyle = '#8B7355';
+        ctx.fillRect(-width/2, -height/2, width, height * 0.2);
+        ctx.strokeRect(-width/2, -height/2, width, height * 0.2);
+        // Pillows
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(-width/2 + width * 0.1, -height/2 + height * 0.2, width * 0.35, height * 0.15);
+        ctx.fillRect(width/2 - width * 0.45, -height/2 + height * 0.2, width * 0.35, height * 0.15);
+        ctx.strokeRect(-width/2 + width * 0.1, -height/2 + height * 0.2, width * 0.35, height * 0.15);
+        ctx.strokeRect(width/2 - width * 0.45, -height/2 + height * 0.2, width * 0.35, height * 0.15);
+        break;
+
+      case 'dining-table':
+        // Draw table with chairs indication
+        ctx.fillStyle = furniture.color;
+        // Table top
+        ctx.fillRect(-width/2, -height/2, width, height);
+        ctx.strokeRect(-width/2, -height/2, width, height);
+        // Table legs
+        ctx.fillStyle = '#654321';
+        const legSize = Math.min(width, height) * 0.08;
+        ctx.fillRect(-width/2 + legSize, -height/2 + legSize, legSize, legSize);
+        ctx.fillRect(width/2 - legSize * 2, -height/2 + legSize, legSize, legSize);
+        ctx.fillRect(-width/2 + legSize, height/2 - legSize * 2, legSize, legSize);
+        ctx.fillRect(width/2 - legSize * 2, height/2 - legSize * 2, legSize, legSize);
+        break;
+
+      case 'chair':
+        // Draw chair
+        ctx.fillStyle = furniture.color;
+        // Seat
+        ctx.fillRect(-width/2, -height/2 + height * 0.4, width, height * 0.6);
+        ctx.strokeRect(-width/2, -height/2 + height * 0.4, width, height * 0.6);
+        // Backrest
+        ctx.fillRect(-width/2 + width * 0.1, -height/2, width * 0.8, height * 0.5);
+        ctx.strokeRect(-width/2 + width * 0.1, -height/2, width * 0.8, height * 0.5);
+        break;
+
+      case 'tv':
+        // Draw TV stand with screen
+        ctx.fillStyle = '#222';
+        // Screen
+        ctx.fillRect(-width/2 + width * 0.1, -height/2, width * 0.8, height * 0.6);
+        ctx.strokeRect(-width/2 + width * 0.1, -height/2, width * 0.8, height * 0.6);
+        // Stand
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2 + height * 0.65, width, height * 0.35);
+        ctx.strokeRect(-width/2, -height/2 + height * 0.65, width, height * 0.35);
+        break;
+
+      case 'lamp':
+        // Draw lamp
+        ctx.fillStyle = furniture.color;
+        // Lampshade
+        ctx.beginPath();
+        ctx.moveTo(-width/2, -height/2);
+        ctx.lineTo(width/2, -height/2);
+        ctx.lineTo(width/2 - width * 0.2, height/2 - height * 0.4);
+        ctx.lineTo(-width/2 + width * 0.2, height/2 - height * 0.4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Base
+        ctx.fillRect(-width/2 + width * 0.3, height/2 - height * 0.4, width * 0.4, height * 0.4);
+        break;
+
+      default:
+        // Default rectangle for unknown types
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2, width, height);
+        ctx.strokeRect(-width/2, -height/2, width, height);
+    }
+
+    // Draw furniture label
     ctx.fillStyle = '#333';
-    ctx.font = '12px Inter';
+    ctx.font = `${Math.max(10, 12 * zoom)}px Inter`;
     ctx.textAlign = 'center';
-    ctx.fillText(furniture.name, 0, 4);
-    
+    ctx.textBaseline = 'middle';
+    ctx.fillText(furniture.name, 0, 0);
+
     ctx.restore();
   }, [zoom, pan, selectedItem]);
 
   const drawWall = useCallback((ctx: CanvasRenderingContext2D, wall: Wall) => {
-    ctx.strokeStyle = wall.color;
-    ctx.lineWidth = wall.thickness * zoom;
-    
+    const startX = wall.start.x * zoom + pan.x;
+    const startY = wall.start.y * zoom + pan.y;
+    const endX = wall.end.x * zoom + pan.x;
+    const endY = wall.end.y * zoom + pan.y;
+    const thickness = wall.thickness * zoom;
+
+    // Calculate perpendicular offset for wall thickness
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const offsetX = (-dy / length) * (thickness / 2);
+    const offsetY = (dx / length) * (thickness / 2);
+
+    // Draw wall as a filled rectangle
+    ctx.fillStyle = wall.color;
+    ctx.strokeStyle = selectedItem === wall.id ? '#2196F3' : '#333';
+    ctx.lineWidth = selectedItem === wall.id ? 2 : 0.5;
+
     ctx.beginPath();
-    ctx.moveTo(wall.start.x * zoom + pan.x, wall.start.y * zoom + pan.y);
-    ctx.lineTo(wall.end.x * zoom + pan.x, wall.end.y * zoom + pan.y);
+    ctx.moveTo(startX + offsetX, startY + offsetY);
+    ctx.lineTo(endX + offsetX, endY + offsetY);
+    ctx.lineTo(endX - offsetX, endY - offsetY);
+    ctx.lineTo(startX - offsetX, startY - offsetY);
+    ctx.closePath();
+    ctx.fill();
     ctx.stroke();
-  }, [zoom, pan]);
+
+    // Draw end caps for rounded wall ends
+    ctx.fillStyle = wall.color;
+    ctx.beginPath();
+    ctx.arc(startX, startY, thickness / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(endX, endY, thickness / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }, [zoom, pan, selectedItem]);
 
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -239,27 +424,41 @@ const DesignTool = () => {
     
     // Draw current drawing
     if (isDrawing && currentPoints.length > 0) {
-      ctx.strokeStyle = '#2196F3';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      
-      ctx.beginPath();
-      const firstPoint = currentPoints[0];
-      ctx.moveTo(firstPoint.x * zoom + pan.x, firstPoint.y * zoom + pan.y);
-      
-      currentPoints.slice(1).forEach(point => {
-        ctx.lineTo(point.x * zoom + pan.x, point.y * zoom + pan.y);
-      });
-      
-      if (tool === 'room' && currentPoints.length > 2) {
-        // Close the shape
-        ctx.lineTo(firstPoint.x * zoom + pan.x, firstPoint.y * zoom + pan.y);
+      if (tool === 'wall') {
+        // Show wall being drawn
+        const firstPoint = currentPoints[0];
+        ctx.fillStyle = 'rgba(160, 160, 160, 0.5)';
+        ctx.strokeStyle = '#2196F3';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(firstPoint.x * zoom + pan.x, firstPoint.y * zoom + pan.y, wallThickness * zoom / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        ctx.strokeStyle = '#2196F3';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+
+        ctx.beginPath();
+        const firstPoint = currentPoints[0];
+        ctx.moveTo(firstPoint.x * zoom + pan.x, firstPoint.y * zoom + pan.y);
+
+        currentPoints.slice(1).forEach(point => {
+          ctx.lineTo(point.x * zoom + pan.x, point.y * zoom + pan.y);
+        });
+
+        if (tool === 'room' && currentPoints.length > 2) {
+          // Close the shape
+          ctx.lineTo(firstPoint.x * zoom + pan.x, firstPoint.y * zoom + pan.y);
+        }
+
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
-      
-      ctx.stroke();
-      ctx.setLineDash([]);
     }
-  }, [designData, drawGrid, drawRoom, drawWall, drawFurniture, isDrawing, currentPoints, zoom, pan, tool]);
+  }, [designData, drawGrid, drawRoom, drawWall, drawFurniture, isDrawing, currentPoints, zoom, pan, tool, wallThickness]);
 
   // Canvas event handlers
   const getCanvasPoint = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
@@ -281,7 +480,32 @@ const DesignTool = () => {
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const point = getCanvasPoint(e);
     
-    if (tool === 'room') {
+    if (tool === 'wall') {
+      if (!isDrawing) {
+        setIsDrawing(true);
+        setCurrentPoints([point]);
+      } else {
+        // Complete wall
+        const newWall: Wall = {
+          id: Date.now().toString(),
+          start: currentPoints[0],
+          end: point,
+          thickness: wallThickness,
+          color: '#A0A0A0'
+        };
+
+        const newDesignData = {
+          ...designData,
+          walls: [...designData.walls, newWall]
+        };
+
+        setDesignData(newDesignData);
+        addToHistory(newDesignData);
+
+        // Continue drawing from this point
+        setCurrentPoints([point]);
+      }
+    } else if (tool === 'room') {
       if (!isDrawing) {
         setIsDrawing(true);
         setCurrentPoints([point]);
@@ -529,7 +753,11 @@ const DesignTool = () => {
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Tools</h3>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => setTool('select')}
+                onClick={() => {
+                  setTool('select');
+                  setIsDrawing(false);
+                  setCurrentPoints([]);
+                }}
                 className={`p-3 rounded-lg border transition-colors ${
                   tool === 'select' ? 'bg-primary-100 border-primary-300 text-primary-700' : 'border-gray-200 hover:bg-gray-50'
                 }`}
@@ -538,15 +766,57 @@ const DesignTool = () => {
                 <span className="text-xs">Select</span>
               </button>
               <button
+                onClick={() => setTool('wall')}
+                className={`p-3 rounded-lg border transition-colors ${
+                  tool === 'wall' ? 'bg-primary-100 border-primary-300 text-primary-700' : 'border-gray-200 hover:bg-gray-50'
+                }`}
+                title="Click to start wall, click again to place end. Click repeatedly to draw connected walls."
+              >
+                <svg className="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="2" y="10" width="20" height="4" strokeWidth="2" />
+                </svg>
+                <span className="text-xs">Wall</span>
+              </button>
+              <button
                 onClick={() => setTool('room')}
                 className={`p-3 rounded-lg border transition-colors ${
                   tool === 'room' ? 'bg-primary-100 border-primary-300 text-primary-700' : 'border-gray-200 hover:bg-gray-50'
                 }`}
+                title="Click to add points, double-click to finish room"
               >
                 <Square className="w-5 h-5 mx-auto mb-1" />
                 <span className="text-xs">Room</span>
               </button>
+              <button
+                onClick={() => setTool('furniture')}
+                className={`p-3 rounded-lg border transition-colors ${
+                  tool === 'furniture' ? 'bg-primary-100 border-primary-300 text-primary-700' : 'border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <Sofa className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-xs">Furniture</span>
+              </button>
             </div>
+
+            {/* Wall thickness control */}
+            {tool === 'wall' && (
+              <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <label className="text-xs font-medium text-gray-700 block mb-2">
+                  Wall Thickness: {wallThickness}"
+                </label>
+                <input
+                  type="range"
+                  min="4"
+                  max="12"
+                  value={wallThickness}
+                  onChange={(e) => setWallThickness(Number(e.target.value))}
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-600 mt-2">
+                  Click to start, click again to finish wall. Keep clicking to draw connected walls.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Room Types */}
