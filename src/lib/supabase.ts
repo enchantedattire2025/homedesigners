@@ -61,13 +61,13 @@ function createMockClient(): any {
 
   return {
     auth: {
-      signUp: () => Promise.resolve({ 
-        data: { user: null, session: null }, 
-        error: { message: 'Please connect to Supabase to enable authentication. Click "Connect to Supabase" in the top right.' } 
+      signUp: () => Promise.resolve({
+        data: { user: null, session: null },
+        error: { message: 'Please connect to Supabase to enable authentication. Click "Connect to Supabase" in the top right.' }
       }),
-      signInWithPassword: () => Promise.resolve({ 
-        data: { user: null, session: null }, 
-        error: { message: 'Please connect to Supabase to enable authentication. Click "Connect to Supabase" in the top right.' } 
+      signInWithPassword: () => Promise.resolve({
+        data: { user: null, session: null },
+        error: { message: 'Please connect to Supabase to enable authentication. Click "Connect to Supabase" in the top right.' }
       }),
       signOut: () => Promise.resolve({ error: null }),
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
@@ -87,28 +87,32 @@ function createMockClient(): any {
       }),
       insert: (data: any) => ({
         select: () => ({
-          single: () => Promise.resolve({ 
-            data: null, 
-            error: { message: 'Please connect to Supabase to enable database operations. Click "Connect to Supabase" in the top right.' } 
+          single: () => Promise.resolve({
+            data: null,
+            error: { message: 'Please connect to Supabase to enable database operations. Click "Connect to Supabase" in the top right.' }
           })
         })
       }),
       update: (data: any) => ({
         eq: (column: string, value: any) => ({
           select: () => ({
-            single: () => Promise.resolve({ 
-              data: null, 
-              error: { message: 'Please connect to Supabase to enable database operations. Click "Connect to Supabase" in the top right.' } 
+            single: () => Promise.resolve({
+              data: null,
+              error: { message: 'Please connect to Supabase to enable database operations. Click "Connect to Supabase" in the top right.' }
             })
           })
         })
       }),
       delete: () => ({
-        eq: (column: string, value: any) => Promise.resolve({ 
-          data: null, 
-          error: { message: 'Please connect to Supabase to enable database operations. Click "Connect to Supabase" in the top right.' } 
+        eq: (column: string, value: any) => Promise.resolve({
+          data: null,
+          error: { message: 'Please connect to Supabase to enable database operations. Click "Connect to Supabase" in the top right.' }
         })
       })
+    }),
+    channel: (name: string) => ({
+      on: () => ({ subscribe: () => ({}) }),
+      unsubscribe: () => {}
     })
   };
 }

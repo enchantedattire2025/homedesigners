@@ -214,6 +214,65 @@ export const useProjectTracking = (projectId?: string) => {
         fetchProjectVersions(projectId),
         fetchProjectAssignments(projectId)
       ]).finally(() => setLoading(false));
+
+      // Set up real-time subscriptions for automatic updates
+      const activitiesChannel = supabase
+        .channel(`project-activities-${projectId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'project_activities',
+            filter: `project_id=eq.${projectId}`
+          },
+          () => {
+            console.log('Activity change detected, refreshing...');
+            fetchProjectActivities(projectId);
+          }
+        )
+        .subscribe();
+
+      const versionsChannel = supabase
+        .channel(`project-versions-${projectId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'project_versions',
+            filter: `project_id=eq.${projectId}`
+          },
+          () => {
+            console.log('Version change detected, refreshing...');
+            fetchProjectVersions(projectId);
+          }
+        )
+        .subscribe();
+
+      const assignmentsChannel = supabase
+        .channel(`project-assignments-${projectId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'project_assignments',
+            filter: `project_id=eq.${projectId}`
+          },
+          () => {
+            console.log('Assignment change detected, refreshing...');
+            fetchProjectAssignments(projectId);
+          }
+        )
+        .subscribe();
+
+      // Cleanup subscriptions on unmount
+      return () => {
+        activitiesChannel.unsubscribe();
+        versionsChannel.unsubscribe();
+        assignmentsChannel.unsubscribe();
+      };
     }
   }, [projectId]);
 
