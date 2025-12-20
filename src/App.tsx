@@ -36,6 +36,7 @@ import DebugPage from './pages/DebugPage';
 import DebugDesignerProfile from './pages/DebugDesignerProfile';
 import SharePhotoForm from './pages/SharePhotoForm';
 import ClearSession from './pages/ClearSession';
+import DesignTool from './pages/DesignTool';
 import { forceLogoutAll } from './utils/clearAuth';
 import { debugAuthState } from './utils/debugDesigner';
 
@@ -134,6 +135,7 @@ function App() {
             <Route path="/debug-profile" element={<DebugDesignerProfile />} />
             <Route path="/share-photo" element={<SharePhotoForm />} />
             <Route path="/clear-session" element={<ClearSession />} />
+            <Route path="/design-tool" element={<DesignTool />} />
           </Routes>
         </main>
         <Footer />
