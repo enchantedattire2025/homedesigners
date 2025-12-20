@@ -92,6 +92,17 @@ const DesignTool = () => {
 
   // Check authentication and authorization
   useEffect(() => {
+    // Check localStorage for session
+    const storageKeys = Object.keys(localStorage).filter(key => key.startsWith('sb-'));
+    console.log('DesignTool: LocalStorage session keys:', storageKeys);
+
+    if (storageKeys.length > 0) {
+      storageKeys.forEach(key => {
+        const value = localStorage.getItem(key);
+        console.log(`DesignTool: ${key} length:`, value?.length || 0);
+      });
+    }
+
     console.log('DesignTool auth check:', {
       user: !!user,
       isDesigner,
