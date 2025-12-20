@@ -49,7 +49,7 @@ interface DesignData {
 
 const DesignTool = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { isDesigner, loading: designerLoading } = useDesignerProfile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tool, setTool] = useState<'select' | 'room' | 'furniture'>('select');
@@ -92,37 +92,28 @@ const DesignTool = () => {
 
   // Check authentication and authorization
   useEffect(() => {
-    // Check localStorage for session
-    const storageKeys = Object.keys(localStorage).filter(key => key.startsWith('sb-'));
-    console.log('DesignTool: LocalStorage session keys:', storageKeys);
-
-    if (storageKeys.length > 0) {
-      storageKeys.forEach(key => {
-        const value = localStorage.getItem(key);
-        console.log(`DesignTool: ${key} length:`, value?.length || 0);
-      });
+    // Wait for auth to finish loading
+    if (authLoading) {
+      return;
     }
 
-    console.log('DesignTool auth check:', {
-      user: !!user,
-      isDesigner,
-      designerLoading
-    });
-
+    // Check if user is authenticated
     if (!user) {
-      console.log('DesignTool: No user, redirecting to home');
       navigate('/');
       return;
     }
 
-    // Only redirect if we've finished loading and user is not a designer
-    if (!designerLoading && !isDesigner) {
-      console.log('DesignTool: User is not a designer, redirecting to my-projects');
-      navigate('/my-projects');
-    } else if (!designerLoading && isDesigner) {
-      console.log('DesignTool: Designer verified, loading tool');
+    // Wait for designer status to finish loading
+    if (designerLoading) {
+      return;
     }
-  }, [user, isDesigner, designerLoading, navigate]);
+
+    // Check if user is a designer
+    if (!isDesigner) {
+      navigate('/my-projects');
+      return;
+    }
+  }, [authLoading, user, isDesigner, designerLoading, navigate]);
 
   // Initialize history
   useEffect(() => {
@@ -465,6 +456,18 @@ const DesignTool = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-gray-600">Access denied. Designer account required.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while checking authentication
+  if (authLoading || designerLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading design tool...</p>
         </div>
       </div>
     );

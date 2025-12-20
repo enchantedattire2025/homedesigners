@@ -10,15 +10,7 @@ export const useAuth = () => {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
-      console.log('useAuth: Getting session...');
-      const { data: { session }, error } = await supabase.auth.getSession();
-      console.log('useAuth: Session retrieved:', {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userId: session?.user?.id,
-        error
-      });
-
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
 
       // Check if user is admin
