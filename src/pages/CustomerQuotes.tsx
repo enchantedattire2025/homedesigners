@@ -237,11 +237,13 @@ const CustomerQuotes = () => {
       }
 
       // Update the customer project status from 'shared' to 'assigned'
-      if (updatedQuote.project_id) {
+      // Also ensure assigned_designer_id is set correctly
+      if (updatedQuote.project_id && updatedQuote.designer_id) {
         const { error: projectError } = await supabase
           .from('customers')
           .update({
-            assignment_status: 'assigned'
+            assignment_status: 'assigned',
+            assigned_designer_id: updatedQuote.designer_id
           })
           .eq('id', updatedQuote.project_id)
           .eq('user_id', user.id);
