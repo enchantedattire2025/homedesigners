@@ -23,6 +23,7 @@ interface Quote {
   notes: string;
   created_at: string;
   updated_at: string;
+  design_image_url?: string | null;
   project: {
     project_name: string;
     name: string; // customer name
@@ -30,6 +31,15 @@ interface Quote {
     property_type: string;
   };
   items_count: { count: number };
+  items?: {
+    id: string;
+    name: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    amount: number;
+  }[];
 }
 
 const DesignerQuotes = () => {
@@ -376,8 +386,14 @@ const DesignerQuotes = () => {
 
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => setSelectedQuote(quote)}
-                      //onClick={() => navigate(`/quote/${quote.id}`)}
+                      onClick={async () => {
+                        const { data: itemsData } = await supabase
+                          .from('quote_items')
+                          .select('*')
+                          .eq('quote_id', quote.id)
+                          .order('created_at', { ascending: true });
+                        setSelectedQuote({ ...quote, items: itemsData || [] });
+                      }}
                       className={`flex-1 ${quote.customer_accepted ? 'bg-green-500 hover:bg-green-600' : 'bg-primary-500 hover:bg-primary-600'} text-white py-2 px-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-1`}
                     >
                       <span>{quote.customer_accepted ? 'View Confirmed' : 'View'}</span>
@@ -457,6 +473,22 @@ const DesignerQuotes = () => {
             </div>
           </div>
         </div>
+
+        {selectedQuote.design_image_url && (
+          <div className="mb-6">
+            <h4 className="font-semibold text-secondary-800 mb-3">2D Design Preview</h4>
+            <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+              <img
+                src={selectedQuote.design_image_url}
+                alt="2D Design Preview"
+                className="w-full h-auto"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              This design was created using the 2D design tool.
+            </p>
+          </div>
+        )}
 
         {/* Items Table */}
         <div className="mb-6">

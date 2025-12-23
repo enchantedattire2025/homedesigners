@@ -57,6 +57,7 @@ interface Quote {
   assigned_designer_id?: string;
   quotation_file_url?: string | null;
   payment_receipt_url?: string | null;
+  design_image_url?: string | null;
   designer: {
     id: string;
     name: string;
@@ -722,6 +723,22 @@ const CustomerQuotes = () => {
                   </div>
                 </div>
               </div>
+
+              {selectedQuote.design_image_url && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-secondary-800 mb-3">2D Design Preview</h4>
+                  <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                    <img
+                      src={selectedQuote.design_image_url}
+                      alt="2D Design Preview"
+                      className="w-full h-auto"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    This design was created using our 2D design tool to help you visualize the proposed layout.
+                  </p>
+                </div>
+              )}
 
               <div className="mb-6">
                 <h4 className="font-semibold text-secondary-800 mb-3">Quote Items</h4>
