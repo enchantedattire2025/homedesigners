@@ -14,7 +14,9 @@ import {
   AlertCircle,
   Loader2,
   IndianRupee as Rupee,
-  UserCheck
+  UserCheck,
+  Upload,
+  Paperclip
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
@@ -53,6 +55,8 @@ interface Quote {
   acceptance_date: string | null;
   customer_feedback: string | null;
   assigned_designer_id?: string;
+  quotation_file_url?: string | null;
+  payment_receipt_url?: string | null;
   designer: {
     id: string;
     name: string;
@@ -84,6 +88,8 @@ const CustomerQuotes = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedProjectForAssignment, setSelectedProjectForAssignment] = useState<any>(null);
+  const [paymentReceiptFile, setPaymentReceiptFile] = useState<File | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -214,6 +220,37 @@ const CustomerQuotes = () => {
       setSubmitting(true);
       setError(null);
 
+      let paymentReceiptUrl = null;
+
+      // Upload payment receipt if provided
+      if (paymentReceiptFile) {
+        setUploadingReceipt(true);
+
+        const fileExt = paymentReceiptFile.name.split('.').pop();
+        const fileName = `${Date.now()}_receipt.${fileExt}`;
+        const filePath = `${quoteId}/payment/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('quotation-attachments')
+          .upload(filePath, paymentReceiptFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Error uploading payment receipt:', uploadError);
+          throw new Error('Failed to upload payment receipt. Please try again.');
+        }
+
+        // Get the public URL for the uploaded file
+        const { data: urlData } = supabase.storage
+          .from('quotation-attachments')
+          .getPublicUrl(filePath);
+
+        paymentReceiptUrl = urlData.publicUrl;
+        setUploadingReceipt(false);
+      }
+
       // Update the quote with acceptance info and get the project_id in one operation
       const { data: updatedQuote, error: updateError } = await supabase
         .from('designer_quotes')
@@ -221,7 +258,8 @@ const CustomerQuotes = () => {
           customer_accepted: true,
           acceptance_date: new Date().toISOString(),
           customer_feedback: feedbackText || 'Quote accepted',
-          status: 'accepted'
+          status: 'accepted',
+          payment_receipt_url: paymentReceiptUrl
         })
         .eq('id', quoteId)
         .select('project_id, designer_id')
@@ -256,6 +294,7 @@ const CustomerQuotes = () => {
       setSuccessMessage('Quote accepted successfully! The project has been assigned to your designer.');
       setSelectedQuote(null);
       setFeedbackText('');
+      setPaymentReceiptFile(null);
 
       // Refresh quotes
       await fetchQuotes();
@@ -275,6 +314,7 @@ const CustomerQuotes = () => {
       }, 5000);
     } finally {
       setSubmitting(false);
+      setUploadingReceipt(false);
     }
   };
   
@@ -308,6 +348,7 @@ const CustomerQuotes = () => {
       setSuccessMessage('Quote rejected. Your feedback has been sent to the designer.');
       setSelectedQuote(null);
       setFeedbackText('');
+      setPaymentReceiptFile(null);
 
       // Refresh quotes
       await fetchQuotes();
@@ -623,6 +664,7 @@ const CustomerQuotes = () => {
                 onClick={() => {
                   setSelectedQuote(null);
                   setFeedbackText('');
+                  setPaymentReceiptFile(null);
                 }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
@@ -748,6 +790,87 @@ const CustomerQuotes = () => {
                 </div>
               )}
 
+              {/* Payment Receipt Display (for accepted quotes) */}
+              {selectedQuote.customer_accepted && selectedQuote.payment_receipt_url && (
+                <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-secondary-800 mb-3 flex items-center space-x-2">
+                    <Paperclip className="w-4 h-4" />
+                    <span>Payment Receipt</span>
+                  </h4>
+                  <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="w-5 h-5 text-green-600" />
+                      <span className="text-sm text-gray-700">Payment transaction receipt attached</span>
+                    </div>
+                    <a
+                      href={selectedQuote.payment_receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-1 text-primary-600 hover:text-primary-700 text-sm font-medium"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>View/Download</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Receipt Upload (for pending quotes) */}
+              {!selectedQuote.customer_accepted && (
+                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center space-x-2">
+                    <Paperclip className="w-4 h-4" />
+                    <span>Payment Transaction Receipt (Optional but Recommended)</span>
+                  </label>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Upload a screenshot or photo of your payment confirmation to keep a record with this quotation.
+                  </p>
+                  <div className="flex items-center space-x-3">
+                    <label className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // Check file size (max 10MB)
+                            if (file.size > 10 * 1024 * 1024) {
+                              setError('File size must be less than 10MB');
+                              e.target.value = '';
+                              return;
+                            }
+                            setPaymentReceiptFile(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="payment-receipt-upload"
+                      />
+                      <div className="flex items-center justify-center space-x-2 bg-white border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 hover:border-primary-500 cursor-pointer transition-colors">
+                        <Upload className="w-5 h-5 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {paymentReceiptFile ? paymentReceiptFile.name : 'Choose file or drag here'}
+                        </span>
+                      </div>
+                    </label>
+                    {paymentReceiptFile && (
+                      <button
+                        onClick={() => setPaymentReceiptFile(null)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Remove file"
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                  {uploadingReceipt && (
+                    <div className="mt-2 flex items-center space-x-2 text-sm text-blue-600">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Uploading payment receipt...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mb-6">
                 <h4 className="font-semibold text-secondary-800 mb-3">Your Feedback</h4>
                 <textarea
@@ -764,6 +887,7 @@ const CustomerQuotes = () => {
                   onClick={() => {
                     setSelectedQuote(null);
                     setFeedbackText('');
+                    setPaymentReceiptFile(null);
                   }}
                   disabled={submitting}
                   className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50"
