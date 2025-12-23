@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Square, Move, Trash2, Save, Undo, Redo, Grid, Calculator, IndianRupee as Rupee, Plus, Minus, ArrowLeft, Palette, Sofa, Bed, Table, Armchair as Chair, Tv, Lamp } from 'lucide-react';
+import { Square, Move, Trash2, Save, Undo, Redo, Grid, Calculator, IndianRupee as Rupee, Plus, Minus, ArrowLeft, Palette, Sofa, Bed, Table, Armchair as Chair, Tv, Lamp, DoorOpen, Refrigerator, BookOpen, Monitor, Wine } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 
@@ -54,6 +54,7 @@ const DesignTool = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tool, setTool] = useState<'select' | 'wall' | 'room' | 'furniture'>('select');
   const [selectedFurnitureType, setSelectedFurnitureType] = useState<string>('sofa');
+  const [selectedRoomType, setSelectedRoomType] = useState<string>('living');
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
@@ -61,6 +62,7 @@ const DesignTool = () => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [wallThickness, setWallThickness] = useState(6);
+  const [showMeasurements, setShowMeasurements] = useState(true);
   
   const [designData, setDesignData] = useState<DesignData>({
     rooms: [],
@@ -80,6 +82,14 @@ const DesignTool = () => {
     { type: 'chair', name: 'Chair', icon: Chair, width: 20, height: 20, price: 3000, color: '#607D8B' },
     { type: 'tv', name: 'TV Unit', icon: Tv, width: 50, height: 15, price: 8000, color: '#424242' },
     { type: 'lamp', name: 'Lamp', icon: Lamp, width: 15, height: 15, price: 2000, color: '#FFC107' },
+    { type: 'wardrobe', name: 'Wardrobe', icon: DoorOpen, width: 40, height: 80, price: 35000, color: '#A0522D' },
+    { type: 'bookshelf', name: 'Bookshelf', icon: BookOpen, width: 35, height: 70, price: 18000, color: '#8B4513' },
+    { type: 'desk', name: 'Work Desk', icon: Monitor, width: 50, height: 30, price: 15000, color: '#654321' },
+    { type: 'nightstand', name: 'Nightstand', icon: Lamp, width: 20, height: 20, price: 5000, color: '#D2691E' },
+    { type: 'coffee-table', name: 'Coffee Table', icon: Table, width: 40, height: 30, price: 8000, color: '#8B7355' },
+    { type: 'refrigerator', name: 'Refrigerator', icon: Refrigerator, width: 30, height: 30, price: 25000, color: '#C0C0C0' },
+    { type: 'bar-counter', name: 'Bar Counter', icon: Wine, width: 60, height: 25, price: 20000, color: '#8B4513' },
+    { type: 'side-table', name: 'Side Table', icon: Table, width: 18, height: 18, price: 4000, color: '#A0826D' },
   ];
 
   const roomTypes = [
@@ -89,6 +99,15 @@ const DesignTool = () => {
     { type: 'bathroom', name: 'Bathroom', color: '#FFF3E0', costPerSqFt: 1800 },
     { type: 'dining', name: 'Dining Room', color: '#FCE4EC', costPerSqFt: 1300 },
     { type: 'study', name: 'Study Room', color: '#E1F5FE', costPerSqFt: 1100 },
+    { type: 'balcony', name: 'Balcony', color: '#E8EAF6', costPerSqFt: 800 },
+    { type: 'corridor', name: 'Corridor', color: '#FFF9C4', costPerSqFt: 600 },
+    { type: 'utility', name: 'Utility Room', color: '#F3E5F5', costPerSqFt: 900 },
+    { type: 'office', name: 'Home Office', color: '#E0F2F1', costPerSqFt: 1400 },
+    { type: 'gym', name: 'Home Gym', color: '#FBE9E7', costPerSqFt: 1200 },
+    { type: 'store', name: 'Store Room', color: '#EFEBE9', costPerSqFt: 700 },
+    { type: 'guest', name: 'Guest Room', color: '#F1F8E9', costPerSqFt: 1100 },
+    { type: 'pooja', name: 'Pooja Room', color: '#FFF8E1', costPerSqFt: 1500 },
+    { type: 'laundry', name: 'Laundry Room', color: '#E3F2FD', costPerSqFt: 1000 },
   ];
 
   // Check authentication and authorization
@@ -172,6 +191,12 @@ const DesignTool = () => {
     }
   }, [showGrid, designData.gridSize, zoom, pan]);
 
+  const calculateDistance = (p1: Point, p2: Point): number => {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sqrt(dx * dx + dy * dy) / designData.scale; // Convert to feet
+  };
+
   const drawRoom = useCallback((ctx: CanvasRenderingContext2D, room: Room) => {
     if (room.points.length < 3) return;
 
@@ -205,6 +230,42 @@ const DesignTool = () => {
     ctx.lineWidth = selectedItem === room.id ? 3 : 1.5;
     ctx.stroke();
 
+    // Draw measurements on each edge if enabled
+    if (showMeasurements && zoom > 0.5) {
+      ctx.font = `${Math.max(10, 11 * zoom)}px Inter`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 3;
+
+      for (let i = 0; i < room.points.length; i++) {
+        const p1 = room.points[i];
+        const p2 = room.points[(i + 1) % room.points.length];
+
+        const midX = ((p1.x + p2.x) / 2) * zoom + pan.x;
+        const midY = ((p1.y + p2.y) / 2) * zoom + pan.y;
+
+        const distance = calculateDistance(p1, p2);
+        const label = `${distance.toFixed(1)}'`;
+
+        // Draw text background
+        const textMetrics = ctx.measureText(label);
+        const bgPadding = 4;
+        ctx.fillStyle = 'rgba(33, 150, 243, 0.9)';
+        ctx.fillRect(
+          midX - textMetrics.width / 2 - bgPadding,
+          midY - 8,
+          textMetrics.width + bgPadding * 2,
+          16
+        );
+
+        // Draw text
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label, midX, midY);
+      }
+    }
+
     // Draw room label with background
     const centerX = room.points.reduce((sum, p) => sum + p.x, 0) / room.points.length;
     const centerY = room.points.reduce((sum, p) => sum + p.y, 0) / room.points.length;
@@ -216,22 +277,26 @@ const DesignTool = () => {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
+    const roomLabel = `${room.name}\n${room.area.toFixed(1)} sq ft`;
     const textMetrics = ctx.measureText(room.name);
     const padding = 8;
 
     // Draw label background
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.fillRect(
       displayX - textMetrics.width / 2 - padding,
-      displayY - 10,
+      displayY - 18,
       textMetrics.width + padding * 2,
-      20
+      36
     );
 
     // Draw label text
     ctx.fillStyle = '#333';
-    ctx.fillText(room.name, displayX, displayY);
-  }, [zoom, pan, selectedItem]);
+    ctx.fillText(room.name, displayX, displayY - 6);
+    ctx.font = `${Math.max(10, 11 * zoom)}px Inter`;
+    ctx.fillStyle = '#666';
+    ctx.fillText(`${room.area.toFixed(1)} sq ft`, displayX, displayY + 10);
+  }, [zoom, pan, selectedItem, showMeasurements, designData.scale]);
 
   const drawFurniture = useCallback((ctx: CanvasRenderingContext2D, furniture: Furniture) => {
     ctx.save();
@@ -342,6 +407,114 @@ const DesignTool = () => {
         ctx.fillRect(-width/2 + width * 0.3, height/2 - height * 0.4, width * 0.4, height * 0.4);
         break;
 
+      case 'wardrobe':
+        // Draw wardrobe with doors
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2, width, height);
+        ctx.strokeRect(-width/2, -height/2, width, height);
+        // Door divider
+        ctx.strokeStyle = '#654321';
+        ctx.beginPath();
+        ctx.moveTo(0, -height/2);
+        ctx.lineTo(0, height/2);
+        ctx.stroke();
+        // Door handles
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(-width/4 - 2, 0, 4, height * 0.1);
+        ctx.fillRect(width/4 - 2, 0, 4, height * 0.1);
+        break;
+
+      case 'bookshelf':
+        // Draw bookshelf with shelves
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2, width, height);
+        ctx.strokeRect(-width/2, -height/2, width, height);
+        // Shelves
+        ctx.strokeStyle = '#654321';
+        for (let i = 1; i < 5; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-width/2, -height/2 + (height * i / 5));
+          ctx.lineTo(width/2, -height/2 + (height * i / 5));
+          ctx.stroke();
+        }
+        break;
+
+      case 'desk':
+        // Draw desk
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2, width, height * 0.7);
+        ctx.strokeRect(-width/2, -height/2, width, height * 0.7);
+        // Legs
+        ctx.fillStyle = '#654321';
+        const deskLegWidth = width * 0.08;
+        ctx.fillRect(-width/2 + deskLegWidth, -height/2 + height * 0.7, deskLegWidth, height * 0.3);
+        ctx.fillRect(width/2 - deskLegWidth * 2, -height/2 + height * 0.7, deskLegWidth, height * 0.3);
+        break;
+
+      case 'nightstand':
+        // Draw nightstand
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2, width, height);
+        ctx.strokeRect(-width/2, -height/2, width, height);
+        // Drawer lines
+        ctx.strokeStyle = '#654321';
+        ctx.beginPath();
+        ctx.moveTo(-width/2, -height/6);
+        ctx.lineTo(width/2, -height/6);
+        ctx.moveTo(-width/2, height/6);
+        ctx.lineTo(width/2, height/6);
+        ctx.stroke();
+        break;
+
+      case 'coffee-table':
+        // Draw coffee table
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2, width, height * 0.6);
+        ctx.strokeRect(-width/2, -height/2, width, height * 0.6);
+        // Legs
+        ctx.fillStyle = '#654321';
+        const ctLegSize = Math.min(width, height) * 0.1;
+        ctx.fillRect(-width/2 + ctLegSize, -height/2 + height * 0.6, ctLegSize, height * 0.4);
+        ctx.fillRect(width/2 - ctLegSize * 2, -height/2 + height * 0.6, ctLegSize, height * 0.4);
+        break;
+
+      case 'refrigerator':
+        // Draw refrigerator
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2, width, height);
+        ctx.strokeRect(-width/2, -height/2, width, height);
+        // Freezer section
+        ctx.strokeStyle = '#999';
+        ctx.beginPath();
+        ctx.moveTo(-width/2, -height/2 + height * 0.4);
+        ctx.lineTo(width/2, -height/2 + height * 0.4);
+        ctx.stroke();
+        // Handles
+        ctx.fillStyle = '#888';
+        ctx.fillRect(width/2 - width * 0.15, -height/2 + height * 0.15, width * 0.08, height * 0.15);
+        ctx.fillRect(width/2 - width * 0.15, -height/2 + height * 0.55, width * 0.08, height * 0.15);
+        break;
+
+      case 'bar-counter':
+        // Draw bar counter
+        ctx.fillStyle = furniture.color;
+        // Counter top
+        ctx.fillRect(-width/2, -height/2, width, height * 0.3);
+        ctx.strokeRect(-width/2, -height/2, width, height * 0.3);
+        // Base
+        ctx.fillRect(-width/2 + width * 0.1, -height/2 + height * 0.3, width * 0.8, height * 0.7);
+        ctx.strokeRect(-width/2 + width * 0.1, -height/2 + height * 0.3, width * 0.8, height * 0.7);
+        break;
+
+      case 'side-table':
+        // Draw side table
+        ctx.fillStyle = furniture.color;
+        ctx.fillRect(-width/2, -height/2, width, height * 0.6);
+        ctx.strokeRect(-width/2, -height/2, width, height * 0.6);
+        // Single leg
+        ctx.fillRect(-width * 0.15, -height/2 + height * 0.6, width * 0.3, height * 0.4);
+        break;
+
       default:
         // Default rectangle for unknown types
         ctx.fillStyle = furniture.color;
@@ -398,7 +571,34 @@ const DesignTool = () => {
     ctx.arc(endX, endY, thickness / 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-  }, [zoom, pan, selectedItem]);
+
+    // Draw wall measurement if enabled
+    if (showMeasurements && zoom > 0.5) {
+      const midX = (startX + endX) / 2;
+      const midY = (startY + endY) / 2;
+      const wallLength = calculateDistance(wall.start, wall.end);
+      const label = `${wallLength.toFixed(1)}'`;
+
+      ctx.font = `${Math.max(10, 11 * zoom)}px Inter`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Draw text background
+      const textMetrics = ctx.measureText(label);
+      const bgPadding = 4;
+      ctx.fillStyle = 'rgba(160, 160, 160, 0.95)';
+      ctx.fillRect(
+        midX - textMetrics.width / 2 - bgPadding,
+        midY - 8,
+        textMetrics.width + bgPadding * 2,
+        16
+      );
+
+      // Draw text
+      ctx.fillStyle = '#fff';
+      ctx.fillText(label, midX, midY);
+    }
+  }, [zoom, pan, selectedItem, showMeasurements]);
 
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -540,26 +740,27 @@ const DesignTool = () => {
 
   const handleCanvasDoubleClick = () => {
     if (tool === 'room' && isDrawing && currentPoints.length >= 3) {
-      // Complete room
-      const roomType = roomTypes[0]; // Default to living room
+      // Complete room using the selected room type
+      const roomType = roomTypes.find(rt => rt.type === selectedRoomType) || roomTypes[0];
       const area = calculatePolygonArea(currentPoints);
+      const roomsOfSameType = designData.rooms.filter(r => r.type === roomType.type).length;
       const newRoom: Room = {
         id: Date.now().toString(),
-        name: `${roomType.name} ${designData.rooms.length + 1}`,
+        name: `${roomType.name}${roomsOfSameType > 0 ? ` ${roomsOfSameType + 1}` : ''}`,
         points: currentPoints,
         color: roomType.color,
         area,
         type: roomType.type
       };
-      
+
       const newDesignData = {
         ...designData,
         rooms: [...designData.rooms, newRoom]
       };
-      
+
       setDesignData(newDesignData);
       addToHistory(newDesignData);
-      
+
       setIsDrawing(false);
       setCurrentPoints([]);
       setTool('select');
@@ -822,19 +1023,25 @@ const DesignTool = () => {
           {/* Room Types */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Room Types</h3>
-            <div className="space-y-2">
+            <div className="space-y-1 max-h-72 overflow-y-auto">
               {roomTypes.map(roomType => (
-                <div
+                <button
                   key={roomType.type}
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50"
+                  onClick={() => {
+                    setSelectedRoomType(roomType.type);
+                    setTool('room');
+                  }}
+                  className={`w-full flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50 transition-colors ${
+                    tool === 'room' && selectedRoomType === roomType.type ? 'bg-primary-50 border border-primary-300' : ''
+                  }`}
                 >
                   <div
-                    className="w-4 h-4 rounded"
+                    className="w-4 h-4 rounded flex-shrink-0"
                     style={{ backgroundColor: roomType.color }}
                   />
-                  <span className="text-sm">{roomType.name}</span>
-                  <span className="text-xs text-gray-500 ml-auto">₹{roomType.costPerSqFt}/sqft</span>
-                </div>
+                  <span className="text-sm flex-1 text-left">{roomType.name}</span>
+                  <span className="text-xs text-gray-500">₹{roomType.costPerSqFt}/sqft</span>
+                </button>
               ))}
             </div>
           </div>
@@ -842,7 +1049,7 @@ const DesignTool = () => {
           {/* Furniture */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Furniture</h3>
-            <div className="space-y-2">
+            <div className="space-y-1 max-h-80 overflow-y-auto">
               {furnitureTypes.map(furnitureType => {
                 const IconComponent = furnitureType.icon;
                 return (
@@ -852,11 +1059,11 @@ const DesignTool = () => {
                       setTool('furniture');
                       setSelectedFurnitureType(furnitureType.type);
                     }}
-                    className={`w-full flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 text-left ${
-                      tool === 'furniture' && selectedFurnitureType === furnitureType.type ? 'bg-primary-50' : ''
+                    className={`w-full flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 text-left transition-colors ${
+                      tool === 'furniture' && selectedFurnitureType === furnitureType.type ? 'bg-primary-50 border border-primary-300' : ''
                     }`}
                   >
-                    <IconComponent className="w-4 h-4 text-gray-600" />
+                    <IconComponent className="w-4 h-4 text-gray-600 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="text-sm font-medium">{furnitureType.name}</div>
                       <div className="text-xs text-gray-500">₹{furnitureType.price.toLocaleString()}</div>
@@ -871,7 +1078,7 @@ const DesignTool = () => {
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">View</h3>
             <div className="space-y-2">
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={showGrid}
@@ -879,6 +1086,15 @@ const DesignTool = () => {
                   className="rounded border-gray-300"
                 />
                 <span className="text-sm">Show Grid</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showMeasurements}
+                  onChange={(e) => setShowMeasurements(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm">Show Measurements</span>
               </label>
             </div>
           </div>
@@ -914,11 +1130,14 @@ const DesignTool = () => {
 
           {/* Instructions */}
           {tool === 'room' && (
-            <div className="absolute top-4 left-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="absolute top-4 left-4 bg-blue-50 border border-blue-200 rounded-lg p-3 max-w-xs">
+              <p className="text-sm text-blue-800 font-semibold mb-1">
+                Room Type: {roomTypes.find(rt => rt.type === selectedRoomType)?.name}
+              </p>
               <p className="text-sm text-blue-800">
-                {isDrawing 
+                {isDrawing
                   ? 'Click to add points. Double-click to finish room.'
-                  : 'Click to start drawing a room.'
+                  : 'Click to start drawing a room. Select a different room type from the sidebar if needed.'
                 }
               </p>
             </div>
