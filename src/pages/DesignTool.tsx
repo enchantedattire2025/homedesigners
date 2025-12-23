@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Square, Move, Trash2, Save, Undo, Redo, Grid, Calculator, IndianRupee as Rupee, Plus, Minus, ArrowLeft, Palette, Sofa, Bed, Table, Armchair as Chair, Tv, Lamp, DoorOpen, Refrigerator, BookOpen, Monitor, Wine } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
+import { supabase } from '../lib/supabase';
+import SaveDesignModal from '../components/SaveDesignModal';
 
 interface Point {
   x: number;
@@ -63,6 +65,8 @@ const DesignTool = () => {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [wallThickness, setWallThickness] = useState(6);
   const [showMeasurements, setShowMeasurements] = useState(true);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [designerId, setDesignerId] = useState<string>('');
   
   const [designData, setDesignData] = useState<DesignData>({
     rooms: [],
@@ -134,6 +138,25 @@ const DesignTool = () => {
       return;
     }
   }, [authLoading, user, isDesigner, designerLoading, navigate]);
+
+  // Fetch designer ID
+  useEffect(() => {
+    const fetchDesignerId = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('designers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (data && !error) {
+        setDesignerId(data.id);
+      }
+    };
+
+    fetchDesignerId();
+  }, [user]);
 
   // Initialize history
   useEffect(() => {
@@ -810,8 +833,68 @@ const DesignTool = () => {
       const costPerSqFt = roomTypeObj ? roomTypeObj.costPerSqFt : 1200;
       return total + (room.area * costPerSqFt);
     }, 0);
-    
+
     return furnitureCost + roomCost;
+  };
+
+  const handleSaveDesign = async (quoteId: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      throw new Error('Canvas not found');
+    }
+
+    // Convert canvas to blob
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create image blob'));
+          }
+        },
+        'image/png',
+        1.0
+      );
+    });
+
+    // Create a unique filename
+    const timestamp = Date.now();
+    const filename = `design_${timestamp}.png`;
+    const filePath = `${quoteId}/design/${filename}`;
+
+    // Upload to Supabase storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('quotation-attachments')
+      .upload(filePath, blob, {
+        contentType: 'image/png',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error('Failed to upload design image');
+    }
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('quotation-attachments')
+      .getPublicUrl(filePath);
+
+    const designImageUrl = urlData.publicUrl;
+
+    // Update the quotation with the design image URL
+    const { error: updateError } = await supabase
+      .from('designer_quotes')
+      .update({ design_image_url: designImageUrl })
+      .eq('id', quoteId);
+
+    if (updateError) {
+      console.error('Update error:', updateError);
+      throw new Error('Failed to update quotation with design image');
+    }
+
+    alert('Design saved successfully and attached to quotation!');
   };
 
   const handlePanStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1292,22 +1375,25 @@ const DesignTool = () => {
                 Get Detailed Quote
               </button>
               
-              <button 
+              <button
                 className="w-full btn-secondary mt-2"
-                onClick={() => {
-                  const projectName = prompt("Enter a name for your design project:");
-                  if (projectName) {
-                    alert(`Project "${projectName}" saved successfully!`);
-                  }
-                }}
+                onClick={() => setShowSaveModal(true)}
+                disabled={designData.rooms.length === 0 && designData.furniture.length === 0}
               >
                 <Save className="w-4 h-4 mr-2" />
-                Save Design
+                Save Design to Quotation
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      <SaveDesignModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={handleSaveDesign}
+        designerId={designerId}
+      />
     </div>
   );
 };

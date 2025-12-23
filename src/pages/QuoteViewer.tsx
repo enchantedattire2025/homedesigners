@@ -35,6 +35,7 @@ interface Quote {
   terms_and_conditions: string;
   notes: string;
   created_at: string;
+  design_image_url?: string;
   designer: {
     name: string;
     email: string;
@@ -271,6 +272,22 @@ const QuoteViewer = () => {
             <h4 className="font-semibold text-secondary-800 mb-3 text-lg">Quote Description</h4>
             <p className="text-gray-600">{quote.description || 'No description provided.'}</p>
           </div>
+
+          {quote.design_image_url && (
+            <div className="mb-8 print-break-inside">
+              <h4 className="font-semibold text-secondary-800 mb-3 text-lg">2D Design Preview</h4>
+              <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                <img
+                  src={quote.design_image_url}
+                  alt="2D Design Preview"
+                  className="w-full h-auto"
+                />
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                This design was created using our 2D design tool to help you visualize the proposed layout.
+              </p>
+            </div>
+          )}
 
           <div className="mb-8">
             <h4 className="font-semibold text-secondary-800 mb-4 text-lg">Quote Items</h4>
