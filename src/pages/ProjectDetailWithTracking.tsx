@@ -549,6 +549,65 @@ const ProjectDetailWithTracking = () => {
                   </div>
                 )}
 
+                {/* Project Schedule & Pricing */}
+                {((project as any).work_begin_date || (project as any).work_end_date || ((project as any).per_day_discount && (project as any).per_day_discount > 0)) && (
+                  <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                    <h3 className="text-lg font-semibold text-secondary-800 mb-4 flex items-center space-x-2">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                      <span>Project Schedule & Pricing</span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {(project as any).work_begin_date && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Work Begin Date</p>
+                          <div className="flex items-center space-x-2 text-gray-600">
+                            <Calendar className="w-4 h-4 text-green-600" />
+                            <span className="font-medium">
+                              {new Date((project as any).work_begin_date).toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {(project as any).work_end_date && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Work End Date</p>
+                          <div className="flex items-center space-x-2 text-gray-600">
+                            <CheckCircle className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium">
+                              {new Date((project as any).work_end_date).toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {(project as any).per_day_discount && (project as any).per_day_discount > 0 && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Per Day Discount</p>
+                          <div className="flex items-center space-x-2">
+                            <Rupee className="w-4 h-4 text-green-600" />
+                            <span className="font-semibold text-green-600 text-lg">
+                              {(project as any).per_day_discount.toLocaleString('en-IN', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                            </span>
+                            <span className="text-sm text-gray-500">per day</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Inspiration Links */}
                 {project.inspiration_links && project.inspiration_links.length > 0 && (
                   <div>

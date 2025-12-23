@@ -35,7 +35,10 @@ const EditProject = () => {
     layout_image_url: '',
     inspiration_links: [''],
     room_types: [''],
-    special_requirements: ''
+    special_requirements: '',
+    work_begin_date: '',
+    work_end_date: '',
+    per_day_discount: ''
   });
 
   const propertyTypes = [
@@ -177,7 +180,10 @@ const EditProject = () => {
         layout_image_url: data.layout_image_url || '',
         inspiration_links: data.inspiration_links && data.inspiration_links.length > 0 ? data.inspiration_links : [''],
         room_types: data.room_types && data.room_types.length > 0 ? data.room_types : [''],
-        special_requirements: data.special_requirements || ''
+        special_requirements: data.special_requirements || '',
+        work_begin_date: data.work_begin_date ? new Date(data.work_begin_date).toISOString().split('T')[0] : '',
+        work_end_date: data.work_end_date ? new Date(data.work_end_date).toISOString().split('T')[0] : '',
+        per_day_discount: data.per_day_discount ? data.per_day_discount.toString() : ''
       });
     } catch (error: any) {
       console.error('Error fetching project:', error);
@@ -293,13 +299,26 @@ const EditProject = () => {
 
     try {
       // Filter out empty strings from arrays
-      const cleanedData = {
+      const cleanedData: any = {
         ...formData,
         inspiration_links: formData.inspiration_links.filter(link => link.trim() !== ''),
         room_types: formData.room_types.filter(room => room.trim() !== ''),
         last_modified_by: user.id,
         version: (project.version || 1) + 1
       };
+
+      // Convert date fields to proper format and handle per_day_discount
+      if (isDesigner) {
+        cleanedData.work_begin_date = formData.work_begin_date || null;
+        cleanedData.per_day_discount = formData.per_day_discount ? parseFloat(formData.per_day_discount) : 0;
+      } else {
+        // Remove designer-only fields from customer updates
+        delete cleanedData.work_begin_date;
+        delete cleanedData.per_day_discount;
+      }
+
+      // work_end_date should never be manually set, so remove it
+      delete cleanedData.work_end_date;
 
       console.log('Updating project with data:', cleanedData);
 
@@ -663,6 +682,124 @@ const EditProject = () => {
                 />
               </div>
             </div>
+
+            {/* Project Schedule & Discount (Designer Only) */}
+            {isDesigner && (
+              <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                <h2 className="text-xl font-semibold text-secondary-800 mb-2">Project Schedule & Pricing</h2>
+                <p className="text-sm text-blue-700 mb-4">
+                  These fields are only editable by the designer and visible to the customer.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Work Begin Date
+                    </label>
+                    <input
+                      type="date"
+                      name="work_begin_date"
+                      value={formData.work_begin_date}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Date when work will begin
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Work End Date
+                    </label>
+                    <input
+                      type="date"
+                      name="work_end_date"
+                      value={formData.work_end_date}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                      disabled
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Auto-set when status is finalized
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Per Day Discount (₹)
+                    </label>
+                    <div className="relative">
+                      <Rupee className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="number"
+                        name="per_day_discount"
+                        value={formData.per_day_discount}
+                        onChange={handleInputChange}
+                        min="0"
+                        step="0.01"
+                        className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Daily discount amount
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Project Schedule & Discount (Customer View) */}
+            {!isDesigner && project && (project.work_begin_date || project.work_end_date || (project.per_day_discount && project.per_day_discount > 0)) && (
+              <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+                <h2 className="text-xl font-semibold text-secondary-800 mb-2">Project Schedule & Pricing</h2>
+                <p className="text-sm text-green-700 mb-4">
+                  This information is set by your designer.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {project.work_begin_date && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Work Begin Date
+                      </label>
+                      <div className="bg-white border border-gray-300 rounded-lg px-3 py-2">
+                        {new Date(project.work_begin_date).toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {project.work_end_date && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Work End Date
+                      </label>
+                      <div className="bg-white border border-gray-300 rounded-lg px-3 py-2">
+                        {new Date(project.work_end_date).toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {project.per_day_discount && project.per_day_discount > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Per Day Discount
+                      </label>
+                      <div className="bg-white border border-gray-300 rounded-lg px-3 py-2 flex items-center">
+                        <Rupee className="w-4 h-4 text-gray-600 mr-1" />
+                        <span className="font-semibold text-green-600">{project.per_day_discount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Home Layout Image */}
             <div className="bg-gray-50 rounded-lg p-6">

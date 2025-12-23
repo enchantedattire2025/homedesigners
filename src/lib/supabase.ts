@@ -162,6 +162,11 @@ export type Customer = {
   room_types: string[];
   special_requirements?: string;
   status: string;
+  assignment_status?: string;
+  assigned_designer_id?: string;
+  work_begin_date?: string;
+  work_end_date?: string;
+  per_day_discount?: number;
   created_at: string;
   updated_at: string;
 };
