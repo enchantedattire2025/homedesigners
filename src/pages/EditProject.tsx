@@ -308,12 +308,13 @@ const EditProject = () => {
       };
 
       // Convert date fields to proper format and handle per_day_discount
-      if (isDesigner) {
+      // Only the assigned designer can update these fields
+      if (isDesigner && project.assigned_designer_id === designer?.id) {
         cleanedData.work_begin_date = formData.work_begin_date || null;
         cleanedData.work_end_date = formData.work_end_date || null;
         cleanedData.per_day_discount = formData.per_day_discount ? parseFloat(formData.per_day_discount) : 0;
       } else {
-        // Remove designer-only fields from customer updates
+        // Remove designer-only fields from customer updates or non-assigned designers
         delete cleanedData.work_begin_date;
         delete cleanedData.work_end_date;
         delete cleanedData.per_day_discount;
@@ -416,9 +417,18 @@ const EditProject = () => {
 
   const backUrl = isDesigner ? '/customer-projects' : '/my-projects';
   const pageTitle = isDesigner ? 'Edit Customer Project' : 'Edit Project Details';
-  const pageDescription = isDesigner ? 
+  const pageDescription = isDesigner ?
     'Update project information and collaborate with the customer' :
     'Update your project information and requirements';
+
+  // Debug logging for designer fields visibility
+  console.log('EditProject Debug:', {
+    isDesigner,
+    designerId: designer?.id,
+    projectAssignedDesignerId: project?.assigned_designer_id,
+    showDesignerFields: isDesigner && project?.assigned_designer_id === designer?.id,
+    project: project ? { id: project.id, name: project.project_name, status: project.status } : null
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -682,12 +692,12 @@ const EditProject = () => {
               </div>
             </div>
 
-            {/* Project Schedule & Discount (Designer Only) */}
-            {isDesigner && (
+            {/* Project Schedule & Discount (Designer Only) - Show if designer is assigned */}
+            {isDesigner && project?.assigned_designer_id === designer?.id && (
               <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
                 <h2 className="text-xl font-semibold text-secondary-800 mb-2">Project Schedule & Pricing</h2>
                 <p className="text-sm text-blue-700 mb-4">
-                  These fields are only editable by the designer and visible to the customer.
+                  Set the project timeline and per-day discount for delays. These fields are visible to the customer.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
@@ -744,6 +754,19 @@ const EditProject = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Designer not assigned message */}
+            {isDesigner && project && project.assigned_designer_id !== designer?.id && (
+              <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
+                <h2 className="text-xl font-semibold text-secondary-800 mb-2 flex items-center space-x-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <span>Project Schedule & Pricing</span>
+                </h2>
+                <p className="text-sm text-yellow-700">
+                  Only the assigned designer can set project schedule and pricing. This project is assigned to a different designer.
+                </p>
               </div>
             )}
 
