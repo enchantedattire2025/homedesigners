@@ -310,15 +310,14 @@ const EditProject = () => {
       // Convert date fields to proper format and handle per_day_discount
       if (isDesigner) {
         cleanedData.work_begin_date = formData.work_begin_date || null;
+        cleanedData.work_end_date = formData.work_end_date || null;
         cleanedData.per_day_discount = formData.per_day_discount ? parseFloat(formData.per_day_discount) : 0;
       } else {
         // Remove designer-only fields from customer updates
         delete cleanedData.work_begin_date;
+        delete cleanedData.work_end_date;
         delete cleanedData.per_day_discount;
       }
-
-      // work_end_date should never be manually set, so remove it
-      delete cleanedData.work_end_date;
 
       console.log('Updating project with data:', cleanedData);
 
@@ -715,11 +714,11 @@ const EditProject = () => {
                       type="date"
                       name="work_end_date"
                       value={formData.work_end_date}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
-                      disabled
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Auto-set when status is finalized
+                      Expected completion date
                     </p>
                   </div>
 
