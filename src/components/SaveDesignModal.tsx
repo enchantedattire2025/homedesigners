@@ -54,7 +54,7 @@ const SaveDesignModal: React.FC<SaveDesignModalProps> = ({
           status,
           customers!designer_quotes_project_id_fkey (
             name,
-            project_title
+            project_name
           )
         `)
         .eq('designer_id', designerId)
@@ -71,7 +71,7 @@ const SaveDesignModal: React.FC<SaveDesignModalProps> = ({
         total_amount: quote.total_amount,
         status: quote.status,
         customer_name: quote.customers?.name,
-        project_title: quote.customers?.project_title
+        project_title: quote.customers?.project_name
       })) || [];
 
       setQuotes(formattedQuotes);
