@@ -487,15 +487,6 @@ const DesignerQuotes = () => {
                 <span>Download Design</span>
               </button>
             </div>
-            <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-              <img
-                src={selectedQuote.design_image_url}
-                alt="2D Design Preview"
-                className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => window.open(selectedQuote.design_image_url, '_blank')}
-                title="Click to view full size"
-              />
-            </div>
             <p className="text-xs text-gray-500 mt-2">
               This design was created using the 2D design tool. Click the image to view it in full size or use the download button to save it.
             </p>
