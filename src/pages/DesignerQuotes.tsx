@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Calendar, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, MessageSquare, Award, Target, Activity, FileText, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, ArrowLeft, Filter, Search, Edit, Trash2, Send, Plus, ThumbsDown } from 'lucide-react';
+import { BarChart3, Users, Calendar, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, MessageSquare, Award, Target, Activity, FileText, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, ArrowLeft, Filter, Search, Edit, Trash2, Send, Plus, ThumbsDown, Download } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
@@ -476,16 +476,34 @@ const DesignerQuotes = () => {
 
         {selectedQuote.design_image_url && (
           <div className="mb-6">
-            <h4 className="font-semibold text-secondary-800 mb-3">2D Design Preview</h4>
-            <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-secondary-800">2D Design Preview</h4>
+              <a
+                href={selectedQuote.design_image_url}
+                download="2d-design-preview.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-lg font-medium transition-colors text-sm"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Design</span>
+              </a>
+            </div>
+            <a
+              href={selectedQuote.design_image_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50 hover:border-primary-400 transition-colors cursor-pointer"
+              title="Click to view full size"
+            >
               <img
                 src={selectedQuote.design_image_url}
                 alt="2D Design Preview"
                 className="w-full h-auto"
               />
-            </div>
+            </a>
             <p className="text-xs text-gray-500 mt-2">
-              This design was created using the 2D design tool.
+              This design was created using the 2D design tool. Click the image to view it in full size or use the download button to save it.
             </p>
           </div>
         )}
