@@ -478,7 +478,7 @@ const DesignerQuotes = () => {
         {selectedQuote.design_image_url && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-secondary-800">2D Design Preview</h4>
+              <h4 className="font-semibold text-secondary-800">2D Design</h4>
               <button
                 onClick={() => downloadFileFromStorage(selectedQuote.design_image_url!, `2d-design-${selectedQuote.quote_number}.png`)}
                 className="flex items-center space-x-2 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-lg font-medium transition-colors text-sm"
@@ -488,7 +488,7 @@ const DesignerQuotes = () => {
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              This design was created using the 2D design tool. Click the image to view it in full size or use the download button to save it.
+              This design was created using the 2D design tool. Use the download button to save it.
             </p>
           </div>
         )}
