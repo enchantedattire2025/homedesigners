@@ -277,7 +277,7 @@ const QuoteViewer = () => {
           {quote.design_image_url && (
             <div className="mb-8 print-break-inside">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-secondary-800 text-lg">2D Design Preview</h4>
+                <h4 className="font-semibold text-secondary-800 text-lg">2D Design</h4>
                 <button
                   onClick={() => downloadFileFromStorage(quote.design_image_url!, `2d-design-${quote.quote_number}.png`)}
                   className="no-print flex items-center space-x-2 bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
@@ -286,17 +286,8 @@ const QuoteViewer = () => {
                   <span>Download Design</span>
                 </button>
               </div>
-              <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                <img
-                  src={quote.design_image_url}
-                  alt="2D Design Preview"
-                  className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => window.open(quote.design_image_url, '_blank')}
-                  title="Click to view full size"
-                />
-              </div>
               <p className="text-sm text-gray-500 mt-2">
-                This design was created using our 2D design tool to help you visualize the proposed layout. Click the image to view it in full size or use the download button to save it.
+                This design was created using our 2D design tool to help you visualize the proposed layout. Use the download button to save it.
               </p>
             </div>
           )}
