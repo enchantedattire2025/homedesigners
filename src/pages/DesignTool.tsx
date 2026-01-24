@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Square, Move, Trash2, Save, Undo, Redo, Grid, Calculator, IndianRupee as Rupee, Plus, Minus, ArrowLeft, Palette, Sofa, Bed, Table, Armchair as Chair, Tv, Lamp, DoorOpen, Refrigerator, BookOpen, Monitor, Wine } from 'lucide-react';
+import { Square, Move, Trash2, Save, Undo, Redo, Grid, Calculator, IndianRupee as Rupee, Plus, Minus, ArrowLeft, Palette, Sofa, Bed, Table, Armchair as Chair, Tv, Lamp, DoorOpen, Refrigerator, BookOpen, Monitor, Wine, RotateCw, RotateCcw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
@@ -61,6 +61,7 @@ const DesignTool = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const [isDraggingWallHandle, setIsDraggingWallHandle] = useState<'start' | 'end' | null>(null);
+  const [isDraggingFurniture, setIsDraggingFurniture] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -763,17 +764,60 @@ const DesignTool = () => {
     return null;
   };
 
+  const isPointInsideFurniture = (point: Point, furniture: Furniture): boolean => {
+    // Transform point to furniture's local coordinate system
+    const centerX = furniture.x + furniture.width / 2;
+    const centerY = furniture.y + furniture.height / 2;
+
+    // Translate point to furniture center
+    const translatedX = point.x - centerX;
+    const translatedY = point.y - centerY;
+
+    // Rotate point back by negative rotation angle
+    const angleRad = (-furniture.rotation * Math.PI) / 180;
+    const rotatedX = translatedX * Math.cos(angleRad) - translatedY * Math.sin(angleRad);
+    const rotatedY = translatedX * Math.sin(angleRad) + translatedY * Math.cos(angleRad);
+
+    // Check if point is inside the axis-aligned rectangle
+    const halfWidth = furniture.width / 2;
+    const halfHeight = furniture.height / 2;
+
+    return (
+      rotatedX >= -halfWidth &&
+      rotatedX <= halfWidth &&
+      rotatedY >= -halfHeight &&
+      rotatedY <= halfHeight
+    );
+  };
+
+  const findFurnitureAtPoint = (point: Point): Furniture | null => {
+    for (let i = designData.furniture.length - 1; i >= 0; i--) {
+      if (isPointInsideFurniture(point, designData.furniture[i])) {
+        return designData.furniture[i];
+      }
+    }
+    return null;
+  };
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const point = getCanvasPoint(e);
 
     if (tool === 'select') {
+      // Check if clicking on furniture first (they're on top)
+      const clickedFurniture = findFurnitureAtPoint(point);
+      if (clickedFurniture) {
+        setSelectedItem(clickedFurniture.id);
+        return;
+      }
+
       // Check if clicking on a wall
       const clickedWall = findWallAtPoint(point);
       if (clickedWall) {
         setSelectedItem(clickedWall.id);
         return;
       }
-      // If no wall clicked, clear selection
+
+      // If nothing clicked, clear selection
       setSelectedItem(null);
     } else if (tool === 'wall') {
       if (!isDrawing) {
@@ -973,6 +1017,54 @@ const DesignTool = () => {
     const point = getCanvasPoint(e);
 
     if (tool === 'select' && selectedItem) {
+      // Check if clicking on furniture to drag
+      const selectedFurniture = designData.furniture.find(f => f.id === selectedItem);
+      if (selectedFurniture && isPointInsideFurniture(point, selectedFurniture)) {
+        setIsDraggingFurniture(true);
+        const startPoint = { ...point };
+        const furnitureStartPos = { x: selectedFurniture.x, y: selectedFurniture.y };
+
+        const handleFurnitureDrag = (moveEvent: MouseEvent) => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+
+          const rect = canvas.getBoundingClientRect();
+          const x = (moveEvent.clientX - rect.left - pan.x) / zoom;
+          const y = (moveEvent.clientY - rect.top - pan.y) / zoom;
+
+          const gridSize = designData.gridSize;
+          const snappedPoint = {
+            x: Math.round(x / gridSize) * gridSize,
+            y: Math.round(y / gridSize) * gridSize
+          };
+
+          const deltaX = snappedPoint.x - startPoint.x;
+          const deltaY = snappedPoint.y - startPoint.y;
+
+          const updatedFurniture = designData.furniture.map(f =>
+            f.id === selectedItem
+              ? { ...f, x: furnitureStartPos.x + deltaX, y: furnitureStartPos.y + deltaY }
+              : f
+          );
+
+          setDesignData({
+            ...designData,
+            furniture: updatedFurniture
+          });
+        };
+
+        const handleFurnitureDragEnd = () => {
+          setIsDraggingFurniture(false);
+          addToHistory(designData);
+          document.removeEventListener('mousemove', handleFurnitureDrag);
+          document.removeEventListener('mouseup', handleFurnitureDragEnd);
+        };
+
+        document.addEventListener('mousemove', handleFurnitureDrag);
+        document.addEventListener('mouseup', handleFurnitureDragEnd);
+        return;
+      }
+
       // Check if clicking on a wall handle
       const selectedWall = designData.walls.find(w => w.id === selectedItem);
       if (selectedWall) {
@@ -1062,7 +1154,7 @@ const DesignTool = () => {
       }
     }
 
-    if (tool === 'select' && !isDraggingWallHandle) {
+    if (tool === 'select' && !isDraggingWallHandle && !isDraggingFurniture) {
       const startX = e.clientX;
       const startY = e.clientY;
       const startPan = { ...pan };
@@ -1102,6 +1194,45 @@ const DesignTool = () => {
     window.addEventListener('resize', resizeCanvas);
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [redrawCanvas]);
+
+  // Keyboard controls for rotation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (!selectedItem) return;
+
+      const selectedFurniture = designData.furniture.find(f => f.id === selectedItem);
+      if (!selectedFurniture) return;
+
+      if (e.key === 'r' || e.key === 'R') {
+        // Rotate clockwise by 90 degrees
+        const newRotation = (selectedFurniture.rotation + 90) % 360;
+        const updatedFurniture = designData.furniture.map(f =>
+          f.id === selectedItem ? { ...f, rotation: newRotation } : f
+        );
+        const newDesignData = {
+          ...designData,
+          furniture: updatedFurniture
+        };
+        setDesignData(newDesignData);
+        addToHistory(newDesignData);
+      } else if (e.key === 'e' || e.key === 'E') {
+        // Rotate counter-clockwise by 90 degrees
+        const newRotation = (selectedFurniture.rotation - 90 + 360) % 360;
+        const updatedFurniture = designData.furniture.map(f =>
+          f.id === selectedItem ? { ...f, rotation: newRotation } : f
+        );
+        const newDesignData = {
+          ...designData,
+          furniture: updatedFurniture
+        };
+        setDesignData(newDesignData);
+        addToHistory(newDesignData);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedItem, designData]);
 
   // Redraw canvas when data changes
   useEffect(() => {
@@ -1472,6 +1603,89 @@ const DesignTool = () => {
                       </div>
                     );
                   }
+
+                  const selectedFurniture = designData.furniture.find(f => f.id === selectedItem);
+                  if (selectedFurniture) {
+                    const widthInFeet = (selectedFurniture.width / designData.scale).toFixed(1);
+                    const heightInFeet = (selectedFurniture.height / designData.scale).toFixed(1);
+
+                    return (
+                      <div className="space-y-3 text-sm">
+                        <div className="font-medium text-gray-700">{selectedFurniture.name}</div>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Width:</span>
+                            <span>{widthInFeet}'</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Depth:</span>
+                            <span>{heightInFeet}'</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Rotation:</span>
+                            <span>{selectedFurniture.rotation}°</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Price:</span>
+                            <span>₹{selectedFurniture.price.toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t">
+                          <div className="text-xs font-medium text-gray-600 mb-2">Rotate Furniture</div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                const newRotation = (selectedFurniture.rotation - 90 + 360) % 360;
+                                const updatedFurniture = designData.furniture.map(f =>
+                                  f.id === selectedItem ? { ...f, rotation: newRotation } : f
+                                );
+                                const newDesignData = {
+                                  ...designData,
+                                  furniture: updatedFurniture
+                                };
+                                setDesignData(newDesignData);
+                                addToHistory(newDesignData);
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                              title="Rotate counter-clockwise (E key)"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                              <span className="text-xs">CCW</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newRotation = (selectedFurniture.rotation + 90) % 360;
+                                const updatedFurniture = designData.furniture.map(f =>
+                                  f.id === selectedItem ? { ...f, rotation: newRotation } : f
+                                );
+                                const newDesignData = {
+                                  ...designData,
+                                  furniture: updatedFurniture
+                                };
+                                setDesignData(newDesignData);
+                                addToHistory(newDesignData);
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                              title="Rotate clockwise (R key)"
+                            >
+                              <RotateCw className="w-4 h-4" />
+                              <span className="text-xs">CW</span>
+                            </button>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Press R or E keys to rotate
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-gray-500 pt-2 border-t">
+                          Drag to move furniture
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return null;
                 })()}
               </div>
