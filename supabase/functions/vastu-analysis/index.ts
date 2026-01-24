@@ -271,6 +271,52 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Check if analysis already exists for this project
+    if (projectId) {
+      try {
+        const { data: existingAnalysis, error: fetchError } = await supabase
+          .from('vastu_analyses')
+          .select('id, vastu_score, analysis_summary')
+          .eq('project_id', projectId)
+          .maybeSingle()
+
+        if (!fetchError && existingAnalysis) {
+          // Fetch existing recommendations
+          const { data: existingRecommendations, error: recError } = await supabase
+            .from('vastu_recommendations')
+            .select('zone, element, status, recommendation, priority')
+            .eq('analysis_id', existingAnalysis.id)
+            .order('priority', { ascending: true })
+
+          if (!recError && existingRecommendations) {
+            // Return existing analysis
+            const response: VastuResponse = {
+              score: existingAnalysis.vastu_score,
+              recommendations: existingRecommendations.map(rec => ({
+                zone: rec.zone,
+                element: rec.element,
+                status: rec.status as 'good' | 'warning' | 'bad',
+                recommendation: rec.recommendation,
+                priority: rec.priority as 'high' | 'medium' | 'low'
+              })),
+              summary: existingAnalysis.analysis_summary
+            }
+
+            return new Response(
+              JSON.stringify(response),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+              }
+            )
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching existing analysis:', error)
+        // Continue to generate new analysis if there's an error
+      }
+    }
+
+    // Generate new analysis
     const analysis = await analyzeFloorPlanWithGemini(layoutImageUrl)
 
     const recommendations = convertToVastuRecommendations(analysis)
@@ -286,6 +332,7 @@ Deno.serve(async (req) => {
       summary: analysis.summary
     }
 
+    // Save new analysis to database
     if (projectId) {
       try {
         const { data: analysisData, error: analysisError } = await supabase
