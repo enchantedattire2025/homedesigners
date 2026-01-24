@@ -62,6 +62,7 @@ const DesignTool = () => {
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const [isDraggingWallHandle, setIsDraggingWallHandle] = useState<'start' | 'end' | null>(null);
   const [isDraggingFurniture, setIsDraggingFurniture] = useState(false);
+  const [isResizingFurniture, setIsResizingFurniture] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
   const [showGrid, setShowGrid] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -555,6 +556,41 @@ const DesignTool = () => {
     ctx.fillText(furniture.name, 0, 0);
 
     ctx.restore();
+
+    // Draw resize handles if furniture is selected
+    if (selectedItem === furniture.id) {
+      const handleSize = 8;
+      const x = furniture.x * zoom + pan.x;
+      const y = furniture.y * zoom + pan.y;
+      const width = furniture.width * zoom;
+      const height = furniture.height * zoom;
+
+      // Calculate corner positions (accounting for rotation)
+      const centerX = x + width / 2;
+      const centerY = y + height / 2;
+      const angleRad = (furniture.rotation * Math.PI) / 180;
+
+      const corners = [
+        { dx: -width / 2, dy: -height / 2, type: 'nw' }, // top-left
+        { dx: width / 2, dy: -height / 2, type: 'ne' },  // top-right
+        { dx: -width / 2, dy: height / 2, type: 'sw' },  // bottom-left
+        { dx: width / 2, dy: height / 2, type: 'se' }    // bottom-right
+      ];
+
+      ctx.fillStyle = '#2196F3';
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+
+      corners.forEach(corner => {
+        const rotatedX = corner.dx * Math.cos(angleRad) - corner.dy * Math.sin(angleRad);
+        const rotatedY = corner.dx * Math.sin(angleRad) + corner.dy * Math.cos(angleRad);
+
+        ctx.beginPath();
+        ctx.arc(centerX + rotatedX, centerY + rotatedY, handleSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
   }, [zoom, pan, selectedItem]);
 
   const drawWall = useCallback((ctx: CanvasRenderingContext2D, wall: Wall) => {
@@ -799,6 +835,39 @@ const DesignTool = () => {
     return null;
   };
 
+  const getFurnitureResizeHandle = (point: Point, furniture: Furniture): 'nw' | 'ne' | 'sw' | 'se' | null => {
+    const centerX = furniture.x + furniture.width / 2;
+    const centerY = furniture.y + furniture.height / 2;
+    const angleRad = (furniture.rotation * Math.PI) / 180;
+
+    const corners = [
+      { dx: -furniture.width / 2, dy: -furniture.height / 2, type: 'nw' as const },
+      { dx: furniture.width / 2, dy: -furniture.height / 2, type: 'ne' as const },
+      { dx: -furniture.width / 2, dy: furniture.height / 2, type: 'sw' as const },
+      { dx: furniture.width / 2, dy: furniture.height / 2, type: 'se' as const }
+    ];
+
+    const threshold = 15;
+
+    for (const corner of corners) {
+      const rotatedX = corner.dx * Math.cos(angleRad) - corner.dy * Math.sin(angleRad);
+      const rotatedY = corner.dx * Math.sin(angleRad) + corner.dy * Math.cos(angleRad);
+
+      const handleX = centerX + rotatedX;
+      const handleY = centerY + rotatedY;
+
+      const dist = Math.sqrt(
+        Math.pow(point.x - handleX, 2) + Math.pow(point.y - handleY, 2)
+      );
+
+      if (dist <= threshold) {
+        return corner.type;
+      }
+    }
+
+    return null;
+  };
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const point = getCanvasPoint(e);
 
@@ -1017,52 +1086,134 @@ const DesignTool = () => {
     const point = getCanvasPoint(e);
 
     if (tool === 'select' && selectedItem) {
-      // Check if clicking on furniture to drag
+      // Check if clicking on furniture resize handle
       const selectedFurniture = designData.furniture.find(f => f.id === selectedItem);
-      if (selectedFurniture && isPointInsideFurniture(point, selectedFurniture)) {
-        setIsDraggingFurniture(true);
-        const startPoint = { ...point };
-        const furnitureStartPos = { x: selectedFurniture.x, y: selectedFurniture.y };
+      if (selectedFurniture) {
+        const resizeHandle = getFurnitureResizeHandle(point, selectedFurniture);
 
-        const handleFurnitureDrag = (moveEvent: MouseEvent) => {
-          const canvas = canvasRef.current;
-          if (!canvas) return;
+        if (resizeHandle) {
+          setIsResizingFurniture(resizeHandle);
+          const startPoint = { ...point };
+          const initialWidth = selectedFurniture.width;
+          const initialHeight = selectedFurniture.height;
+          const initialX = selectedFurniture.x;
+          const initialY = selectedFurniture.y;
+          const centerX = selectedFurniture.x + selectedFurniture.width / 2;
+          const centerY = selectedFurniture.y + selectedFurniture.height / 2;
+          const angleRad = (selectedFurniture.rotation * Math.PI) / 180;
 
-          const rect = canvas.getBoundingClientRect();
-          const x = (moveEvent.clientX - rect.left - pan.x) / zoom;
-          const y = (moveEvent.clientY - rect.top - pan.y) / zoom;
+          const handleFurnitureResize = (moveEvent: MouseEvent) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
 
-          const gridSize = designData.gridSize;
-          const snappedPoint = {
-            x: Math.round(x / gridSize) * gridSize,
-            y: Math.round(y / gridSize) * gridSize
+            const rect = canvas.getBoundingClientRect();
+            const x = (moveEvent.clientX - rect.left - pan.x) / zoom;
+            const y = (moveEvent.clientY - rect.top - pan.y) / zoom;
+
+            // Calculate the vector from center to current mouse position
+            const dx = x - centerX;
+            const dy = y - centerY;
+
+            // Rotate back to furniture's local coordinate system
+            const localX = dx * Math.cos(-angleRad) - dy * Math.sin(-angleRad);
+            const localY = dx * Math.sin(-angleRad) + dy * Math.cos(-angleRad);
+
+            let newWidth = initialWidth;
+            let newHeight = initialHeight;
+            let newX = initialX;
+            let newY = initialY;
+
+            const minSize = 10; // Minimum size in pixels
+
+            // Calculate new dimensions based on which handle is being dragged
+            if (resizeHandle === 'se') {
+              newWidth = Math.max(minSize, localX * 2);
+              newHeight = Math.max(minSize, localY * 2);
+            } else if (resizeHandle === 'sw') {
+              newWidth = Math.max(minSize, -localX * 2);
+              newHeight = Math.max(minSize, localY * 2);
+            } else if (resizeHandle === 'ne') {
+              newWidth = Math.max(minSize, localX * 2);
+              newHeight = Math.max(minSize, -localY * 2);
+            } else if (resizeHandle === 'nw') {
+              newWidth = Math.max(minSize, -localX * 2);
+              newHeight = Math.max(minSize, -localY * 2);
+            }
+
+            // Update position to keep center in the same place
+            newX = centerX - newWidth / 2;
+            newY = centerY - newHeight / 2;
+
+            const updatedFurniture = designData.furniture.map(f =>
+              f.id === selectedItem
+                ? { ...f, width: newWidth, height: newHeight, x: newX, y: newY }
+                : f
+            );
+
+            setDesignData({
+              ...designData,
+              furniture: updatedFurniture
+            });
           };
 
-          const deltaX = snappedPoint.x - startPoint.x;
-          const deltaY = snappedPoint.y - startPoint.y;
+          const handleFurnitureResizeEnd = () => {
+            setIsResizingFurniture(null);
+            addToHistory(designData);
+            document.removeEventListener('mousemove', handleFurnitureResize);
+            document.removeEventListener('mouseup', handleFurnitureResizeEnd);
+          };
 
-          const updatedFurniture = designData.furniture.map(f =>
-            f.id === selectedItem
-              ? { ...f, x: furnitureStartPos.x + deltaX, y: furnitureStartPos.y + deltaY }
-              : f
-          );
+          document.addEventListener('mousemove', handleFurnitureResize);
+          document.addEventListener('mouseup', handleFurnitureResizeEnd);
+          return;
+        }
 
-          setDesignData({
-            ...designData,
-            furniture: updatedFurniture
-          });
-        };
+        // Check if clicking on furniture to drag (not on resize handle)
+        if (isPointInsideFurniture(point, selectedFurniture)) {
+          setIsDraggingFurniture(true);
+          const startPoint = { ...point };
+          const furnitureStartPos = { x: selectedFurniture.x, y: selectedFurniture.y };
 
-        const handleFurnitureDragEnd = () => {
-          setIsDraggingFurniture(false);
-          addToHistory(designData);
-          document.removeEventListener('mousemove', handleFurnitureDrag);
-          document.removeEventListener('mouseup', handleFurnitureDragEnd);
-        };
+          const handleFurnitureDrag = (moveEvent: MouseEvent) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
 
-        document.addEventListener('mousemove', handleFurnitureDrag);
-        document.addEventListener('mouseup', handleFurnitureDragEnd);
-        return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (moveEvent.clientX - rect.left - pan.x) / zoom;
+            const y = (moveEvent.clientY - rect.top - pan.y) / zoom;
+
+            const gridSize = designData.gridSize;
+            const snappedPoint = {
+              x: Math.round(x / gridSize) * gridSize,
+              y: Math.round(y / gridSize) * gridSize
+            };
+
+            const deltaX = snappedPoint.x - startPoint.x;
+            const deltaY = snappedPoint.y - startPoint.y;
+
+            const updatedFurniture = designData.furniture.map(f =>
+              f.id === selectedItem
+                ? { ...f, x: furnitureStartPos.x + deltaX, y: furnitureStartPos.y + deltaY }
+                : f
+            );
+
+            setDesignData({
+              ...designData,
+              furniture: updatedFurniture
+            });
+          };
+
+          const handleFurnitureDragEnd = () => {
+            setIsDraggingFurniture(false);
+            addToHistory(designData);
+            document.removeEventListener('mousemove', handleFurnitureDrag);
+            document.removeEventListener('mouseup', handleFurnitureDragEnd);
+          };
+
+          document.addEventListener('mousemove', handleFurnitureDrag);
+          document.addEventListener('mouseup', handleFurnitureDragEnd);
+          return;
+        }
       }
 
       // Check if clicking on a wall handle
@@ -1154,7 +1305,7 @@ const DesignTool = () => {
       }
     }
 
-    if (tool === 'select' && !isDraggingWallHandle && !isDraggingFurniture) {
+    if (tool === 'select' && !isDraggingWallHandle && !isDraggingFurniture && !isResizingFurniture) {
       const startX = e.clientX;
       const startY = e.clientY;
       const startPan = { ...pan };
@@ -1679,8 +1830,9 @@ const DesignTool = () => {
                           </div>
                         </div>
 
-                        <div className="text-xs text-gray-500 pt-2 border-t">
-                          Drag to move furniture
+                        <div className="text-xs text-gray-500 pt-2 border-t space-y-1">
+                          <div>• Drag to move furniture</div>
+                          <div>• Drag corner handles to resize</div>
                         </div>
                       </div>
                     );
