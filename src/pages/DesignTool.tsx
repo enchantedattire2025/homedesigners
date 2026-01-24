@@ -60,6 +60,7 @@ const DesignTool = () => {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
+  const [isDraggingWallHandle, setIsDraggingWallHandle] = useState<'start' | 'end' | null>(null);
   const [showGrid, setShowGrid] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -595,6 +596,26 @@ const DesignTool = () => {
     ctx.fill();
     ctx.stroke();
 
+    // Draw resize handles if wall is selected
+    if (selectedItem === wall.id) {
+      const handleSize = 8;
+
+      // Start handle
+      ctx.fillStyle = '#2196F3';
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(startX, startY, handleSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // End handle
+      ctx.beginPath();
+      ctx.arc(endX, endY, handleSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
     // Draw wall measurement if enabled
     if (showMeasurements && zoom > 0.5) {
       const midX = (startX + endX) / 2;
@@ -687,11 +708,11 @@ const DesignTool = () => {
   const getCanvasPoint = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    
+
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left - pan.x) / zoom;
     const y = (e.clientY - rect.top - pan.y) / zoom;
-    
+
     // Snap to grid
     const gridSize = designData.gridSize;
     return {
@@ -700,10 +721,61 @@ const DesignTool = () => {
     };
   };
 
+  const isPointNearWall = (point: Point, wall: Wall, threshold: number = 10): boolean => {
+    // Calculate distance from point to line segment
+    const dx = wall.end.x - wall.start.x;
+    const dy = wall.end.y - wall.start.y;
+    const lengthSquared = dx * dx + dy * dy;
+
+    if (lengthSquared === 0) {
+      const dist = Math.sqrt(
+        Math.pow(point.x - wall.start.x, 2) + Math.pow(point.y - wall.start.y, 2)
+      );
+      return dist <= threshold;
+    }
+
+    let t = ((point.x - wall.start.x) * dx + (point.y - wall.start.y) * dy) / lengthSquared;
+    t = Math.max(0, Math.min(1, t));
+
+    const nearestX = wall.start.x + t * dx;
+    const nearestY = wall.start.y + t * dy;
+
+    const dist = Math.sqrt(
+      Math.pow(point.x - nearestX, 2) + Math.pow(point.y - nearestY, 2)
+    );
+
+    return dist <= threshold + wall.thickness / 2;
+  };
+
+  const isPointNearHandle = (point: Point, handlePoint: Point, threshold: number = 15): boolean => {
+    const dist = Math.sqrt(
+      Math.pow(point.x - handlePoint.x, 2) + Math.pow(point.y - handlePoint.y, 2)
+    );
+    return dist <= threshold;
+  };
+
+  const findWallAtPoint = (point: Point): Wall | null => {
+    for (let i = designData.walls.length - 1; i >= 0; i--) {
+      if (isPointNearWall(point, designData.walls[i])) {
+        return designData.walls[i];
+      }
+    }
+    return null;
+  };
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const point = getCanvasPoint(e);
-    
-    if (tool === 'wall') {
+
+    if (tool === 'select') {
+      // Check if clicking on a wall
+      const clickedWall = findWallAtPoint(point);
+      if (clickedWall) {
+        setSelectedItem(clickedWall.id);
+        return;
+      }
+      // If no wall clicked, clear selection
+      setSelectedItem(null);
+    } else if (tool === 'wall') {
       if (!isDrawing) {
         setIsDrawing(true);
         setCurrentPoints([point]);
@@ -750,12 +822,12 @@ const DesignTool = () => {
         color: furnitureType.color,
         price: furnitureType.price
       };
-      
+
       const newDesignData = {
         ...designData,
         furniture: [...designData.furniture, newFurniture]
       };
-      
+
       setDesignData(newDesignData);
       addToHistory(newDesignData);
     }
@@ -898,23 +970,115 @@ const DesignTool = () => {
   };
 
   const handlePanStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (tool === 'select') {
+    const point = getCanvasPoint(e);
+
+    if (tool === 'select' && selectedItem) {
+      // Check if clicking on a wall handle
+      const selectedWall = designData.walls.find(w => w.id === selectedItem);
+      if (selectedWall) {
+        // Check if clicking on start handle
+        if (isPointNearHandle(point, selectedWall.start)) {
+          setIsDraggingWallHandle('start');
+
+          const handleWallDrag = (moveEvent: MouseEvent) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (moveEvent.clientX - rect.left - pan.x) / zoom;
+            const y = (moveEvent.clientY - rect.top - pan.y) / zoom;
+
+            const gridSize = designData.gridSize;
+            const snappedPoint = {
+              x: Math.round(x / gridSize) * gridSize,
+              y: Math.round(y / gridSize) * gridSize
+            };
+
+            const updatedWalls = designData.walls.map(w =>
+              w.id === selectedItem
+                ? { ...w, start: snappedPoint }
+                : w
+            );
+
+            setDesignData({
+              ...designData,
+              walls: updatedWalls
+            });
+          };
+
+          const handleWallDragEnd = () => {
+            setIsDraggingWallHandle(null);
+            addToHistory(designData);
+            document.removeEventListener('mousemove', handleWallDrag);
+            document.removeEventListener('mouseup', handleWallDragEnd);
+          };
+
+          document.addEventListener('mousemove', handleWallDrag);
+          document.addEventListener('mouseup', handleWallDragEnd);
+          return;
+        }
+
+        // Check if clicking on end handle
+        if (isPointNearHandle(point, selectedWall.end)) {
+          setIsDraggingWallHandle('end');
+
+          const handleWallDrag = (moveEvent: MouseEvent) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (moveEvent.clientX - rect.left - pan.x) / zoom;
+            const y = (moveEvent.clientY - rect.top - pan.y) / zoom;
+
+            const gridSize = designData.gridSize;
+            const snappedPoint = {
+              x: Math.round(x / gridSize) * gridSize,
+              y: Math.round(y / gridSize) * gridSize
+            };
+
+            const updatedWalls = designData.walls.map(w =>
+              w.id === selectedItem
+                ? { ...w, end: snappedPoint }
+                : w
+            );
+
+            setDesignData({
+              ...designData,
+              walls: updatedWalls
+            });
+          };
+
+          const handleWallDragEnd = () => {
+            setIsDraggingWallHandle(null);
+            addToHistory(designData);
+            document.removeEventListener('mousemove', handleWallDrag);
+            document.removeEventListener('mouseup', handleWallDragEnd);
+          };
+
+          document.addEventListener('mousemove', handleWallDrag);
+          document.addEventListener('mouseup', handleWallDragEnd);
+          return;
+        }
+      }
+    }
+
+    if (tool === 'select' && !isDraggingWallHandle) {
       const startX = e.clientX;
       const startY = e.clientY;
       const startPan = { ...pan };
-      
+
       const handlePanMove = (moveEvent: MouseEvent) => {
         setPan({
           x: startPan.x + (moveEvent.clientX - startX),
           y: startPan.y + (moveEvent.clientY - startY)
         });
       };
-      
+
       const handlePanEnd = () => {
         document.removeEventListener('mousemove', handlePanMove);
         document.removeEventListener('mouseup', handlePanEnd);
       };
-      
+
       document.addEventListener('mousemove', handlePanMove);
       document.addEventListener('mouseup', handlePanEnd);
     }
@@ -1240,7 +1404,7 @@ const DesignTool = () => {
           {/* Properties Panel */}
           <div className="p-4 border-b">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Properties</h3>
-            
+
             {selectedItem ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1249,7 +1413,8 @@ const DesignTool = () => {
                     onClick={() => {
                       const furniture = designData.furniture.find(f => f.id === selectedItem);
                       const room = designData.rooms.find(r => r.id === selectedItem);
-                      
+                      const wall = designData.walls.find(w => w.id === selectedItem);
+
                       if (furniture) {
                         const newDesignData = {
                           ...designData,
@@ -1258,7 +1423,7 @@ const DesignTool = () => {
                         setDesignData(newDesignData);
                         addToHistory(newDesignData);
                       }
-                      
+
                       if (room) {
                         const newDesignData = {
                           ...designData,
@@ -1267,17 +1432,83 @@ const DesignTool = () => {
                         setDesignData(newDesignData);
                         addToHistory(newDesignData);
                       }
-                      
+
+                      if (wall) {
+                        const newDesignData = {
+                          ...designData,
+                          walls: designData.walls.filter(w => w.id !== selectedItem)
+                        };
+                        setDesignData(newDesignData);
+                        addToHistory(newDesignData);
+                      }
+
                       setSelectedItem(null);
                     }}
                     className="p-1 text-red-500 hover:bg-red-50 rounded"
+                    title="Delete selected item"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+
+                {(() => {
+                  const selectedWall = designData.walls.find(w => w.id === selectedItem);
+                  if (selectedWall) {
+                    const wallLength = calculateDistance(selectedWall.start, selectedWall.end);
+                    return (
+                      <div className="space-y-2 text-sm">
+                        <div className="font-medium text-gray-700">Wall</div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Length:</span>
+                          <span>{wallLength.toFixed(1)}'</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Thickness:</span>
+                          <span>{selectedWall.thickness}"</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-2">
+                          Drag the blue handles to resize
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             ) : (
               <p className="text-sm text-gray-500">Select an item to edit properties</p>
+            )}
+          </div>
+
+          {/* Walls List */}
+          <div className="p-4 border-b">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Walls</h3>
+            {designData.walls.length > 0 ? (
+              <div className="space-y-2">
+                {designData.walls.map((wall, index) => {
+                  const wallLength = calculateDistance(wall.start, wall.end);
+                  return (
+                    <div
+                      key={wall.id}
+                      className={`flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 cursor-pointer ${
+                        selectedItem === wall.id ? 'bg-primary-50' : ''
+                      }`}
+                      onClick={() => setSelectedItem(wall.id)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: wall.color }}
+                        />
+                        <span className="text-sm font-medium">Wall {index + 1}</span>
+                      </div>
+                      <span className="text-xs text-gray-500">{wallLength.toFixed(1)}'</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No walls added yet. Use the Wall tool to create walls.</p>
             )}
           </div>
 
