@@ -171,7 +171,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Clear previous errors and success messages
     setErrors({});
     setSuccess('');
@@ -191,10 +191,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
           options: {
             data: {
               name: name.trim(),
-            }
+            },
+            emailRedirectTo: `${window.location.origin}/auth/confirm`
           }
         });
-        
+
         if (error) {
           // Handle specific Supabase errors
           if (error.message.includes('User already registered')) {
@@ -208,30 +209,42 @@ const AuthModal: React.FC<AuthModalProps> = ({
           }
           return;
         }
-        
+
         if (data.user) {
-          setSuccess('Account created successfully! You can now sign in.');
-          // Switch to login mode after successful signup
-          setTimeout(() => {
-            onModeChange('login');
-            setSuccess('');
-            setEmail(email); // Keep email for convenience
-            setPassword('');
-            setName('');
-          }, 2000);
+          // Check if email confirmation is required
+          const confirmationRequired = data.user.identities && data.user.identities.length === 0;
+
+          if (confirmationRequired) {
+            setSuccess('Account created! Please check your email and click the confirmation link to complete registration.');
+            // Keep the modal open so user sees the message
+            setTimeout(() => {
+              clearForm();
+              onClose();
+            }, 5000);
+          } else {
+            // Auto-confirmation is enabled (for development)
+            setSuccess('Account created successfully! You can now sign in.');
+            setTimeout(() => {
+              onModeChange('login');
+              setSuccess('');
+              setEmail(email);
+              setPassword('');
+              setName('');
+            }, 2000);
+          }
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
-        
+
         if (error) {
           // Handle specific Supabase errors
           if (error.message.includes('Invalid login credentials')) {
             setErrors({ general: 'Invalid email or password. Please check your credentials and try again.' });
           } else if (error.message.includes('Email not confirmed')) {
-            setErrors({ general: 'Please check your email and click the confirmation link before signing in.' });
+            setErrors({ general: 'Please check your email and click the confirmation link to verify your account before signing in.' });
           } else if (error.message.includes('Too many requests')) {
             setErrors({ general: 'Too many login attempts. Please wait a moment before trying again.' });
           } else {
@@ -239,17 +252,24 @@ const AuthModal: React.FC<AuthModalProps> = ({
           }
           return;
         }
-        
+
         if (data.user) {
-          setSuccess('Signed in successfully!');
-          setTimeout(() => {
-            clearForm();
-            onClose();
-            // Call the success callback if provided
-            if (onAuthSuccess) {
-              onAuthSuccess();
-            }
-          }, 1000);
+          // Additional check for email confirmation
+          if (data.user.email_confirmed_at) {
+            setSuccess('Signed in successfully!');
+            setTimeout(() => {
+              clearForm();
+              onClose();
+              // Call the success callback if provided
+              if (onAuthSuccess) {
+                onAuthSuccess();
+              }
+            }, 1000);
+          } else {
+            setErrors({ general: 'Please verify your email address before signing in. Check your inbox for the confirmation link.' });
+            // Sign out the user since email is not confirmed
+            await supabase.auth.signOut();
+          }
         }
       }
     } catch (error: any) {
