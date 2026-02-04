@@ -35,9 +35,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       return;
     }
     
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File size should be less than 5MB');
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError('File size should be less than 2MB');
       return;
     }
     
@@ -168,7 +168,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             <>
               <Upload className="w-10 h-10 text-gray-400 mx-auto mb-4" />
               <p className="text-sm text-gray-600 mb-2">Click to upload or drag and drop</p>
-              <p className="text-xs text-gray-500">PNG, JPG or JPEG (max. 5MB)</p>
+              <p className="text-xs text-gray-500">PNG, JPG or JPEG (max. 2MB)</p>
             </>
           )}
           <input 

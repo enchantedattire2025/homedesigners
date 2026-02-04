@@ -97,6 +97,23 @@ const SharePhotoForm = () => {
     }));
   };
 
+  const checkExistingPhoto = async (category: string, designerId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('shared_gallery_items')
+        .select('id')
+        .eq('designer_id', designerId)
+        .eq('category', category)
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data;
+    } catch (error) {
+      console.error('Error checking existing photo:', error);
+      return false;
+    }
+  };
+
   const validateForm = () => {
     if (!formData.title.trim()) {
       setError('Title is required');
@@ -131,6 +148,14 @@ const SharePhotoForm = () => {
     setLoading(true);
 
     try {
+      const hasExistingPhoto = await checkExistingPhoto(formData.category, designer.id);
+
+      if (hasExistingPhoto) {
+        setError(`You have already uploaded a photo in the "${formData.category}" category. Each designer can upload only one photo per category.`);
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('shared_gallery_items')
         .insert({
@@ -140,15 +165,13 @@ const SharePhotoForm = () => {
           category: formData.category,
           location: formData.location,
           image_url: formData.image_url,
-          // NEW: Added materials array to the insert object
           materials: formData.materials,
-          is_approved: false // Default to false for moderation
+          is_approved: false
         });
 
       if (error) throw error;
 
       setSuccess('Photo shared successfully! It will appear in the gallery after review.');
-      // NEW: Reset materials field on successful submission
       setFormData({
         title: '',
         description: '',
