@@ -6,10 +6,25 @@ import { useAuth } from '../hooks/useAuth';
 import AuthModal from '../components/AuthModal';
 import type { Designer } from '../lib/supabase';
 
+interface Testimonial {
+  id: string;
+  customer_id: string;
+  project_id: string;
+  rating: number;
+  title: string;
+  comment: string;
+  would_recommend: boolean;
+  verified_purchase: boolean;
+  created_at: string;
+  customer_name?: string;
+  project_name?: string;
+}
+
 const DesignerDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const [designer, setDesigner] = useState<Designer | null>(null);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -25,7 +40,7 @@ const DesignerDetail = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error } = await supabase
         .from('designers')
         .select('*')
@@ -37,13 +52,59 @@ const DesignerDetail = () => {
         console.error('Supabase error:', error);
         throw error;
       }
-      
+
       if (!data) {
         setError('Designer not found');
         return;
       }
-      
+
       setDesigner(data);
+
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('reviews')
+        .select(`
+          id,
+          customer_id,
+          project_id,
+          rating,
+          title,
+          comment,
+          would_recommend,
+          verified_purchase,
+          created_at
+        `)
+        .eq('designer_id', designerId)
+        .order('created_at', { ascending: false });
+
+      if (reviewsError) {
+        console.error('Error fetching reviews:', reviewsError);
+      } else if (reviewsData) {
+        const enrichedTestimonials = await Promise.all(
+          reviewsData.map(async (review) => {
+            let customerName = 'Anonymous';
+            let projectName = 'Project';
+
+            const { data: projectData } = await supabase
+              .from('customers')
+              .select('name, project_name')
+              .eq('id', review.project_id)
+              .maybeSingle();
+
+            if (projectData) {
+              customerName = projectData.name;
+              projectName = projectData.project_name;
+            }
+
+            return {
+              ...review,
+              customer_name: customerName,
+              project_name: projectName
+            };
+          })
+        );
+
+        setTestimonials(enrichedTestimonials);
+      }
     } catch (error: any) {
       console.error('Error fetching designer:', error);
       setError(error.message || 'Failed to load designer details');
@@ -123,30 +184,6 @@ const DesignerDetail = () => {
     );
   }
 
-  // Mock testimonials and portfolio for now - these would come from separate tables in a real app
-  const mockTestimonials = [
-    {
-      id: 1,
-      name: 'Rohit Malhotra',
-      rating: 5,
-      text: `${designer.name} transformed our space into a beautiful home. Their attention to detail and understanding of our needs was exceptional.`,
-      project: 'Modern Home Design'
-    },
-    {
-      id: 2,
-      name: 'Sneha Kapoor',
-      rating: 5,
-      text: `Working with ${designer.name} was a dream. They delivered exactly what we envisioned and more. Highly recommended!`,
-      project: 'Contemporary Villa'
-    },
-    {
-      id: 3,
-      name: 'Amit Sharma',
-      rating: 5,
-      text: `Professional, creative, and efficient. ${designer.name} exceeded our expectations in every aspect of the project.`,
-      project: 'Office Renovation'
-    }
-  ];
 
   const mockPortfolio = designer.portfolio_images.map((image, index) => ({
     id: index + 1,
@@ -305,29 +342,59 @@ const DesignerDetail = () => {
               {/* Testimonials */}
               <div className="bg-white rounded-xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold text-secondary-800 mb-6">Client Testimonials</h2>
-                <div className="space-y-6">
-                  {mockTestimonials.map((testimonial) => (
-                    <div key={testimonial.id} className="border-l-4 border-primary-500 pl-6">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${
-                                i < testimonial.rating
-                                  ? 'text-yellow-400 fill-current'
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
+                {testimonials.length > 0 ? (
+                  <div className="space-y-6">
+                    {testimonials.map((testimonial) => (
+                      <div key={testimonial.id} className="border-l-4 border-primary-500 pl-6">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-lg text-secondary-800 mb-1">{testimonial.title}</h3>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-4 h-4 ${
+                                      i < testimonial.rating
+                                        ? 'text-yellow-400 fill-current'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="font-semibold text-secondary-800">{testimonial.customer_name}</span>
+                              {testimonial.verified_purchase && (
+                                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
+                                  Verified
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {new Date(testimonial.created_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </span>
                         </div>
-                        <span className="font-semibold text-secondary-800">{testimonial.name}</span>
+                        <p className="text-gray-700 mb-3 leading-relaxed">{testimonial.comment}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-primary-600 font-medium">
+                            Project: {testimonial.project_name}
+                          </p>
+                          {testimonial.would_recommend && (
+                            <span className="text-sm text-green-600 font-medium flex items-center">
+                              <span className="mr-1">✓</span> Recommends
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-gray-600 mb-2">"{testimonial.text}"</p>
-                      <p className="text-sm text-primary-600 font-medium">Project: {testimonial.project}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 text-center py-8">No testimonials yet.</p>
+                )}
               </div>
             </div>
 

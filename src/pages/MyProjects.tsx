@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, MapPin, IndianRupee as Rupee, Clock, Edit, Eye, Trash2, AlertCircle, Send, Activity, Compass, FileText, CheckCircle } from 'lucide-react';
+import { Plus, Calendar, MapPin, IndianRupee as Rupee, Clock, Edit, Eye, Trash2, AlertCircle, Send, Activity, Compass, FileText, CheckCircle, MessageSquare } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import type { Customer } from '../lib/supabase';
 import AssignProjectModal from '../components/AssignProjectModal';
 import SendToDesignerModal from '../components/SendToDesignerModal';
 import VastuAnalysisModal from '../components/VastuAnalysisModal';
+import TestimonialFeedbackModal from '../components/TestimonialFeedbackModal';
 
 const MyProjects = () => {
   const navigate = useNavigate();
@@ -18,9 +19,11 @@ const MyProjects = () => {
   const [showSendModal, setShowSendModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showVastuModal, setShowVastuModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [acceptedQuotes, setAcceptedQuotes] = useState<any[]>([]);
   const [projectQuotes, setProjectQuotes] = useState<Record<string, any>>({});
   const [projectHasQuotes, setProjectHasQuotes] = useState<Record<string, boolean>>({});
+  const [projectHasFeedback, setProjectHasFeedback] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (authLoading) return;
@@ -58,7 +61,7 @@ const MyProjects = () => {
       }
 
       setProjects(data || []);
-      
+
       // Fetch all quotes for these projects
       if (data && data.length > 0) {
         const projectIds = data.map(p => p.id);
@@ -95,6 +98,21 @@ const MyProjects = () => {
             quotesMap[quote.project_id] = quote;
           });
           setProjectQuotes(quotesMap);
+        }
+
+        // Check for existing feedback/reviews
+        const { data: reviewsData, error: reviewsError } = await supabase
+          .from('reviews')
+          .select('project_id')
+          .in('project_id', projectIds)
+          .eq('customer_id', user.id);
+
+        if (!reviewsError && reviewsData) {
+          const hasFeedbackMap: Record<string, boolean> = {};
+          reviewsData.forEach(review => {
+            hasFeedbackMap[review.project_id] = true;
+          });
+          setProjectHasFeedback(hasFeedbackMap);
         }
       }
     } catch (error: any) {
@@ -142,8 +160,19 @@ const MyProjects = () => {
     setShowVastuModal(true);
   };
 
+  const handleLeaveFeedback = (project: Customer) => {
+    setSelectedProject(project);
+    setShowFeedbackModal(true);
+  };
+
   const handleAssignSuccess = () => {
-    fetchProjects(); // Refresh the projects list
+    fetchProjects();
+  };
+
+  const handleFeedbackSuccess = () => {
+    setShowFeedbackModal(false);
+    setSelectedProject(null);
+    fetchProjects();
   };
 
   const getStatusColor = (status: string) => {
@@ -451,13 +480,30 @@ const MyProjects = () => {
                     {/* Action buttons based on project state */}
                     {projectQuotes[project.id] ? (
                       // Project has accepted quote
-                      <button
-                        onClick={() => navigate(`/customer-quotes?projectId=${project.id}`)}
-                        className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>View Accepted Quote</span>
-                      </button>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => navigate(`/customer-quotes?projectId=${project.id}`)}
+                          className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          <span>View Accepted Quote</span>
+                        </button>
+                        {project.assignment_status === 'completed' && !projectHasFeedback[project.id] && (project as any).assigned_designer && (
+                          <button
+                            onClick={() => handleLeaveFeedback(project)}
+                            className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            <span>Leave Feedback</span>
+                          </button>
+                        )}
+                        {project.assignment_status === 'completed' && projectHasFeedback[project.id] && (
+                          <div className="w-full bg-green-100 border border-green-300 text-green-800 py-2 px-3 rounded-lg font-medium flex items-center justify-center space-x-2">
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Feedback Submitted</span>
+                          </div>
+                        )}
+                      </div>
                     ) : (project as any).assigned_designer ? (
                       // Project is assigned but no accepted quote
                       <button
@@ -531,6 +577,22 @@ const MyProjects = () => {
           }}
           projectId={selectedProject.id}
           existingLayoutUrl={selectedProject.layout_image_url || undefined}
+        />
+      )}
+
+      {/* Testimonial Feedback Modal */}
+      {selectedProject && showFeedbackModal && (selectedProject as any).assigned_designer && (
+        <TestimonialFeedbackModal
+          projectId={selectedProject.id}
+          projectName={selectedProject.project_name}
+          designerId={(selectedProject as any).assigned_designer.id}
+          designerName={(selectedProject as any).assigned_designer.name}
+          customerId={user!.id}
+          onClose={() => {
+            setShowFeedbackModal(false);
+            setSelectedProject(null);
+          }}
+          onSuccess={handleFeedbackSuccess}
         />
       )}
     </div>
