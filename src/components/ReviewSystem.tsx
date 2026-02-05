@@ -51,66 +51,43 @@ const ReviewSystem: React.FC<ReviewSystemProps> = ({
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      
-      // In a real implementation, you would fetch from a reviews table
-      // For now, we'll create mock data based on the designer
-      const mockReviews: Review[] = [
-        {
-          id: '1',
-          customer_name: 'Rajesh Kumar',
-          customer_email: 'rajesh@example.com',
-          designer_id: designerId,
-          project_id: 'proj1',
-          rating: 5,
-          title: 'Exceptional work and attention to detail',
-          comment: 'The designer transformed our space beyond our expectations. Every detail was carefully considered and the final result is stunning. Highly professional and creative approach.',
-          project_name: 'Modern Living Room Renovation',
-          project_type: 'Residential',
-          completion_date: '2024-03-15',
-          would_recommend: true,
-          helpful_votes: 12,
-          created_at: '2024-03-20T10:00:00Z',
-          verified_purchase: true
-        },
-        {
-          id: '2',
-          customer_name: 'Priya Sharma',
-          customer_email: 'priya@example.com',
-          designer_id: designerId,
-          project_id: 'proj2',
-          rating: 5,
-          title: 'Beautiful kitchen design',
-          comment: 'Our kitchen is now the heart of our home. The designer understood our needs perfectly and created a functional yet beautiful space. The project was completed on time and within budget.',
-          project_name: 'Kitchen Renovation',
-          project_type: 'Residential',
-          completion_date: '2024-02-28',
-          would_recommend: true,
-          helpful_votes: 8,
-          created_at: '2024-03-05T14:30:00Z',
-          verified_purchase: true
-        },
-        {
-          id: '3',
-          customer_name: 'Amit Patel',
-          customer_email: 'amit@example.com',
-          designer_id: designerId,
-          project_id: 'proj3',
-          rating: 4,
-          title: 'Great experience overall',
-          comment: 'Very satisfied with the work. The designer was professional and delivered quality results. Minor delays in the timeline but the end result was worth it.',
-          project_name: 'Bedroom Makeover',
-          project_type: 'Residential',
-          completion_date: '2024-01-20',
-          would_recommend: true,
-          helpful_votes: 5,
-          created_at: '2024-01-25T09:15:00Z',
-          verified_purchase: true
-        }
-      ];
 
-      setReviews(mockReviews);
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+          *,
+          customers:project_id (
+            project_name,
+            property_type
+          )
+        `)
+        .eq('designer_id', designerId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedReviews = data.map((review: any) => ({
+        id: review.id,
+        customer_name: 'Customer',
+        customer_email: '',
+        designer_id: review.designer_id,
+        project_id: review.project_id,
+        rating: review.rating,
+        title: review.title,
+        comment: review.comment,
+        project_name: review.customers?.project_name || 'Project',
+        project_type: review.customers?.property_type || 'Residential',
+        completion_date: review.created_at,
+        would_recommend: review.would_recommend,
+        helpful_votes: review.helpful_votes,
+        created_at: review.created_at,
+        verified_purchase: review.verified_purchase
+      }));
+
+      setReviews(formattedReviews);
     } catch (error) {
       console.error('Error fetching reviews:', error);
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -122,21 +99,27 @@ const ReviewSystem: React.FC<ReviewSystemProps> = ({
 
     setSubmitting(true);
     try {
-      // In a real implementation, you would insert into a reviews table
-      const reviewData = {
-        ...newReview,
-        customer_name: user.user_metadata?.name || 'Anonymous',
-        customer_email: user.email,
-        designer_id: designerId,
-        project_id: projectId,
-        verified_purchase: true,
-        helpful_votes: 0,
-        created_at: new Date().toISOString()
-      };
+      const { error } = await supabase
+        .from('reviews')
+        .insert({
+          designer_id: designerId,
+          customer_id: user.id,
+          project_id: projectId,
+          rating: newReview.rating,
+          title: newReview.title,
+          comment: newReview.comment,
+          would_recommend: newReview.would_recommend,
+          verified_purchase: true
+        });
 
-      // Mock successful submission
-      console.log('Review submitted:', reviewData);
-      
+      if (error) {
+        console.error('Error submitting review:', error);
+        alert('Failed to submit review. Please try again.');
+        return;
+      }
+
+      alert('Review submitted successfully!');
+
       // Reset form
       setNewReview({
         rating: 5,
@@ -145,12 +128,13 @@ const ReviewSystem: React.FC<ReviewSystemProps> = ({
         would_recommend: true
       });
       setShowReviewForm(false);
-      
+
       // Refresh reviews
-      fetchReviews();
-      
+      await fetchReviews();
+
     } catch (error) {
       console.error('Error submitting review:', error);
+      alert('Failed to submit review. Please try again.');
     } finally {
       setSubmitting(false);
     }
