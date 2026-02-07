@@ -40,39 +40,7 @@ const Home = () => {
   const [pendingAction, setPendingAction] = useState<'designer' | 'customer' | null>(null);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [currentDealIndex, setCurrentDealIndex] = useState(0);
-
-  const featuredDesigners = [
-    {
-      id: '550e8400-e29b-41d4-a716-446655440001', // Valid UUID format
-      name: 'Priya Sharma',
-      specialization: 'Modern & Contemporary',
-      experience: '8 years',
-      rating: 4.9,
-      reviews: 127,
-      location: 'Mumbai',
-      image: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      id: '550e8400-e29b-41d4-a716-446655440002', // Valid UUID format
-      name: 'Rajesh Kumar',
-      specialization: 'Traditional Indian',
-      experience: '12 years',
-      rating: 4.8,
-      reviews: 98,
-      location: 'Delhi',
-      image: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      id: '550e8400-e29b-41d4-a716-446655440003', // Valid UUID format
-      name: 'Anita Desai',
-      specialization: 'Minimalist Design',
-      experience: '6 years',
-      rating: 4.9,
-      reviews: 85,
-      location: 'Bangalore',
-      image: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=400'
-    }
-  ];
+  const [featuredDesigners, setFeaturedDesigners] = useState<any[]>([]);
 
   const designerAds = [
     {
@@ -142,6 +110,7 @@ const Home = () => {
 
   useEffect(() => {
     fetchDeals();
+    fetchFeaturedDesigners();
   }, []);
 
   useEffect(() => {
@@ -178,6 +147,24 @@ const Home = () => {
       setDeals(data || []);
     } catch (error) {
       console.error('Error fetching deals:', error);
+    }
+  };
+
+  const fetchFeaturedDesigners = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('designers')
+        .select('*')
+        .eq('is_active', true)
+        .order('rating', { ascending: false })
+        .order('total_reviews', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      setFeaturedDesigners(data || []);
+    } catch (error) {
+      console.error('Error fetching featured designers:', error);
+      setFeaturedDesigners([]);
     }
   };
 
@@ -420,48 +407,54 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredDesigners.map((designer) => (
-              <Link key={designer.id} to={`/designers/${designer.id}`} className="card p-6 group">
-                <div className="relative mb-4">
-                  <img
-                    src={designer.image}
-                    alt={designer.name}
-                    className="w-20 h-20 rounded-full object-cover mx-auto"
-                  />
-                  <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                    Top Rated
-                  </div>
-                </div>
-                
-                <div className="text-center">
-                  <h3 className="text-xl font-semibold text-secondary-800 mb-2">{designer.name}</h3>
-                  <p className="text-primary-600 font-medium mb-2">{designer.specialization}</p>
-                  <p className="text-gray-600 mb-3">{designer.experience} • {designer.location}</p>
-                  
-                  <div className="flex items-center justify-center space-x-2 mb-4">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < Math.floor(designer.rating)
-                              ? 'text-yellow-400 fill-current'
-                              : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
+            {featuredDesigners.length > 0 ? (
+              featuredDesigners.map((designer) => (
+                <Link key={designer.id} to={`/designers/${designer.id}`} className="card p-6 group">
+                  <div className="relative mb-4">
+                    <img
+                      src={designer.profile_image || 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=400'}
+                      alt={designer.name}
+                      className="w-20 h-20 rounded-full object-cover mx-auto"
+                    />
+                    <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                      Top Rated
                     </div>
-                    <span className="text-sm text-gray-600">
-                      {designer.rating} ({designer.reviews} reviews)
-                    </span>
                   </div>
-                  
-                  <div className="text-primary-600 font-medium group-hover:text-primary-700 transition-colors">
-                    View Profile →
+
+                  <div className="text-center">
+                    <h3 className="text-xl font-semibold text-secondary-800 mb-2">{designer.name}</h3>
+                    <p className="text-primary-600 font-medium mb-2">{designer.specialization}</p>
+                    <p className="text-gray-600 mb-3">{designer.experience} years • {designer.location}</p>
+
+                    <div className="flex items-center justify-center space-x-2 mb-4">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.floor(Number(designer.rating))
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {Number(designer.rating).toFixed(1)} ({designer.total_reviews} reviews)
+                      </span>
+                    </div>
+
+                    <div className="text-primary-600 font-medium group-hover:text-primary-700 transition-colors">
+                      View Profile →
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-8 text-gray-500">
+                Loading featured designers...
+              </div>
+            )}
           </div>
 
           <div className="text-center mt-12">
