@@ -49,6 +49,7 @@ interface BackgroundImage {
   height: number;
   opacity: number;
   visible: boolean;
+  rotation: number;
 }
 
 interface DesignData {
@@ -76,6 +77,8 @@ const DesignTool = () => {
   const [isDraggingWallHandle, setIsDraggingWallHandle] = useState<'start' | 'end' | null>(null);
   const [isDraggingFurniture, setIsDraggingFurniture] = useState(false);
   const [isResizingFurniture, setIsResizingFurniture] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
+  const [isDraggingBackground, setIsDraggingBackground] = useState(false);
+  const [isResizingBackground, setIsResizingBackground] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
   const [showGrid, setShowGrid] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -711,15 +714,65 @@ const DesignTool = () => {
     // Draw background image if available
     if (designData.backgroundImage && designData.backgroundImage.visible && backgroundImageRef.current) {
       const bg = designData.backgroundImage;
+
+      ctx.save();
+
+      // Calculate center point for rotation
+      const centerX = (bg.x + bg.width / 2) * zoom + pan.x;
+      const centerY = (bg.y + bg.height / 2) * zoom + pan.y;
+
+      // Move to center, rotate, then draw
+      ctx.translate(centerX, centerY);
+      ctx.rotate(bg.rotation * Math.PI / 180);
       ctx.globalAlpha = bg.opacity;
       ctx.drawImage(
         backgroundImageRef.current,
-        bg.x * zoom + pan.x,
-        bg.y * zoom + pan.y,
+        -(bg.width * zoom) / 2,
+        -(bg.height * zoom) / 2,
         bg.width * zoom,
         bg.height * zoom
       );
       ctx.globalAlpha = 1;
+
+      // Draw selection border and handles if background is selected
+      if (selectedItem === 'background') {
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#2196F3';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+          -(bg.width * zoom) / 2,
+          -(bg.height * zoom) / 2,
+          bg.width * zoom,
+          bg.height * zoom
+        );
+
+        // Draw resize handles
+        const handleSize = 10;
+        ctx.fillStyle = '#2196F3';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+
+        const halfWidth = (bg.width * zoom) / 2;
+        const halfHeight = (bg.height * zoom) / 2;
+
+        // Top-left
+        ctx.fillRect(-halfWidth - handleSize / 2, -halfHeight - handleSize / 2, handleSize, handleSize);
+        ctx.strokeRect(-halfWidth - handleSize / 2, -halfHeight - handleSize / 2, handleSize, handleSize);
+
+        // Top-right
+        ctx.fillRect(halfWidth - handleSize / 2, -halfHeight - handleSize / 2, handleSize, handleSize);
+        ctx.strokeRect(halfWidth - handleSize / 2, -halfHeight - handleSize / 2, handleSize, handleSize);
+
+        // Bottom-left
+        ctx.fillRect(-halfWidth - handleSize / 2, halfHeight - handleSize / 2, handleSize, handleSize);
+        ctx.strokeRect(-halfWidth - handleSize / 2, halfHeight - handleSize / 2, handleSize, handleSize);
+
+        // Bottom-right
+        ctx.fillRect(halfWidth - handleSize / 2, halfHeight - handleSize / 2, handleSize, handleSize);
+        ctx.strokeRect(halfWidth - handleSize / 2, halfHeight - handleSize / 2, handleSize, handleSize);
+      }
+
+      ctx.restore();
     }
 
     // Draw rooms
@@ -863,6 +916,70 @@ const DesignTool = () => {
     return null;
   };
 
+  const isPointInsideBackground = (point: Point): boolean => {
+    if (!designData.backgroundImage) return false;
+
+    const bg = designData.backgroundImage;
+    const centerX = bg.x + bg.width / 2;
+    const centerY = bg.y + bg.height / 2;
+
+    // Translate point to background center
+    const translatedX = point.x - centerX;
+    const translatedY = point.y - centerY;
+
+    // Rotate point back by negative rotation angle
+    const angleRad = (-bg.rotation * Math.PI) / 180;
+    const rotatedX = translatedX * Math.cos(angleRad) - translatedY * Math.sin(angleRad);
+    const rotatedY = translatedX * Math.sin(angleRad) + translatedY * Math.cos(angleRad);
+
+    // Check if point is inside the axis-aligned rectangle
+    const halfWidth = bg.width / 2;
+    const halfHeight = bg.height / 2;
+
+    return (
+      rotatedX >= -halfWidth &&
+      rotatedX <= halfWidth &&
+      rotatedY >= -halfHeight &&
+      rotatedY <= halfHeight
+    );
+  };
+
+  const getBackgroundResizeHandle = (point: Point): 'nw' | 'ne' | 'sw' | 'se' | null => {
+    if (!designData.backgroundImage) return null;
+
+    const bg = designData.backgroundImage;
+    const centerX = bg.x + bg.width / 2;
+    const centerY = bg.y + bg.height / 2;
+    const angleRad = (bg.rotation * Math.PI) / 180;
+
+    const handleSize = 15;
+    const halfWidth = bg.width / 2;
+    const halfHeight = bg.height / 2;
+
+    const corners = [
+      { x: -halfWidth, y: -halfHeight, handle: 'nw' as const },
+      { x: halfWidth, y: -halfHeight, handle: 'ne' as const },
+      { x: -halfWidth, y: halfHeight, handle: 'sw' as const },
+      { x: halfWidth, y: halfHeight, handle: 'se' as const },
+    ];
+
+    for (const corner of corners) {
+      const rotatedX = corner.x * Math.cos(angleRad) - corner.y * Math.sin(angleRad);
+      const rotatedY = corner.x * Math.sin(angleRad) + corner.y * Math.cos(angleRad);
+      const handleX = centerX + rotatedX;
+      const handleY = centerY + rotatedY;
+
+      if (
+        Math.abs(point.x - handleX) < handleSize &&
+        Math.abs(point.y - handleY) < handleSize
+      ) {
+        return corner.handle;
+      }
+    }
+
+    return null;
+  };
+
   const getFurnitureResizeHandle = (point: Point, furniture: Furniture): 'nw' | 'ne' | 'sw' | 'se' | null => {
     const centerX = furniture.x + furniture.width / 2;
     const centerY = furniture.y + furniture.height / 2;
@@ -911,6 +1028,12 @@ const DesignTool = () => {
       const clickedWall = findWallAtPoint(point);
       if (clickedWall) {
         setSelectedItem(clickedWall.id);
+        return;
+      }
+
+      // Check if clicking on background image
+      if (designData.backgroundImage && designData.backgroundImage.visible && isPointInsideBackground(point)) {
+        setSelectedItem('background');
         return;
       }
 
@@ -1073,7 +1196,8 @@ const DesignTool = () => {
               width,
               height,
               opacity: 0.5,
-              visible: true
+              visible: true,
+              rotation: 0
             }
           };
           setDesignData(newDesignData);
@@ -1314,6 +1438,127 @@ const DesignTool = () => {
         }
       }
 
+      // Check if clicking on background image
+      if (selectedItem === 'background' && designData.backgroundImage) {
+        const resizeHandle = getBackgroundResizeHandle(point);
+
+        if (resizeHandle) {
+          setIsResizingBackground(resizeHandle);
+          const bg = designData.backgroundImage;
+          const initialWidth = bg.width;
+          const initialHeight = bg.height;
+          const initialX = bg.x;
+          const initialY = bg.y;
+          const centerX = bg.x + bg.width / 2;
+          const centerY = bg.y + bg.height / 2;
+          const angleRad = (bg.rotation * Math.PI) / 180;
+
+          const handleBackgroundResize = (moveEvent: MouseEvent) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (moveEvent.clientX - rect.left - pan.x) / zoom;
+            const y = (moveEvent.clientY - rect.top - pan.y) / zoom;
+
+            // Calculate the vector from center to current mouse position
+            const dx = x - centerX;
+            const dy = y - centerY;
+
+            // Rotate back to background's local coordinate system
+            const localX = dx * Math.cos(-angleRad) - dy * Math.sin(-angleRad);
+            const localY = dx * Math.sin(-angleRad) + dy * Math.cos(-angleRad);
+
+            let newWidth = initialWidth;
+            let newHeight = initialHeight;
+            let newX = initialX;
+            let newY = initialY;
+
+            const minSize = 50;
+
+            // Calculate new dimensions based on which handle is being dragged
+            if (resizeHandle === 'se') {
+              newWidth = Math.max(minSize, localX * 2);
+              newHeight = Math.max(minSize, localY * 2);
+            } else if (resizeHandle === 'sw') {
+              newWidth = Math.max(minSize, -localX * 2);
+              newHeight = Math.max(minSize, localY * 2);
+            } else if (resizeHandle === 'ne') {
+              newWidth = Math.max(minSize, localX * 2);
+              newHeight = Math.max(minSize, -localY * 2);
+            } else if (resizeHandle === 'nw') {
+              newWidth = Math.max(minSize, -localX * 2);
+              newHeight = Math.max(minSize, -localY * 2);
+            }
+
+            // Update position to keep center in the same place
+            newX = centerX - newWidth / 2;
+            newY = centerY - newHeight / 2;
+
+            setDesignData({
+              ...designData,
+              backgroundImage: {
+                ...bg,
+                width: newWidth,
+                height: newHeight,
+                x: newX,
+                y: newY
+              }
+            });
+          };
+
+          const handleBackgroundResizeEnd = () => {
+            setIsResizingBackground(null);
+            addToHistory(designData);
+            document.removeEventListener('mousemove', handleBackgroundResize);
+            document.removeEventListener('mouseup', handleBackgroundResizeEnd);
+          };
+
+          document.addEventListener('mousemove', handleBackgroundResize);
+          document.addEventListener('mouseup', handleBackgroundResizeEnd);
+          return;
+        }
+
+        // Check if clicking on background to drag (not on resize handle)
+        if (isPointInsideBackground(point)) {
+          setIsDraggingBackground(true);
+          const startPoint = { ...point };
+          const backgroundStartPos = { x: designData.backgroundImage.x, y: designData.backgroundImage.y };
+
+          const handleBackgroundDrag = (moveEvent: MouseEvent) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (moveEvent.clientX - rect.left - pan.x) / zoom;
+            const y = (moveEvent.clientY - rect.top - pan.y) / zoom;
+
+            const deltaX = x - startPoint.x;
+            const deltaY = y - startPoint.y;
+
+            setDesignData({
+              ...designData,
+              backgroundImage: {
+                ...designData.backgroundImage!,
+                x: backgroundStartPos.x + deltaX,
+                y: backgroundStartPos.y + deltaY
+              }
+            });
+          };
+
+          const handleBackgroundDragEnd = () => {
+            setIsDraggingBackground(false);
+            addToHistory(designData);
+            document.removeEventListener('mousemove', handleBackgroundDrag);
+            document.removeEventListener('mouseup', handleBackgroundDragEnd);
+          };
+
+          document.addEventListener('mousemove', handleBackgroundDrag);
+          document.addEventListener('mouseup', handleBackgroundDragEnd);
+          return;
+        }
+      }
+
       // Check if clicking on a wall handle
       const selectedWall = designData.walls.find(w => w.id === selectedItem);
       if (selectedWall) {
@@ -1403,7 +1648,7 @@ const DesignTool = () => {
       }
     }
 
-    if (tool === 'select' && !isDraggingWallHandle && !isDraggingFurniture && !isResizingFurniture) {
+    if (tool === 'select' && !isDraggingWallHandle && !isDraggingFurniture && !isResizingFurniture && !isDraggingBackground && !isResizingBackground) {
       const startX = e.clientX;
       const startY = e.clientY;
       const startPan = { ...pan };
@@ -1843,6 +2088,37 @@ const DesignTool = () => {
                       />
                     </div>
 
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 block mb-1">
+                        Rotation: {designData.backgroundImage.rotation}°
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => updateBackgroundImage({ rotation: (designData.backgroundImage!.rotation - 90 + 360) % 360 })}
+                          className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+                          title="Rotate 90° counter-clockwise"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                        <input
+                          type="range"
+                          min="0"
+                          max="360"
+                          step="1"
+                          value={designData.backgroundImage.rotation}
+                          onChange={(e) => updateBackgroundImage({ rotation: Number(e.target.value) })}
+                          className="flex-1"
+                        />
+                        <button
+                          onClick={() => updateBackgroundImage({ rotation: (designData.backgroundImage!.rotation + 90) % 360 })}
+                          className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+                          title="Rotate 90° clockwise"
+                        >
+                          <RotateCw className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs font-medium text-gray-700 block mb-1">X Position</label>
@@ -1865,7 +2141,7 @@ const DesignTool = () => {
                     </div>
 
                     <p className="text-xs text-gray-500 italic">
-                      Use Select tool to pan the canvas and see the full background
+                      Tip: Click on the background with Select tool to drag, resize, or use these controls to adjust position and rotation.
                     </p>
                   </div>
                 )}
@@ -1936,49 +2212,94 @@ const DesignTool = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Selected Item</span>
-                  <button
-                    onClick={() => {
-                      const furniture = designData.furniture.find(f => f.id === selectedItem);
-                      const room = designData.rooms.find(r => r.id === selectedItem);
-                      const wall = designData.walls.find(w => w.id === selectedItem);
+                  {selectedItem !== 'background' && (
+                    <button
+                      onClick={() => {
+                        const furniture = designData.furniture.find(f => f.id === selectedItem);
+                        const room = designData.rooms.find(r => r.id === selectedItem);
+                        const wall = designData.walls.find(w => w.id === selectedItem);
 
-                      if (furniture) {
-                        const newDesignData = {
-                          ...designData,
-                          furniture: designData.furniture.filter(f => f.id !== selectedItem)
-                        };
-                        setDesignData(newDesignData);
-                        addToHistory(newDesignData);
-                      }
+                        if (furniture) {
+                          const newDesignData = {
+                            ...designData,
+                            furniture: designData.furniture.filter(f => f.id !== selectedItem)
+                          };
+                          setDesignData(newDesignData);
+                          addToHistory(newDesignData);
+                        }
 
-                      if (room) {
-                        const newDesignData = {
-                          ...designData,
-                          rooms: designData.rooms.filter(r => r.id !== selectedItem)
-                        };
-                        setDesignData(newDesignData);
-                        addToHistory(newDesignData);
-                      }
+                        if (room) {
+                          const newDesignData = {
+                            ...designData,
+                            rooms: designData.rooms.filter(r => r.id !== selectedItem)
+                          };
+                          setDesignData(newDesignData);
+                          addToHistory(newDesignData);
+                        }
 
-                      if (wall) {
-                        const newDesignData = {
-                          ...designData,
-                          walls: designData.walls.filter(w => w.id !== selectedItem)
-                        };
-                        setDesignData(newDesignData);
-                        addToHistory(newDesignData);
-                      }
+                        if (wall) {
+                          const newDesignData = {
+                            ...designData,
+                            walls: designData.walls.filter(w => w.id !== selectedItem)
+                          };
+                          setDesignData(newDesignData);
+                          addToHistory(newDesignData);
+                        }
 
-                      setSelectedItem(null);
-                    }}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
-                    title="Delete selected item"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                        setSelectedItem(null);
+                      }}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      title="Delete selected item"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 {(() => {
+                  if (selectedItem === 'background' && designData.backgroundImage) {
+                    return (
+                      <div className="space-y-3 text-sm">
+                        <div className="font-medium text-gray-700">Background Image</div>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Width:</span>
+                            <span>{Math.round(designData.backgroundImage.width)}px</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Height:</span>
+                            <span>{Math.round(designData.backgroundImage.height)}px</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Rotation:</span>
+                            <span>{designData.backgroundImage.rotation}°</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Opacity:</span>
+                            <span>{Math.round(designData.backgroundImage.opacity * 100)}%</span>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-blue-50 rounded-lg space-y-2">
+                          <div className="text-xs font-medium text-blue-900">Controls:</div>
+                          <ul className="text-xs text-blue-800 space-y-1">
+                            <li>• Drag to move position</li>
+                            <li>• Drag corner handles to resize</li>
+                            <li>• Use sidebar controls to rotate</li>
+                          </ul>
+                        </div>
+
+                        <button
+                          onClick={removeBackgroundImage}
+                          className="w-full mt-2 p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors text-sm font-medium"
+                        >
+                          Remove Background
+                        </button>
+                      </div>
+                    );
+                  }
+
                   const selectedWall = designData.walls.find(w => w.id === selectedItem);
                   if (selectedWall) {
                     const wallLength = calculateDistance(selectedWall.start, selectedWall.end);
