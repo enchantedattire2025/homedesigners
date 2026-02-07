@@ -148,15 +148,6 @@ const DesignerDetail = () => {
     window.location.href = '/register-customer';
   };
 
-  const handleScheduleConsultation = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    // In a real app, this would open a scheduling modal or redirect to a booking page
-    alert('Consultation scheduling feature coming soon!');
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -450,17 +441,11 @@ const DesignerDetail = () => {
                 )}
 
                 <div className="space-y-3">
-                  <button 
+                  <button
                     onClick={handleGetQuote}
                     className="w-full btn-primary"
                   >
                     Get Quote
-                  </button>
-                  <button 
-                    onClick={handleScheduleConsultation}
-                    className="w-full btn-secondary"
-                  >
-                    Schedule Consultation
                   </button>
                 </div>
               </div>
