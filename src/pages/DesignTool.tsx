@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Square, Move, Trash2, Save, Undo, Redo, Grid, Calculator, IndianRupee as Rupee, Plus, Minus, ArrowLeft, Palette, Sofa, Bed, Table, Armchair as Chair, Tv, Lamp, DoorOpen, Refrigerator, BookOpen, Monitor, Wine, RotateCw, RotateCcw } from 'lucide-react';
+import { Square, Move, Trash2, Save, Undo, Redo, Grid, Calculator, IndianRupee as Rupee, Plus, Minus, ArrowLeft, Palette, Sofa, Bed, Table, Armchair as Chair, Tv, Lamp, DoorOpen, Refrigerator, BookOpen, Monitor, Wine, RotateCw, RotateCcw, Upload, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
@@ -41,12 +41,23 @@ interface Wall {
   color: string;
 }
 
+interface BackgroundImage {
+  url: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  opacity: number;
+  visible: boolean;
+}
+
 interface DesignData {
   rooms: Room[];
   furniture: Furniture[];
   walls: Wall[];
   gridSize: number;
   scale: number; // pixels per foot
+  backgroundImage?: BackgroundImage;
 }
 
 const DesignTool = () => {
@@ -54,6 +65,8 @@ const DesignTool = () => {
   const { user, loading: authLoading } = useAuth();
   const { isDesigner, loading: designerLoading } = useDesignerProfile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const backgroundImageRef = useRef<HTMLImageElement | null>(null);
   const [tool, setTool] = useState<'select' | 'wall' | 'room' | 'furniture'>('select');
   const [selectedFurnitureType, setSelectedFurnitureType] = useState<string>('sofa');
   const [selectedRoomType, setSelectedRoomType] = useState<string>('living');
@@ -70,6 +83,7 @@ const DesignTool = () => {
   const [showMeasurements, setShowMeasurements] = useState(true);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [designerId, setDesignerId] = useState<string>('');
+  const [showBackgroundControls, setShowBackgroundControls] = useState(false);
   
   const [designData, setDesignData] = useState<DesignData>({
     rooms: [],
@@ -684,16 +698,30 @@ const DesignTool = () => {
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw grid
     drawGrid(ctx, canvas);
-    
+
+    // Draw background image if available
+    if (designData.backgroundImage && designData.backgroundImage.visible && backgroundImageRef.current) {
+      const bg = designData.backgroundImage;
+      ctx.globalAlpha = bg.opacity;
+      ctx.drawImage(
+        backgroundImageRef.current,
+        bg.x * zoom + pan.x,
+        bg.y * zoom + pan.y,
+        bg.width * zoom,
+        bg.height * zoom
+      );
+      ctx.globalAlpha = 1;
+    }
+
     // Draw rooms
     designData.rooms.forEach(room => drawRoom(ctx, room));
     
@@ -739,7 +767,7 @@ const DesignTool = () => {
         ctx.setLineDash([]);
       }
     }
-  }, [designData, drawGrid, drawRoom, drawWall, drawFurniture, isDrawing, currentPoints, zoom, pan, tool, wallThickness]);
+  }, [designData, drawGrid, drawRoom, drawWall, drawFurniture, isDrawing, currentPoints, zoom, pan, tool, wallThickness, backgroundImageRef]);
 
   // Canvas event handlers
   const getCanvasPoint = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
@@ -1008,6 +1036,76 @@ const DesignTool = () => {
       setHistoryIndex(historyIndex + 1);
       setDesignData(history[historyIndex + 1]);
     }
+  };
+
+  const handleBackgroundImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const url = event.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        backgroundImageRef.current = img;
+
+        // Calculate initial size (scale to fit canvas while maintaining aspect ratio)
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const maxWidth = canvas.width / zoom;
+          const maxHeight = canvas.height / zoom;
+          const aspectRatio = img.width / img.height;
+
+          let width = maxWidth * 0.8;
+          let height = width / aspectRatio;
+
+          if (height > maxHeight * 0.8) {
+            height = maxHeight * 0.8;
+            width = height * aspectRatio;
+          }
+
+          const newDesignData = {
+            ...designData,
+            backgroundImage: {
+              url,
+              x: 50,
+              y: 50,
+              width,
+              height,
+              opacity: 0.5,
+              visible: true
+            }
+          };
+          setDesignData(newDesignData);
+          addToHistory(newDesignData);
+        }
+      };
+      img.src = url;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const updateBackgroundImage = (updates: Partial<BackgroundImage>) => {
+    if (!designData.backgroundImage) return;
+
+    const newDesignData = {
+      ...designData,
+      backgroundImage: {
+        ...designData.backgroundImage,
+        ...updates
+      }
+    };
+    setDesignData(newDesignData);
+  };
+
+  const removeBackgroundImage = () => {
+    const newDesignData = {
+      ...designData,
+      backgroundImage: undefined
+    };
+    setDesignData(newDesignData);
+    addToHistory(newDesignData);
+    backgroundImageRef.current = null;
   };
 
   const calculateTotalCost = (): number => {
@@ -1385,6 +1483,18 @@ const DesignTool = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [selectedItem, designData]);
 
+  // Load background image when design data contains one
+  useEffect(() => {
+    if (designData.backgroundImage?.url && !backgroundImageRef.current) {
+      const img = new Image();
+      img.onload = () => {
+        backgroundImageRef.current = img;
+        redrawCanvas();
+      };
+      img.src = designData.backgroundImage.url;
+    }
+  }, [designData.backgroundImage?.url]);
+
   // Redraw canvas when data changes
   useEffect(() => {
     redrawCanvas();
@@ -1626,6 +1736,141 @@ const DesignTool = () => {
                 <span className="text-sm">Show Measurements</span>
               </label>
             </div>
+          </div>
+
+          {/* Background Image */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">Background Image</h3>
+              {designData.backgroundImage && (
+                <button
+                  onClick={() => setShowBackgroundControls(!showBackgroundControls)}
+                  className="text-xs text-primary-600 hover:text-primary-700"
+                >
+                  {showBackgroundControls ? 'Hide' : 'Show'} Controls
+                </button>
+              )}
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleBackgroundImageUpload}
+              className="hidden"
+            />
+
+            {!designData.backgroundImage ? (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center justify-center space-x-2 p-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary-400 hover:bg-primary-50 transition-colors"
+              >
+                <Upload className="w-5 h-5 text-gray-400" />
+                <span className="text-sm text-gray-600">Upload Floor Plan</span>
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <ImageIcon className="w-4 h-4 text-green-600" />
+                  <span className="text-xs text-gray-600 flex-1 truncate">Background loaded</span>
+                  <button
+                    onClick={removeBackgroundImage}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => updateBackgroundImage({ visible: !designData.backgroundImage.visible })}
+                  className={`w-full flex items-center justify-center space-x-2 p-2 rounded-lg transition-colors ${
+                    designData.backgroundImage.visible
+                      ? 'bg-primary-100 text-primary-700 border border-primary-300'
+                      : 'bg-gray-100 text-gray-600 border border-gray-300'
+                  }`}
+                >
+                  {designData.backgroundImage.visible ? (
+                    <>
+                      <Eye className="w-4 h-4" />
+                      <span className="text-sm">Visible</span>
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="w-4 h-4" />
+                      <span className="text-sm">Hidden</span>
+                    </>
+                  )}
+                </button>
+
+                {showBackgroundControls && designData.backgroundImage.visible && (
+                  <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 block mb-1">
+                        Opacity: {Math.round(designData.backgroundImage.opacity * 100)}%
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={designData.backgroundImage.opacity}
+                        onChange={(e) => updateBackgroundImage({ opacity: Number(e.target.value) })}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 block mb-1">
+                        Scale: {Math.round((designData.backgroundImage.width / 800) * 100)}%
+                      </label>
+                      <input
+                        type="range"
+                        min="0.2"
+                        max="2"
+                        step="0.1"
+                        value={designData.backgroundImage.width / 800}
+                        onChange={(e) => {
+                          const scale = Number(e.target.value);
+                          const aspectRatio = backgroundImageRef.current
+                            ? backgroundImageRef.current.width / backgroundImageRef.current.height
+                            : 1;
+                          updateBackgroundImage({
+                            width: 800 * scale,
+                            height: (800 * scale) / aspectRatio
+                          });
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-gray-700 block mb-1">X Position</label>
+                        <input
+                          type="number"
+                          value={Math.round(designData.backgroundImage.x)}
+                          onChange={(e) => updateBackgroundImage({ x: Number(e.target.value) })}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-700 block mb-1">Y Position</label>
+                        <input
+                          type="number"
+                          value={Math.round(designData.backgroundImage.y)}
+                          onChange={(e) => updateBackgroundImage({ y: Number(e.target.value) })}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-500 italic">
+                      Use Select tool to pan the canvas and see the full background
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
