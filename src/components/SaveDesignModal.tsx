@@ -43,6 +43,13 @@ const SaveDesignModal: React.FC<SaveDesignModalProps> = ({
       setLoading(true);
       setError(null);
 
+      if (!designerId) {
+        console.error('No designer ID provided');
+        setError('Designer ID not found. Please try refreshing the page.');
+        setLoading(false);
+        return;
+      }
+
       const { data, error: fetchError } = await supabase
         .from('designer_quotes')
         .select(`
@@ -61,7 +68,10 @@ const SaveDesignModal: React.FC<SaveDesignModalProps> = ({
         .in('status', ['draft', 'sent', 'under_review'])
         .order('created_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
+      }
 
       const formattedQuotes = data?.map((quote: any) => ({
         id: quote.id,
@@ -79,9 +89,9 @@ const SaveDesignModal: React.FC<SaveDesignModalProps> = ({
       if (formattedQuotes.length > 0) {
         setSelectedQuoteId(formattedQuotes[0].id);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching quotes:', err);
-      setError('Failed to load quotations. Please try again.');
+      setError(err.message || 'Failed to load quotations. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -162,7 +162,12 @@ const DesignTool = () => {
   // Fetch designer ID
   useEffect(() => {
     const fetchDesignerId = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('No user found for designer ID fetch');
+        return;
+      }
+
+      console.log('Fetching designer ID for user:', user.id);
 
       const { data, error } = await supabase
         .from('designers')
@@ -170,8 +175,13 @@ const DesignTool = () => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (data && !error) {
+      if (error) {
+        console.error('Error fetching designer ID:', error);
+      } else if (data) {
+        console.log('Designer ID found:', data.id);
         setDesignerId(data.id);
+      } else {
+        console.warn('No designer profile found for user:', user.id);
       }
     };
 
@@ -1245,63 +1255,75 @@ const DesignTool = () => {
   };
 
   const handleSaveDesign = async (quoteId: string) => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      throw new Error('Canvas not found');
-    }
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        throw new Error('Canvas not found');
+      }
 
-    // Convert canvas to blob
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create image blob'));
-          }
-        },
-        'image/png',
-        1.0
-      );
-    });
-
-    // Create a unique filename
-    const timestamp = Date.now();
-    const filename = `design_${timestamp}.png`;
-    const filePath = `${quoteId}/design/${filename}`;
-
-    // Upload to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('quotation-attachments')
-      .upload(filePath, blob, {
-        contentType: 'image/png',
-        upsert: false
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create image blob'));
+            }
+          },
+          'image/png',
+          1.0
+        );
       });
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw new Error('Failed to upload design image');
+      // Create a unique filename
+      const timestamp = Date.now();
+      const filename = `design_${timestamp}.png`;
+      const filePath = `${quoteId}/design/${filename}`;
+
+      console.log('Uploading design to:', filePath);
+
+      // Upload to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('quotation-attachments')
+        .upload(filePath, blob, {
+          contentType: 'image/png',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Failed to upload design image: ${uploadError.message}`);
+      }
+
+      console.log('Upload successful:', uploadData);
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('quotation-attachments')
+        .getPublicUrl(filePath);
+
+      const designImageUrl = urlData.publicUrl;
+
+      console.log('Design image URL:', designImageUrl);
+
+      // Update the quotation with the design image URL
+      const { error: updateError } = await supabase
+        .from('designer_quotes')
+        .update({ design_image_url: designImageUrl })
+        .eq('id', quoteId);
+
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw new Error(`Failed to update quotation: ${updateError.message}`);
+      }
+
+      console.log('Quotation updated successfully');
+      alert('Design saved successfully and attached to quotation!');
+    } catch (error) {
+      console.error('Error in handleSaveDesign:', error);
+      throw error;
     }
-
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('quotation-attachments')
-      .getPublicUrl(filePath);
-
-    const designImageUrl = urlData.publicUrl;
-
-    // Update the quotation with the design image URL
-    const { error: updateError } = await supabase
-      .from('designer_quotes')
-      .update({ design_image_url: designImageUrl })
-      .eq('id', quoteId);
-
-    if (updateError) {
-      console.error('Update error:', updateError);
-      throw new Error('Failed to update quotation with design image');
-    }
-
-    alert('Design saved successfully and attached to quotation!');
   };
 
   const handlePanStart = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -2541,7 +2563,17 @@ const DesignTool = () => {
               <button
                 className="w-full btn-secondary mt-2"
                 onClick={() => setShowSaveModal(true)}
-                disabled={designData.rooms.length === 0 && designData.furniture.length === 0}
+                disabled={
+                  (designData.rooms.length === 0 && designData.furniture.length === 0) ||
+                  !designerId
+                }
+                title={
+                  !designerId
+                    ? 'Loading designer profile...'
+                    : (designData.rooms.length === 0 && designData.furniture.length === 0)
+                    ? 'Add rooms or furniture to save design'
+                    : 'Save design to quotation'
+                }
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Design to Quotation
