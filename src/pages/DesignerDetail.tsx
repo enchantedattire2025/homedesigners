@@ -440,14 +440,16 @@ const DesignerDetail = () => {
                   </div>
                 )}
 
-                <div className="space-y-3">
-                  <button
-                    onClick={handleGetQuote}
-                    className="w-full btn-primary"
-                  >
-                    Get Quote
-                  </button>
-                </div>
+                {user && (
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleGetQuote}
+                      className="w-full btn-primary"
+                    >
+                      Get Quote
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Awards */}
