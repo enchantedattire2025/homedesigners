@@ -18,6 +18,7 @@ interface Room {
   color: string;
   area: number;
   type: string;
+  costPerSqFt?: number;
 }
 
 interface Furniture {
@@ -1119,7 +1120,8 @@ const DesignTool = () => {
         points: currentPoints,
         color: roomType.color,
         area,
-        type: roomType.type
+        type: roomType.type,
+        costPerSqFt: roomType.costPerSqFt
       };
 
       const newDesignData = {
@@ -1245,9 +1247,9 @@ const DesignTool = () => {
   const calculateTotalCost = (): number => {
     const furnitureCost = designData.furniture.reduce((total, item) => total + item.price, 0);
     const roomCost = designData.rooms.reduce((total, room) => {
-      // Basic cost per square foot based on room type
+      // Use room's custom cost per sq ft, or fall back to room type default
       const roomTypeObj = roomTypes.find(rt => rt.type === room.type);
-      const costPerSqFt = roomTypeObj ? roomTypeObj.costPerSqFt : 1200;
+      const costPerSqFt = room.costPerSqFt ?? roomTypeObj?.costPerSqFt ?? 1200;
       return total + (room.area * costPerSqFt);
     }, 0);
 
@@ -2365,9 +2367,30 @@ const DesignTool = () => {
                             <span className="text-gray-600">Rotation:</span>
                             <span>{selectedFurniture.rotation}°</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Price:</span>
-                            <span>₹{selectedFurniture.price.toLocaleString()}</span>
+                          <div className="space-y-1">
+                            <label className="text-gray-600 block">Price:</label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-600">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="100"
+                                value={selectedFurniture.price}
+                                onChange={(e) => {
+                                  const newPrice = Math.max(0, parseInt(e.target.value) || 0);
+                                  const updatedFurniture = designData.furniture.map(f =>
+                                    f.id === selectedItem ? { ...f, price: newPrice } : f
+                                  );
+                                  const newDesignData = {
+                                    ...designData,
+                                    furniture: updatedFurniture
+                                  };
+                                  setDesignData(newDesignData);
+                                  addToHistory(newDesignData);
+                                }}
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -2421,6 +2444,99 @@ const DesignTool = () => {
                         <div className="text-xs text-gray-500 pt-2 border-t space-y-1">
                           <div>• Drag to move furniture</div>
                           <div>• Drag corner handles to resize</div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const selectedRoom = designData.rooms.find(r => r.id === selectedItem);
+                  if (selectedRoom) {
+                    const currentRoomType = roomTypes.find(rt => rt.type === selectedRoom.type);
+                    const roomCostPerSqFt = selectedRoom.costPerSqFt ?? currentRoomType?.costPerSqFt ?? 0;
+
+                    return (
+                      <div className="space-y-3 text-sm">
+                        <div className="font-medium text-gray-700">{selectedRoom.name}</div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Area:</span>
+                            <span>{selectedRoom.area.toFixed(1)} sq ft</span>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-gray-600 block">Room Type:</label>
+                            <select
+                              value={selectedRoom.type}
+                              onChange={(e) => {
+                                const newType = e.target.value;
+                                const roomType = roomTypes.find(rt => rt.type === newType);
+                                const updatedRooms = designData.rooms.map(r =>
+                                  r.id === selectedItem
+                                    ? {
+                                        ...r,
+                                        type: newType,
+                                        name: roomType?.name || r.name,
+                                        color: roomType?.color || r.color,
+                                        costPerSqFt: roomType?.costPerSqFt || r.costPerSqFt
+                                      }
+                                    : r
+                                );
+                                const newDesignData = {
+                                  ...designData,
+                                  rooms: updatedRooms
+                                };
+                                setDesignData(newDesignData);
+                                addToHistory(newDesignData);
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                            >
+                              {roomTypes.map(rt => (
+                                <option key={rt.type} value={rt.type}>
+                                  {rt.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-gray-600 block">Cost per Sq Ft:</label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-600">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="50"
+                                value={roomCostPerSqFt}
+                                onChange={(e) => {
+                                  const newCost = Math.max(0, parseInt(e.target.value) || 0);
+                                  const updatedRooms = designData.rooms.map(r =>
+                                    r.id === selectedItem ? { ...r, costPerSqFt: newCost } : r
+                                  );
+                                  const newDesignData = {
+                                    ...designData,
+                                    rooms: updatedRooms
+                                  };
+                                  setDesignData(newDesignData);
+                                  addToHistory(newDesignData);
+                                }}
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                              />
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Total: ₹{(roomCostPerSqFt * selectedRoom.area).toLocaleString()}
+                            </div>
+                          </div>
+
+                          <div
+                            className="w-8 h-8 rounded border-2 border-gray-300"
+                            style={{ backgroundColor: selectedRoom.color }}
+                            title="Room color"
+                          />
+                        </div>
+
+                        <div className="text-xs text-gray-500 pt-2 border-t">
+                          Change room type to adjust color and pricing
                         </div>
                       </div>
                     );
@@ -2535,7 +2651,7 @@ const DesignTool = () => {
                 <span>Room Design Cost:</span>
                 <span>₹{designData.rooms.reduce((total, room) => {
                   const roomTypeObj = roomTypes.find(rt => rt.type === room.type);
-                  const costPerSqFt = roomTypeObj ? roomTypeObj.costPerSqFt : 1200;
+                  const costPerSqFt = room.costPerSqFt ?? roomTypeObj?.costPerSqFt ?? 1200;
                   return total + (room.area * costPerSqFt);
                 }, 0).toLocaleString()}</span>
               </div>
@@ -2571,12 +2687,15 @@ const DesignTool = () => {
                   !designerId
                     ? 'Loading designer profile...'
                     : (designData.rooms.length === 0 && designData.furniture.length === 0)
-                    ? 'Add rooms or furniture to save design'
+                    ? 'Required: Add at least 1 room or 1 furniture to save design'
                     : 'Save design to quotation'
                 }
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Design to Quotation
+                {(designData.rooms.length === 0 && designData.furniture.length === 0) && (
+                  <span className="ml-2 text-xs text-red-600">*</span>
+                )}
               </button>
             </div>
           </div>
