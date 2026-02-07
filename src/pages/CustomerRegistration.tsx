@@ -1,19 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Home, FileText, X, Plus, ExternalLink, Heart, CheckCircle, IndianRupee as Rupee } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Home, FileText, X, Plus, ExternalLink, Heart, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import WelcomeModal from '../components/WelcomeModal';
 import ImageUploader from '../components/ImageUploader';
-
-interface Designer {
-  id: string;
-  name: string;
-  specialization: string;
-  location: string;
-  experience: number;
-  rating: number;
-}
 
 const CustomerRegistration = () => {
   const navigate = useNavigate();
@@ -21,8 +12,6 @@ const CustomerRegistration = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [designers, setDesigners] = useState<Designer[]>([]);
-  const [loadingDesigners, setLoadingDesigners] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -34,7 +23,6 @@ const CustomerRegistration = () => {
     budget_range: '',
     timeline: '',
     requirements: '',
-    preferred_designer: '',
     layout_image_url: '',
     inspiration_links: [''],
     room_types: [''],
@@ -110,37 +98,12 @@ const CustomerRegistration = () => {
     }));
   }, [user, authLoading, navigate]);
 
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-
-    if (name === 'location' && value) {
-      await fetchDesignersByLocation(value);
-    }
-  };
-
-  const fetchDesignersByLocation = async (location: string) => {
-    setLoadingDesigners(true);
-    try {
-      const { data, error } = await supabase
-        .from('designers')
-        .select('id, name, specialization, location, experience, rating')
-        .eq('location', location)
-        .eq('is_active', true)
-        .order('rating', { ascending: false });
-
-      if (error) throw error;
-
-      setDesigners(data || []);
-    } catch (error) {
-      console.error('Error fetching designers:', error);
-      setDesigners([]);
-    } finally {
-      setLoadingDesigners(false);
-    }
   };
 
   const handleArrayChange = (field: 'inspiration_links' | 'room_types', index: number, value: string) => {
@@ -444,45 +407,6 @@ const CustomerRegistration = () => {
                         <option key={timeline} value={timeline}>{timeline}</option>
                       ))}
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Designer
-                    </label>
-                    {!formData.location ? (
-                      <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500 flex items-center">
-                        Please select a location first to view available designers
-                      </div>
-                    ) : loadingDesigners ? (
-                      <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500 mr-2"></div>
-                        Loading designers...
-                      </div>
-                    ) : designers.length === 0 ? (
-                      <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-yellow-50 text-yellow-800 text-sm">
-                        No designers available in {formData.location}. We'll match you with the best designer from nearby areas.
-                      </div>
-                    ) : (
-                      <select
-                        name="preferred_designer"
-                        value={formData.preferred_designer}
-                        onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        <option value="">Select a designer (optional)</option>
-                        {designers.map(designer => (
-                          <option key={designer.id} value={designer.name}>
-                            {designer.name} - {designer.specialization} ({designer.experience}+ yrs, ★ {designer.rating.toFixed(1)})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {designers.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {designers.length} designer{designers.length !== 1 ? 's' : ''} available in {formData.location}
-                      </p>
-                    )}
                   </div>
                 </div>
 
