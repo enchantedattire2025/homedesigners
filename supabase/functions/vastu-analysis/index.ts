@@ -249,6 +249,16 @@ function convertToVastuRecommendations(analysis: GeminiAnalysisResult): VastuRec
   })
 }
 
+async function generateDesignHash(layoutImageUrl: string): Promise<string> {
+  // Create a hash from the layout image URL to identify unique designs
+  const encoder = new TextEncoder()
+  const data = encoder.encode(layoutImageUrl)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  return hashHex
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -271,49 +281,51 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Check if analysis already exists for this project
-    if (projectId) {
-      try {
-        const { data: existingAnalysis, error: fetchError } = await supabase
-          .from('vastu_analyses')
-          .select('id, vastu_score, analysis_summary')
-          .eq('project_id', projectId)
-          .maybeSingle()
+    // Generate hash from design to ensure consistency
+    const designHash = await generateDesignHash(layoutImageUrl)
 
-        if (!fetchError && existingAnalysis) {
-          // Fetch existing recommendations
-          const { data: existingRecommendations, error: recError } = await supabase
-            .from('vastu_recommendations')
-            .select('zone, element, status, recommendation, priority')
-            .eq('analysis_id', existingAnalysis.id)
-            .order('priority', { ascending: true })
+    // Check if analysis already exists for this design hash
+    try {
+      const { data: existingAnalysis, error: fetchError } = await supabase
+        .from('vastu_analyses')
+        .select('id, vastu_score, analysis_summary')
+        .eq('design_hash', designHash)
+        .maybeSingle()
 
-          if (!recError && existingRecommendations) {
-            // Return existing analysis
-            const response: VastuResponse = {
-              score: existingAnalysis.vastu_score,
-              recommendations: existingRecommendations.map(rec => ({
-                zone: rec.zone,
-                element: rec.element,
-                status: rec.status as 'good' | 'warning' | 'bad',
-                recommendation: rec.recommendation,
-                priority: rec.priority as 'high' | 'medium' | 'low'
-              })),
-              summary: existingAnalysis.analysis_summary
-            }
+      if (!fetchError && existingAnalysis) {
+        // Fetch existing recommendations
+        const { data: existingRecommendations, error: recError } = await supabase
+          .from('vastu_recommendations')
+          .select('zone, element, status, recommendation, priority')
+          .eq('analysis_id', existingAnalysis.id)
+          .order('priority', { ascending: true })
 
-            return new Response(
-              JSON.stringify(response),
-              {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              }
-            )
+        if (!recError && existingRecommendations) {
+          // Return existing analysis for consistency
+          console.log(`Returning cached analysis for hash: ${designHash}`)
+          const response: VastuResponse = {
+            score: existingAnalysis.vastu_score,
+            recommendations: existingRecommendations.map(rec => ({
+              zone: rec.zone,
+              element: rec.element,
+              status: rec.status as 'good' | 'warning' | 'bad',
+              recommendation: rec.recommendation,
+              priority: rec.priority as 'high' | 'medium' | 'low'
+            })),
+            summary: existingAnalysis.analysis_summary
           }
+
+          return new Response(
+            JSON.stringify(response),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
         }
-      } catch (error) {
-        console.error('Error fetching existing analysis:', error)
-        // Continue to generate new analysis if there's an error
       }
+    } catch (error) {
+      console.error('Error fetching existing analysis:', error)
+      // Continue to generate new analysis if there's an error
     }
 
     // Generate new analysis
@@ -332,43 +344,43 @@ Deno.serve(async (req) => {
       summary: analysis.summary
     }
 
-    // Save new analysis to database
-    if (projectId) {
-      try {
-        const { data: analysisData, error: analysisError } = await supabase
-          .from('vastu_analyses')
-          .insert({
-            project_id: projectId,
-            layout_image_url: layoutImageUrl,
-            vastu_score: analysis.overallScore,
-            analysis_summary: analysis.summary
-          })
-          .select()
-          .single()
+    // Save new analysis to database with design hash
+    try {
+      const { data: analysisData, error: analysisError } = await supabase
+        .from('vastu_analyses')
+        .insert({
+          project_id: projectId || null,
+          design_hash: designHash,
+          layout_image_url: layoutImageUrl,
+          vastu_score: analysis.overallScore,
+          analysis_summary: analysis.summary
+        })
+        .select()
+        .single()
 
-        if (analysisError) {
-          console.error('Error saving Vastu analysis:', analysisError)
-        } else if (analysisData) {
-          const recommendationsToInsert = recommendations.map(rec => ({
-            analysis_id: analysisData.id,
-            zone: rec.zone,
-            element: rec.element,
-            status: rec.status,
-            recommendation: rec.recommendation,
-            priority: rec.priority
-          }))
+      if (analysisError) {
+        console.error('Error saving Vastu analysis:', analysisError)
+      } else if (analysisData) {
+        console.log(`Saved new analysis with hash: ${designHash}`)
+        const recommendationsToInsert = recommendations.map(rec => ({
+          analysis_id: analysisData.id,
+          zone: rec.zone,
+          element: rec.element,
+          status: rec.status,
+          recommendation: rec.recommendation,
+          priority: rec.priority
+        }))
 
-          const { error: recError } = await supabase
-            .from('vastu_recommendations')
-            .insert(recommendationsToInsert)
+        const { error: recError } = await supabase
+          .from('vastu_recommendations')
+          .insert(recommendationsToInsert)
 
-          if (recError) {
-            console.error('Error saving Vastu recommendations:', recError)
-          }
+        if (recError) {
+          console.error('Error saving Vastu recommendations:', recError)
         }
-      } catch (error) {
-        console.error('Error in database operations:', error)
       }
+    } catch (error) {
+      console.error('Error in database operations:', error)
     }
 
     return new Response(
