@@ -18,7 +18,8 @@ import {
   Calendar,
   DollarSign,
   TrendingDown,
-  Tag
+  Tag,
+  Video
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -322,6 +323,13 @@ const AdminDashboard = () => {
               >
                 <Tag className="w-4 h-4" />
                 <span>Manage Deals</span>
+              </button>
+              <button
+                onClick={() => navigate('/admin/video')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 transition-colors"
+              >
+                <Video className="w-4 h-4" />
+                <span>Manage Video</span>
               </button>
               <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center space-x-2 transition-colors">
                 <Download className="w-4 h-4" />
