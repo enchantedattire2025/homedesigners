@@ -91,7 +91,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose }) => {
       onClick={onClose}
     >
       <div
-        className="relative max-w-5xl w-full bg-gradient-to-br from-white to-gray-50 rounded-2xl overflow-hidden shadow-2xl animate-slideUp"
+        className="relative max-w-3xl w-full bg-gradient-to-br from-white to-gray-50 rounded-2xl overflow-hidden shadow-2xl animate-slideUp"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -130,30 +130,30 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose }) => {
               )}
             </div>
 
-            <div className="p-8">
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-full flex items-center justify-center">
-                    <Play className="w-5 h-5 text-white ml-0.5" />
+            <div className="p-6">
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-sky-500 to-blue-600 rounded-full flex items-center justify-center">
+                    <Play className="w-4 h-4 text-white ml-0.5" />
                   </div>
-                  <h2 className="text-3xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900">
                     {videoInfo?.title}
                   </h2>
                 </div>
-                <p className="text-lg text-gray-600 leading-relaxed">
+                <p className="text-base text-gray-600 leading-relaxed">
                   {videoInfo?.description}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-gray-200">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-gray-200">
                 {highlights.map((highlight, index) => {
                   const IconComponent = highlight.icon;
                   return (
                     <div key={index} className="flex flex-col items-center text-center group">
-                      <div className={`w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform ${highlight.color}`}>
-                        <IconComponent className="w-6 h-6" />
+                      <div className={`w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform ${highlight.color}`}>
+                        <IconComponent className="w-5 h-5" />
                       </div>
-                      <p className="text-sm font-medium text-gray-700">{highlight.text}</p>
+                      <p className="text-xs font-medium text-gray-700">{highlight.text}</p>
                     </div>
                   );
                 })}
