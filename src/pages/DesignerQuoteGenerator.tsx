@@ -67,6 +67,8 @@ interface QuoteItem {
   unit_price: number;
   discount_percent: number;
   amount: number;
+  length?: number;
+  breadth?: number;
 }
 
 interface QuoteData {
@@ -478,7 +480,9 @@ const DesignerQuoteGenerator = () => {
         unit: item.unit,
         unit_price: item.unit_price,
         discount_percent: item.discount_percent,
-        amount: item.amount
+        amount: item.amount,
+        length: item.length,
+        breadth: item.breadth
       }));
       
       const { error: itemsError } = await supabase
@@ -1041,7 +1045,37 @@ const DesignerQuoteGenerator = () => {
                               placeholder="e.g., sq.ft, hours, piece"
                             />
                           </div>
-                          
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Length
+                            </label>
+                            <input
+                              type="number"
+                              value={item.length || ''}
+                              onChange={(e) => handleItemChange(index, 'length', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
+                              min="0"
+                              step="0.01"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              placeholder="e.g., 10"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Breadth
+                            </label>
+                            <input
+                              type="number"
+                              value={item.breadth || ''}
+                              onChange={(e) => handleItemChange(index, 'breadth', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
+                              min="0"
+                              step="0.01"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              placeholder="e.g., 5"
+                            />
+                          </div>
+
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Unit Price (₹) *
@@ -1176,6 +1210,8 @@ const DesignerQuoteGenerator = () => {
                             <th className="text-left py-3 px-4 font-semibold text-secondary-800">Description</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Qty</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Unit</th>
+                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Length</th>
+                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Breadth</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Unit Price</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Discount</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Amount</th>
@@ -1188,6 +1224,8 @@ const DesignerQuoteGenerator = () => {
                               <td className="py-3 px-4 text-gray-600">{item.description || '-'}</td>
                               <td className="py-3 px-4 text-right">{item.quantity}</td>
                               <td className="py-3 px-4 text-right">{item.unit}</td>
+                              <td className="py-3 px-4 text-right">{item.length ? item.length : '-'}</td>
+                              <td className="py-3 px-4 text-right">{item.breadth ? item.breadth : '-'}</td>
                               <td className="py-3 px-4 text-right">{formatCurrency(item.unit_price)}</td>
                               <td className="py-3 px-4 text-right">{item.discount_percent}%</td>
                               <td className="py-3 px-4 text-right font-medium">{formatCurrency(item.amount)}</td>
