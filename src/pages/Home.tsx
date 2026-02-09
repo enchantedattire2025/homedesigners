@@ -257,7 +257,7 @@ const Home = () => {
                   className="btn-secondary flex items-center justify-center"
                 >
                   <Play className="w-5 h-5 mr-2" />
-                  Watch Our Story
+                  Product Tour
                 </button>
               </div>
             </div>
