@@ -245,8 +245,8 @@ const DesignerRegistration = () => {
           throw new Error(result.error);
         }
 
-        setSuccess('Registration successful! Your profile is now live.');
-        
+        setSuccess('Registration submitted successfully! Your profile is pending admin approval. You will be able to login once the admin verifies your profile.');
+
         // Show welcome modal for new registrations
         setShowWelcomeModal(true);
         

@@ -768,6 +768,65 @@ const DesignerDashboard = () => {
     );
   }
 
+  if (designer.verification_status === 'pending') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Clock className="w-8 h-8 text-yellow-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-secondary-800 mb-4">Account Pending Verification</h2>
+          <p className="text-gray-600 mb-6">
+            Thank you for registering as a designer! Your profile is currently under review by our admin team.
+            You will be able to access the dashboard once your account is verified.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              This process typically takes 24-48 hours. We will notify you via email once your account is approved.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="btn-primary"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (designer.verification_status === 'rejected') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <X className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-secondary-800 mb-4">Account Verification Rejected</h2>
+          <p className="text-gray-600 mb-4">
+            Unfortunately, your designer profile was not approved.
+          </p>
+          {designer.rejected_reason && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-sm font-medium text-red-800 mb-1">Reason:</p>
+              <p className="text-sm text-red-700">{designer.rejected_reason}</p>
+            </div>
+          )}
+          <p className="text-gray-600 mb-6">
+            If you believe this is an error, please contact our support team for assistance.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="btn-primary"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',

@@ -51,6 +51,9 @@ interface Designer {
   total_projects: number;
   rating: number;
   created_at: string;
+  verification_status: string;
+  rejected_reason?: string;
+  verified_at?: string;
 }
 
 interface Customer {
@@ -172,7 +175,7 @@ const AdminDashboard = () => {
 
       // Calculate stats
       const totalDesigners = designersData?.length || 0;
-      const verifiedDesigners = designersData?.filter(d => d.is_verified).length || 0;
+      const verifiedDesigners = designersData?.filter(d => d.verification_status === 'verified').length || 0;
       const totalCustomers = customersData?.length || 0;
       const totalProjects = customersData?.length || 0;
       const activeProjects = customersData?.filter(c =>
@@ -181,7 +184,7 @@ const AdminDashboard = () => {
       const completedProjects = customersData?.filter(c =>
         c.status === 'completed'
       ).length || 0;
-      const pendingVerifications = designersData?.filter(d => !d.is_verified).length || 0;
+      const pendingVerifications = designersData?.filter(d => d.verification_status === 'pending').length || 0;
 
       // Calculate earnings
       const totalEarnings = earningsData?.reduce((sum, e) => sum + Number(e.project_value), 0) || 0;
@@ -248,29 +251,61 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleVerifyDesigner = async (designerId: string, verified: boolean) => {
+  const handleVerifyDesigner = async (designerId: string, newStatus: string, rejectionReason?: string) => {
     try {
+      const updateData: any = {
+        verification_status: newStatus,
+        is_verified: newStatus === 'verified'
+      };
+
+      if (newStatus === 'verified') {
+        updateData.verified_at = new Date().toISOString();
+        updateData.rejected_reason = null;
+      } else if (newStatus === 'rejected' && rejectionReason) {
+        updateData.rejected_reason = rejectionReason;
+        updateData.verified_at = null;
+      }
+
       const { error } = await supabase
         .from('designers')
-        .update({ is_verified: verified })
+        .update(updateData)
         .eq('id', designerId);
 
       if (error) throw error;
 
       // Update local state
-      setDesigners(prev => prev.map(d => 
-        d.id === designerId ? { ...d, is_verified: verified } : d
+      setDesigners(prev => prev.map(d =>
+        d.id === designerId ? {
+          ...d,
+          verification_status: newStatus,
+          is_verified: newStatus === 'verified',
+          verified_at: updateData.verified_at,
+          rejected_reason: updateData.rejected_reason
+        } : d
       ));
 
-      // Update stats
-      setStats(prev => ({
-        ...prev,
-        verifiedDesigners: verified ? prev.verifiedDesigners + 1 : prev.verifiedDesigners - 1,
-        pendingVerifications: verified ? prev.pendingVerifications - 1 : prev.pendingVerifications + 1
-      }));
+      // Refresh data to update stats
+      fetchAdminData();
 
+      alert(`Designer ${newStatus === 'verified' ? 'approved' : newStatus} successfully!`);
     } catch (error) {
       console.error('Error updating designer verification:', error);
+      alert('Failed to update designer verification status. Please try again.');
+    }
+  };
+
+  const handleApproveDesigner = (designerId: string) => {
+    if (confirm('Are you sure you want to approve this designer?')) {
+      handleVerifyDesigner(designerId, 'verified');
+    }
+  };
+
+  const handleRejectDesigner = (designerId: string) => {
+    const reason = prompt('Please enter the reason for rejection:');
+    if (reason && reason.trim()) {
+      handleVerifyDesigner(designerId, 'rejected', reason.trim());
+    } else if (reason !== null) {
+      alert('Rejection reason is required.');
     }
   };
 
@@ -588,11 +623,13 @@ const AdminDashboard = () => {
                         <p className="text-sm text-gray-600">{designer.specialization} • {designer.location}</p>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        designer.is_verified 
-                          ? 'bg-green-100 text-green-800' 
+                        designer.verification_status === 'verified'
+                          ? 'bg-green-100 text-green-800'
+                          : designer.verification_status === 'rejected'
+                          ? 'bg-red-100 text-red-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {designer.is_verified ? 'Verified' : 'Pending'}
+                        {designer.verification_status === 'verified' ? 'Verified' : designer.verification_status === 'rejected' ? 'Rejected' : 'Pending'}
                       </span>
                     </div>
                   ))}
@@ -661,15 +698,22 @@ const AdminDashboard = () => {
                         <td className="py-4 px-6">
                           <div className="flex flex-col space-y-1">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              designer.is_verified 
-                                ? 'bg-green-100 text-green-800' 
+                              designer.verification_status === 'verified'
+                                ? 'bg-green-100 text-green-800'
+                                : designer.verification_status === 'rejected'
+                                ? 'bg-red-100 text-red-800'
                                 : 'bg-yellow-100 text-yellow-800'
                             }`}>
-                              {designer.is_verified ? 'Verified' : 'Pending'}
+                              {designer.verification_status === 'verified' ? 'Verified' : designer.verification_status === 'rejected' ? 'Rejected' : 'Pending'}
                             </span>
+                            {designer.verification_status === 'rejected' && designer.rejected_reason && (
+                              <span className="text-xs text-gray-500 truncate max-w-[150px]" title={designer.rejected_reason}>
+                                {designer.rejected_reason}
+                              </span>
+                            )}
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              designer.is_active 
-                                ? 'bg-blue-100 text-blue-800' 
+                              designer.is_active
+                                ? 'bg-blue-100 text-blue-800'
                                 : 'bg-gray-100 text-gray-800'
                             }`}>
                               {designer.is_active ? 'Active' : 'Inactive'}
@@ -678,17 +722,42 @@ const AdminDashboard = () => {
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleVerifyDesigner(designer.id, !designer.is_verified)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                designer.is_verified
-                                  ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                  : 'bg-green-100 text-green-600 hover:bg-green-200'
-                              }`}
-                              title={designer.is_verified ? 'Unverify' : 'Verify'}
-                            >
-                              {designer.is_verified ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                            </button>
+                            {designer.verification_status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveDesigner(designer.id)}
+                                  className="p-2 bg-green-100 text-green-600 hover:bg-green-200 rounded-lg transition-colors"
+                                  title="Approve Designer"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRejectDesigner(designer.id)}
+                                  className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors"
+                                  title="Reject Designer"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                            {designer.verification_status === 'verified' && (
+                              <button
+                                onClick={() => handleRejectDesigner(designer.id)}
+                                className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors"
+                                title="Revoke Verification"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            {designer.verification_status === 'rejected' && (
+                              <button
+                                onClick={() => handleApproveDesigner(designer.id)}
+                                className="p-2 bg-green-100 text-green-600 hover:bg-green-200 rounded-lg transition-colors"
+                                title="Approve Designer"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleToggleDesignerStatus(designer.id, !designer.is_active)}
                               className={`p-2 rounded-lg transition-colors ${
