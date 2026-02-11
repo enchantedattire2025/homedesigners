@@ -7,6 +7,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
 import InstallPrompt from './components/InstallPrompt';
+import ProtectedDesignerRoute from './components/ProtectedDesignerRoute';
 import Home from './pages/Home';
 import Designers from './pages/Designers';
 import Projects from './pages/Projects';
@@ -115,18 +116,18 @@ function App() {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/materials" element={<Materials />} />
             <Route path="/register-designer" element={<DesignerRegistration />} />
-            <Route path="/edit-designer-profile" element={<DesignerRegistration />} />
+            <Route path="/edit-designer-profile" element={<ProtectedDesignerRoute><DesignerRegistration /></ProtectedDesignerRoute>} />
             <Route path="/register-customer" element={<CustomerRegistration />} />
             <Route path="/my-projects" element={<MyProjects />} />
             <Route path="/edit-project/:id" element={<EditProject />} />
             <Route path="/project-detail/:id" element={<ProjectDetailWithTracking />} />
             <Route path="/customer-projects" element={<CustomerProjects />} />
-            <Route path="/designer-dashboard" element={<DesignerDashboard />} />
-            <Route path="/designer-material-pricing" element={<DesignerMaterialPricing />} />
-            <Route path="/designer-quotes" element={<DesignerQuotes />} />
+            <Route path="/designer-dashboard" element={<ProtectedDesignerRoute><DesignerDashboard /></ProtectedDesignerRoute>} />
+            <Route path="/designer-material-pricing" element={<ProtectedDesignerRoute><DesignerMaterialPricing /></ProtectedDesignerRoute>} />
+            <Route path="/designer-quotes" element={<ProtectedDesignerRoute><DesignerQuotes /></ProtectedDesignerRoute>} />
             <Route path="/customer-quotes" element={<CustomerQuotes />} />
-            <Route path="/designer-subscription" element={<DesignerSubscription />} />
-            <Route path="/generate-quote/:id" element={<DesignerQuoteGenerator />} />
+            <Route path="/designer-subscription" element={<ProtectedDesignerRoute><DesignerSubscription /></ProtectedDesignerRoute>} />
+            <Route path="/generate-quote/:id" element={<ProtectedDesignerRoute><DesignerQuoteGenerator /></ProtectedDesignerRoute>} />
             <Route path="/view-quote/:id" element={<QuoteViewer />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/deals" element={<AdminDealsManagement />} />

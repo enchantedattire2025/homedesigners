@@ -215,7 +215,7 @@ const Header = () => {
                                 <span>Manage Deals</span>
                               </button>
                             </>
-                          ) : isDesigner ? (
+                          ) : isDesigner && designer?.verification_status === 'verified' ? (
                             <>
                               <button
                                 onClick={handleDesignerDashboard}
