@@ -445,6 +445,7 @@ const DesignerDashboard = () => {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [analyticsType, setAnalyticsType] = useState<'projects' | 'active' | 'rating' | 'revenue'>('projects');
   const [loadTimeout, setLoadTimeout] = useState(false);
+  const [subscriptionManagementEnabled, setSubscriptionManagementEnabled] = useState(false);
 
   // Colors for charts
   const COLORS = ['#E07A5F', '#3D5A80', '#F2CC8F', '#81B29A', '#F4A261'];
@@ -479,6 +480,27 @@ const DesignerDashboard = () => {
       setLoading(false);
     }
   }, [designer, designerLoading, loadTimeout]);
+
+  useEffect(() => {
+    fetchSubscriptionManagementSetting();
+  }, []);
+
+  const fetchSubscriptionManagementSetting = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('is_active')
+        .eq('setting_key', 'subscription_management_enabled')
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setSubscriptionManagementEnabled(data?.is_active || false);
+    } catch (error) {
+      console.error('Error fetching subscription management setting:', error);
+      setSubscriptionManagementEnabled(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     if (!designer) return;
@@ -782,12 +804,14 @@ const DesignerDashboard = () => {
               </p>
             </div>
             <div className="flex space-x-4">
-              <button
-                onClick={() => navigate('/designer-subscription')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Manage Subscription
-              </button>
+              {subscriptionManagementEnabled && (
+                <button
+                  onClick={() => navigate('/designer-subscription')}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Manage Subscription
+                </button>
+              )}
               <button
                 onClick={() => navigate('/customer-projects')}
                 className="btn-secondary"

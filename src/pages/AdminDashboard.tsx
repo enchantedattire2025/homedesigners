@@ -19,7 +19,8 @@ import {
   DollarSign,
   TrendingDown,
   Tag,
-  Video
+  Video,
+  Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -99,6 +100,8 @@ const AdminDashboard = () => {
   const [earnings, setEarnings] = useState<DesignerEarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [subscriptionManagementEnabled, setSubscriptionManagementEnabled] = useState(false);
+  const [updatingSettings, setUpdatingSettings] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -111,6 +114,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (isAdmin) {
       fetchAdminData();
+      fetchPlatformSettings();
     }
   }, [isAdmin]);
 
@@ -200,6 +204,47 @@ const AdminDashboard = () => {
       console.error('Error fetching admin data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPlatformSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('is_active')
+        .eq('setting_key', 'subscription_management_enabled')
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setSubscriptionManagementEnabled(data?.is_active || false);
+    } catch (error) {
+      console.error('Error fetching platform settings:', error);
+    }
+  };
+
+  const handleToggleSubscriptionManagement = async () => {
+    try {
+      setUpdatingSettings(true);
+
+      const newValue = !subscriptionManagementEnabled;
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update({
+          is_active: newValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('setting_key', 'subscription_management_enabled');
+
+      if (error) throw error;
+
+      setSubscriptionManagementEnabled(newValue);
+    } catch (error) {
+      console.error('Error updating subscription management setting:', error);
+      alert('Failed to update setting. Please try again.');
+    } finally {
+      setUpdatingSettings(false);
     }
   };
 
@@ -469,6 +514,51 @@ const AdminDashboard = () => {
                 </div>
                 <div className="mt-4 flex items-center text-sm">
                   <span className="text-gray-600">Platform earnings</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Platform Settings */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <Settings className="w-6 h-6 text-primary-600" />
+                <h3 className="text-lg font-bold text-secondary-800">Platform Settings</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 mb-1">Subscription Management</h4>
+                    <p className="text-sm text-gray-600">
+                      Enable or disable the "Manage Subscription" button for all designers
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleToggleSubscriptionManagement}
+                    disabled={updatingSettings}
+                    className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                      subscriptionManagementEnabled ? 'bg-primary-600' : 'bg-gray-300'
+                    } ${updatingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <span className="sr-only">Toggle subscription management</span>
+                    <span
+                      className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        subscriptionManagementEnabled ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-start space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-1">Current Status: {subscriptionManagementEnabled ? 'Enabled' : 'Disabled'}</p>
+                    <p className="text-blue-700">
+                      {subscriptionManagementEnabled
+                        ? 'Designers can access subscription management features from their dashboard.'
+                        : 'The subscription management button is hidden from all designers.'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
