@@ -8,6 +8,7 @@ interface AuthModalProps {
   mode: 'login' | 'signup';
   onModeChange: (mode: 'login' | 'signup') => void;
   onAuthSuccess?: () => void;
+  userType?: 'designer' | 'customer' | null;
 }
 
 interface ValidationErrors {
@@ -17,12 +18,13 @@ interface ValidationErrors {
   general?: string;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  mode, 
-  onModeChange, 
-  onAuthSuccess 
+const AuthModal: React.FC<AuthModalProps> = ({
+  isOpen,
+  onClose,
+  mode,
+  onModeChange,
+  onAuthSuccess,
+  userType = null
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -191,6 +193,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
           options: {
             data: {
               name: name.trim(),
+              registration_type: userType || 'customer',
             },
             emailRedirectTo: `${window.location.origin}/auth/confirm`
           }

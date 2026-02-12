@@ -650,6 +650,7 @@ const Home = () => {
         mode={authMode}
         onModeChange={setAuthMode}
         onAuthSuccess={handleAuthSuccess}
+        userType={pendingAction}
       />
     </div>
   );

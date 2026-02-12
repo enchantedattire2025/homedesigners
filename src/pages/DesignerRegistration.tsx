@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Briefcase, Globe, IndianRupee, FileText, Award, Plus, X, Upload, ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
+import { supabase } from '../lib/supabase';
 import WelcomeModal from '../components/WelcomeModal';
 
 const DesignerRegistration = () => {
@@ -70,15 +71,40 @@ const DesignerRegistration = () => {
       console.log('Auth still loading...');
       return;
     }
-    
+
     // If no user is authenticated, redirect to home
     if (!user) {
       console.log('No user found, redirecting to home');
       navigate('/');
       return;
     }
-    
+
     console.log('User found:', user.email);
+
+    // Check if user already has a customer profile (conflict)
+    const checkForCustomerProfile = async () => {
+      const { data: customerData } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (customerData) {
+        setError('You are already registered as a customer. A user cannot be both a customer and a designer. Please use a different account to register as a designer.');
+        return true;
+      }
+      return false;
+    };
+
+    // Only check for conflicts in create mode (not edit mode)
+    if (!isEditMode) {
+      checkForCustomerProfile().then(hasConflict => {
+        if (hasConflict) {
+          // User has a customer profile, prevent registration
+          console.log('User has customer profile, blocking designer registration');
+        }
+      });
+    }
     
     // Handle edit mode
     if (isEditMode) {
@@ -716,7 +742,7 @@ const DesignerRegistration = () => {
                 )}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !!error}
                   className="btn-primary px-12 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   {isEditMode ? <Save className="w-5 h-5" /> : null}

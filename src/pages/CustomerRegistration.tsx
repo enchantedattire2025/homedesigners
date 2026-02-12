@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Home, FileText, X, Plus, ExternalLink, Heart, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Home, FileText, X, Plus, ExternalLink, Heart, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import WelcomeModal from '../components/WelcomeModal';
@@ -11,6 +11,7 @@ const CustomerRegistration = () => {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -83,19 +84,40 @@ const CustomerRegistration = () => {
   useEffect(() => {
     // Wait for auth to load
     if (authLoading) return;
-    
+
     // If no user is authenticated, redirect to home
     if (!user) {
       navigate('/');
       return;
     }
-    
-    // Set user data in form
-    setFormData(prev => ({
-      ...prev,
-      email: user.email || '',
-      name: user.user_metadata?.name || ''
-    }));
+
+    // Check if user already has a designer profile (conflict)
+    const checkForDesignerProfile = async () => {
+      const { data: designerData } = await supabase
+        .from('designers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (designerData) {
+        setError('You are already registered as a designer. A user cannot be both a designer and a customer. Please use a different account to register your project.');
+        return true;
+      }
+      return false;
+    };
+
+    checkForDesignerProfile().then(hasConflict => {
+      if (!hasConflict) {
+        // Only set form data if there's no conflict
+        setFormData(prev => ({
+          ...prev,
+          email: user.email || '',
+          name: user.user_metadata?.name || ''
+        }));
+      } else {
+        console.log('User has designer profile, blocking customer registration');
+      }
+    });
   }, [user, authLoading, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -235,6 +257,18 @@ const CustomerRegistration = () => {
                 Tell us about your dream space and we'll connect you with the perfect interior designer
               </p>
             </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-medium text-red-800 mb-1">Registration Blocked</h3>
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Personal Information */}
@@ -533,7 +567,7 @@ const CustomerRegistration = () => {
               <div className="flex justify-center">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !!error}
                   className="btn-primary px-12 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Submitting...' : 'Submit Project Details'}
