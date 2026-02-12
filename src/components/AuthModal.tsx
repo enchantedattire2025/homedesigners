@@ -254,22 +254,57 @@ const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         if (data.user) {
-          // Additional check for email confirmation
-          if (data.user.email_confirmed_at) {
-            setSuccess('Signed in successfully!');
-            setTimeout(() => {
-              clearForm();
-              onClose();
-              // Call the success callback if provided
-              if (onAuthSuccess) {
-                onAuthSuccess();
-              }
-            }, 1000);
-          } else {
+          // Check for email confirmation
+          if (!data.user.email_confirmed_at) {
             setErrors({ general: 'Please verify your email address before signing in. Check your inbox for the confirmation link.' });
-            // Sign out the user since email is not confirmed
             await supabase.auth.signOut();
+            return;
           }
+
+          // Check if user is a designer and validate verification status
+          const { data: designerData, error: designerError } = await supabase
+            .from('designers')
+            .select('verification_status, rejected_reason')
+            .eq('user_id', data.user.id)
+            .maybeSingle();
+
+          if (designerError) {
+            console.error('Error checking designer status:', designerError);
+          }
+
+          // If user is a designer, validate their verification status
+          if (designerData) {
+            if (designerData.verification_status === 'pending') {
+              setErrors({
+                general: 'Your designer account is pending approval. An administrator will review your profile and approve it shortly. You will receive an email notification once your account is verified.'
+              });
+              await supabase.auth.signOut();
+              return;
+            }
+
+            if (designerData.verification_status === 'rejected') {
+              const rejectionMessage = designerData.rejected_reason
+                ? `Your designer account has been rejected. Reason: ${designerData.rejected_reason}`
+                : 'Your designer account has been rejected. Please contact support for more information.';
+
+              setErrors({ general: rejectionMessage });
+              await supabase.auth.signOut();
+              return;
+            }
+
+            // If verification_status is 'verified', allow login
+          }
+
+          // All validations passed
+          setSuccess('Signed in successfully!');
+          setTimeout(() => {
+            clearForm();
+            onClose();
+            // Call the success callback if provided
+            if (onAuthSuccess) {
+              onAuthSuccess();
+            }
+          }, 1000);
         }
       }
     } catch (error: any) {
