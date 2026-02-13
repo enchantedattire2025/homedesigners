@@ -320,7 +320,7 @@ const Header = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex space-x-2 btn-primary">
+                <div className="btn-primary">
                   <button
                     onClick={() => {
                       setAuthMode('login');
