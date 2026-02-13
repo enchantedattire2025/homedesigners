@@ -319,7 +319,12 @@ const Home = () => {
                     <span>Build your reputation</span>
                   </li>
                 </ul>
-               
+                <button 
+                  onClick={handleDesignerRegistration}
+                  className="btn-primary w-full"
+                >
+                  Register as Designer
+                </button>
               </div>
 
               {/* Customer Registration */}
