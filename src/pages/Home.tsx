@@ -182,24 +182,16 @@ const Home = () => {
   };
 
   const handleDesignerRegistration = () => {
-    if (!user) {
-      setPendingAction('designer');
-      setAuthMode('login');
-      setShowAuthModal(true);
-      return;
-    }
-    // User is authenticated, proceed to registration
     window.location.href = '/register-designer';
   };
 
   const handleCustomerRegistration = () => {
     if (!user) {
       setPendingAction('customer');
-      setAuthMode('login');
+      setAuthMode('signup');
       setShowAuthModal(true);
       return;
     }
-    // User is authenticated, proceed to registration
     window.location.href = '/register-customer';
   };
 

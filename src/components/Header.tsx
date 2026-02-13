@@ -54,25 +54,22 @@ const Header = () => {
   };
 
   const handleDesignerRegistration = () => {
-    if (!user) {
-      setAuthMode('login');
-      setShowAuthModal(true);
-      setShowUserMenu(false);
-      return;
-    }
     navigate('/register-designer');
     setShowUserMenu(false);
+    setIsMenuOpen(false);
   };
 
   const handleCustomerRegistration = () => {
     if (!user) {
-      setAuthMode('login');
+      setAuthMode('signup');
       setShowAuthModal(true);
       setShowUserMenu(false);
+      setIsMenuOpen(false);
       return;
     }
     navigate('/register-customer');
     setShowUserMenu(false);
+    setIsMenuOpen(false);
   };
 
   const handleViewProjects = () => {
@@ -335,13 +332,10 @@ const Header = () => {
                     Sign In
                   </button>
                   <button
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setShowAuthModal(true);
-                    }}
+                    onClick={handleDesignerRegistration}
                     className="btn-primary"
                   >
-                    Sign Up
+                    Register as Designer
                   </button>
                 </div>
               )}
@@ -548,14 +542,10 @@ const Header = () => {
                       Sign In
                     </button>
                     <button
-                      onClick={() => {
-                        setAuthMode('signup');
-                        setShowAuthModal(true);
-                        setIsMenuOpen(false);
-                      }}
+                      onClick={handleDesignerRegistration}
                       className="block w-full text-left px-3 py-2 text-base font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50"
                     >
-                      Sign Up
+                      Register as Designer
                     </button>
                   </div>
                 )}
