@@ -267,10 +267,7 @@ const Header = () => {
                             <>
                             {!isAdmin && (
                             <>                              
-                            {/* Show "Register as Designer" only if user is not a customer */}
-                              {!hasCustomerProject && (
-                                
-                              )}
+                            
                               {/* Show project-related options for customers */}
                               {hasCustomerProject ? (
                                 <>
