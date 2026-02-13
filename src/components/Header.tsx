@@ -330,12 +330,7 @@ const Header = () => {
                   >
                     Sign In
                   </button>
-                  <button
-                    onClick={handleDesignerRegistration}
-                    className="btn-primary"
-                  >
-                    Register as Designer
-                  </button>
+
                 </div>
               )}
             </div>
