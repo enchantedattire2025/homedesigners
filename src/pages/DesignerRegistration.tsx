@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Briefcase, Globe, IndianRupee, FileText, Award, Plus, X, Upload, ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, Globe, IndianRupee, FileText, Award, Plus, X, Upload, ArrowLeft, Save, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
@@ -10,19 +10,20 @@ const DesignerRegistration = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
-  const { designer, loading: designerLoading, updateDesignerProfile, createDesignerProfile } = useDesignerProfile();
+  const { designer, loading: designerLoading, updateDesignerProfile } = useDesignerProfile();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [formInitialized, setFormInitialized] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  
-  // Check if we're in edit mode based on URL
+  const [showPassword, setShowPassword] = useState(false);
+
   const isEditMode = location.pathname === '/edit-designer-profile';
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     phone: '',
     specialization: '',
     experience: '',
@@ -57,82 +58,28 @@ const DesignerRegistration = () => {
   ];
 
   useEffect(() => {
-    console.log('DesignerRegistration useEffect triggered', {
-      authLoading,
-      user: user?.email,
-      isEditMode,
-      designerLoading,
-      designer: designer?.name,
-      formInitialized
-    });
+    if (authLoading) return;
 
-    // Wait for auth to load
-    if (authLoading) {
-      console.log('Auth still loading...');
-      return;
-    }
-
-    // If no user is authenticated, redirect to home
-    if (!user) {
-      console.log('No user found, redirecting to home');
-      navigate('/');
-      return;
-    }
-
-    console.log('User found:', user.email);
-
-    // Check if user already has a customer profile (conflict)
-    const checkForCustomerProfile = async () => {
-      const { data: customerData } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (customerData) {
-        setError('You are already registered as a customer. A user cannot be both a customer and a designer. Please use a different account to register as a designer.');
-        return true;
-      }
-      return false;
-    };
-
-    // Only check for conflicts in create mode (not edit mode)
-    if (!isEditMode) {
-      checkForCustomerProfile().then(hasConflict => {
-        if (hasConflict) {
-          // User has a customer profile, prevent registration
-          console.log('User has customer profile, blocking designer registration');
-        }
-      });
-    }
-    
-    // Handle edit mode
     if (isEditMode) {
-      console.log('Edit mode detected, designer loading:', designerLoading);
-      
-      // Keep waiting if designer data is still loading
-      if (designerLoading) {
-        console.log('Designer data still loading...');
+      if (!user) {
+        navigate('/');
         return;
       }
-      
-      // If designer loading is complete and no designer found, show error
+
+      if (designerLoading) return;
+
       if (!designerLoading && !designer) {
-        console.log('No designer profile found after loading complete');
         setError('No designer profile found. Please register as a designer first.');
         return;
       }
-      
-      // If we have designer data and form is not initialized, populate the form
+
       if (designer && !formInitialized) {
-        console.log('Populating form with designer data:', designer);
-        
-        // Clear any existing errors since we found the designer
         setError(null);
-        
+
         setFormData({
           name: designer.name || '',
           email: designer.email || '',
+          password: '',
           phone: designer.phone || '',
           specialization: designer.specialization || '',
           experience: designer.experience?.toString() || '',
@@ -146,22 +93,13 @@ const DesignerRegistration = () => {
           awards: designer.awards && designer.awards.length > 0 ? designer.awards : ['']
         });
         setFormInitialized(true);
-        console.log('Form initialized with designer data');
       }
     } else {
-      // Registration mode - set user data in form only if not initialized
       if (!formInitialized) {
-        console.log('Registration mode - setting user data');
-        setFormData(prev => ({
-          ...prev,
-          email: user.email || '',
-          name: user.user_metadata?.name || ''
-        }));
         setFormInitialized(true);
-        console.log('Form initialized with user data');
       }
     }
-  }, [user, designer, authLoading, designerLoading, navigate, isEditMode]);
+  }, [user, designer, authLoading, designerLoading, navigate, isEditMode, formInitialized]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -169,8 +107,7 @@ const DesignerRegistration = () => {
       ...prev,
       [name]: value
     }));
-    
-    // Clear errors when user starts typing
+
     if (error) setError(null);
     if (success) setSuccess(null);
   };
@@ -196,21 +133,96 @@ const DesignerRegistration = () => {
     }));
   };
 
-  const validateForm = () => {
+  const validateEmail = (email: string): string | undefined => {
+    if (!email.trim()) {
+      return 'Email address is required';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return 'Please enter a valid email address';
+    }
+    return undefined;
+  };
+
+  const validatePassword = (password: string): string | undefined => {
+    if (!password) {
+      return 'Password is required';
+    }
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters long';
+    }
+    if (!/(?=.*[a-z])/.test(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/(?=.*[A-Z])/.test(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/(?=.*\d)/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    return undefined;
+  };
+
+  const checkEmailExists = async (email: string) => {
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (existingCustomer) {
+      return { exists: true, type: 'customer' as const };
+    }
+
+    const { data: existingDesigner } = await supabase
+      .from('designers')
+      .select('id, email')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (existingDesigner) {
+      return { exists: true, type: 'designer' as const };
+    }
+
+    return { exists: false, type: null };
+  };
+
+  const validateForm = async () => {
     if (!formData.name.trim()) {
-      setError('Name is required');
+      setError('Full name is required');
       return false;
     }
-    if (!formData.email.trim()) {
-      setError('Email is required');
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      setError(emailError);
       return false;
     }
+
+    if (!isEditMode) {
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) {
+        setError(passwordError);
+        return false;
+      }
+
+      const emailCheck = await checkEmailExists(formData.email);
+      if (emailCheck.exists) {
+        if (emailCheck.type === 'customer') {
+          setError('This email is already registered as a customer. A user cannot be both a customer and a designer. Please use a different email address.');
+        } else {
+          setError('This email is already registered as a designer. Please use the login option to access your account.');
+        }
+        return false;
+      }
+    }
+
     if (!formData.specialization) {
       setError('Specialization is required');
       return false;
     }
     if (!formData.experience || parseInt(formData.experience) < 0) {
-      setError('Valid experience is required');
+      setError('Valid years of experience is required');
       return false;
     }
     if (!formData.location) {
@@ -222,66 +234,104 @@ const DesignerRegistration = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
 
-    // Clear previous messages
     setError(null);
     setSuccess(null);
 
-    // Validate form
-    if (!validateForm()) {
+    if (!(await validateForm())) {
       return;
     }
 
     setLoading(true);
-    
+
     try {
-      // Filter out empty strings from arrays
       const cleanedData = {
-        ...formData,
+        name: formData.name.trim(),
+        email: formData.email.toLowerCase().trim(),
+        phone: formData.phone.trim(),
+        specialization: formData.specialization,
         experience: parseInt(formData.experience),
+        location: formData.location,
+        bio: formData.bio.trim(),
+        website: formData.website.trim(),
+        starting_price: formData.starting_price.trim(),
+        profile_image: formData.profile_image.trim(),
         services: formData.services.filter(s => s.trim() !== ''),
         materials_expertise: formData.materials_expertise.filter(m => m.trim() !== ''),
         awards: formData.awards.filter(a => a.trim() !== '')
       };
 
-      console.log('Submitting form data:', cleanedData);
-
       if (isEditMode && designer) {
-        // Update existing designer profile
-        console.log('Updating existing designer profile...');
         const result = await updateDesignerProfile(cleanedData);
-        
+
         if (result.error) {
           throw new Error(result.error);
         }
-        
+
         setSuccess('Profile updated successfully!');
-        
-        // Navigate to profile after a short delay
+
         setTimeout(() => {
           navigate(`/designers/${designer.id}`);
         }, 1500);
       } else {
-        // Create new designer profile
-        console.log('Creating new designer profile...');
-        const result = await createDesignerProfile(cleanedData);
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: cleanedData.email,
+          password: formData.password,
+          options: {
+            data: {
+              name: cleanedData.name,
+              registration_type: 'designer',
+            }
+          }
+        });
 
-        if (result.error) {
-          throw new Error(result.error);
+        if (authError) {
+          if (authError.message.includes('User already registered')) {
+            throw new Error('An account with this email already exists. Please use the login option.');
+          }
+          throw new Error(authError.message);
+        }
+
+        if (!authData.user) {
+          throw new Error('Failed to create user account. Please try again.');
+        }
+
+        const { error: designerError } = await supabase
+          .from('designers')
+          .insert([{
+            user_id: authData.user.id,
+            name: cleanedData.name,
+            email: cleanedData.email,
+            phone: cleanedData.phone,
+            specialization: cleanedData.specialization,
+            experience: cleanedData.experience,
+            location: cleanedData.location,
+            bio: cleanedData.bio,
+            website: cleanedData.website,
+            starting_price: cleanedData.starting_price,
+            profile_image: cleanedData.profile_image,
+            services: cleanedData.services,
+            materials_expertise: cleanedData.materials_expertise,
+            awards: cleanedData.awards,
+            verification_status: 'pending',
+            is_verified: false
+          }]);
+
+        if (designerError) {
+          await supabase.auth.signOut();
+          throw new Error(`Failed to create designer profile: ${designerError.message}`);
         }
 
         setSuccess('Registration submitted successfully! Your profile is pending admin approval. You will be able to login once the admin verifies your profile.');
-
-        // Show welcome modal for new registrations
         setShowWelcomeModal(true);
-        
-        // Navigate to designers page after welcome modal is closed
+
+        await supabase.auth.signOut();
+
         setTimeout(() => {
           if (!showWelcomeModal) {
-            navigate('/designers');
+            navigate('/');
           }
-        }, 3000);
+        }, 5000);
       }
     } catch (error: any) {
       console.error('Form submission error:', error);
@@ -293,47 +343,33 @@ const DesignerRegistration = () => {
 
   const handleWelcomeModalClose = () => {
     setShowWelcomeModal(false);
-    navigate('/designers');
+    navigate('/');
   };
 
-  // Show loading while auth is being determined
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading user information...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Show loading while designer data is being loaded in edit mode
   if (isEditMode && designerLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center shadow-lg">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary-500 mx-auto mb-6"></div>
           <h2 className="text-2xl font-bold text-secondary-800 mb-4">Loading Designer Profile</h2>
-          <p className="text-gray-600 mb-4">
-            Please wait while we fetch your designer profile information.
-          </p>
-          <div className="bg-gray-100 rounded-full h-3 mb-4">
-            <div className="bg-primary-500 h-3 rounded-full animate-pulse w-3/4"></div>
-          </div>
-          <p className="text-sm text-gray-500 mb-2">
-            Retrieving your profile details...
-          </p>
-          <p className="text-xs text-gray-400">
-            We're connecting to our database to load your information
-          </p>
+          <p className="text-gray-600">Please wait while we fetch your designer profile information.</p>
         </div>
       </div>
     );
   }
 
-  // Show loading while form is being initialized
-  if (!formInitialized) {
+  if (!formInitialized && !isEditMode) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -344,13 +380,12 @@ const DesignerRegistration = () => {
     );
   }
 
-  // If no user after auth loading is complete, show sign-in message
-  if (!user) {
+  if (isEditMode && !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-secondary-800 mb-4">
-            Please sign in to {isEditMode ? 'edit your profile' : 'register as a designer'}
+            Please sign in to edit your profile
           </h2>
           <button
             onClick={() => navigate('/')}
@@ -363,7 +398,6 @@ const DesignerRegistration = () => {
     );
   }
 
-  // If in edit mode but no designer found (and not loading), show error
   if (isEditMode && !designerLoading && !designer && error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -411,15 +445,14 @@ const DesignerRegistration = () => {
                 {isEditMode ? 'Edit Designer Profile' : 'Register as Interior Designer'}
               </h1>
               <p className="text-lg text-gray-600">
-                {isEditMode 
+                {isEditMode
                   ? 'Update your professional information and portfolio details'
                   : 'Join our platform and showcase your interior design expertise to thousands of potential clients'
                 }
               </p>
             </div>
 
-            {/* Error/Success Messages - Only show if not in successful edit mode */}
-            {error && !(isEditMode && designer && formInitialized) && (
+            {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 flex items-start space-x-2">
                 <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                 <span>{error}</span>
@@ -433,7 +466,6 @@ const DesignerRegistration = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Basic Information */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-secondary-800 mb-4">Basic Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -466,13 +498,43 @@ const DesignerRegistration = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-gray-100"
+                        className={`pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isEditMode ? 'bg-gray-100' : ''}`}
                         placeholder="Enter your email"
                         required
-                        disabled
+                        disabled={isEditMode}
                       />
                     </div>
                   </div>
+
+                  {!isEditMode && (
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Password *
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          className="pl-10 pr-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          placeholder="Enter your password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Password must contain at least 6 characters with uppercase, lowercase, and numbers
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -514,7 +576,6 @@ const DesignerRegistration = () => {
                 </div>
               </div>
 
-              {/* Professional Information */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-secondary-800 mb-4">Professional Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -629,7 +690,6 @@ const DesignerRegistration = () => {
                 </div>
               </div>
 
-              {/* Services */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-secondary-800 mb-4">Services Offered</h2>
                 {formData.services.map((service, index) => (
@@ -662,7 +722,6 @@ const DesignerRegistration = () => {
                 </button>
               </div>
 
-              {/* Materials Expertise */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-secondary-800 mb-4">Materials Expertise</h2>
                 {formData.materials_expertise.map((material, index) => (
@@ -695,7 +754,6 @@ const DesignerRegistration = () => {
                 </button>
               </div>
 
-              {/* Awards */}
               <div className="bg-gray-50 rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-secondary-800 mb-4">Awards & Recognition</h2>
                 {formData.awards.map((award, index) => (
@@ -729,7 +787,6 @@ const DesignerRegistration = () => {
                 </button>
               </div>
 
-              {/* Submit Button */}
               <div className="flex justify-center space-x-4">
                 {isEditMode && (
                   <button
@@ -747,8 +804,8 @@ const DesignerRegistration = () => {
                 >
                   {isEditMode ? <Save className="w-5 h-5" /> : null}
                   <span>
-                    {loading 
-                      ? (isEditMode ? 'Updating Profile...' : 'Registering...') 
+                    {loading
+                      ? (isEditMode ? 'Updating Profile...' : 'Registering...')
                       : (isEditMode ? 'Update Profile' : 'Register as Designer')
                     }
                   </span>
@@ -759,7 +816,6 @@ const DesignerRegistration = () => {
         </div>
       </div>
 
-      {/* Welcome Modal */}
       <WelcomeModal
         isOpen={showWelcomeModal}
         onClose={handleWelcomeModalClose}
