@@ -267,7 +267,16 @@ const Header = () => {
                             <>
                             {!isAdmin && (
                             <>                              
-                            
+                            {/* Show "Register as Designer" only if user is not a customer */}
+                              {!hasCustomerProject && (
+                               <button
+                                  onClick={handleDesignerRegistration}
+                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                                >
+                                  <Palette className="w-4 h-4" />
+                                  <span>Register as Designer</span>
+                                </button> 
+                              )}
                               {/* Show project-related options for customers */}
                               {hasCustomerProject ? (
                                 <>
@@ -321,12 +330,7 @@ const Header = () => {
                   >
                     Sign In
                   </button>
-                  <button
-                    onClick={handleDesignerRegistration}
-                    className="btn-primary"
-                  >
-                    Register as Designer
-                  </button>
+
                 </div>
               )}
             </div>
