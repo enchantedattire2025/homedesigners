@@ -320,18 +320,15 @@ const Header = () => {
                   )}
                 </div>
               ) : (
-                <div className="btn-primary">
-                  <button
-                    onClick={() => {
-                      setAuthMode('login');
-                      setShowAuthModal(true);
-                    }}
-                    className="px-4 py-2 text-primary-600 hover:text-primary-700 font-medium"
-                  >
-                    Sign In
-                  </button>
-
-                </div>
+                <button
+                  onClick={() => {
+                    setAuthMode('login');
+                    setShowAuthModal(true);
+                  }}
+                  className="btn-primary px-4 py-2"
+                >
+                  Sign In
+                </button>
               )}
             </div>
 
