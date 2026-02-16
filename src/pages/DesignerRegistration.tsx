@@ -17,6 +17,10 @@ const DesignerRegistration = () => {
   const [formInitialized, setFormInitialized] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
   const isEditMode = location.pathname === '/edit-designer-profile';
 
@@ -108,6 +112,11 @@ const DesignerRegistration = () => {
       [name]: value
     }));
 
+    if (name === 'email') {
+      setEmailExists(false);
+      setResetEmailSent(false);
+    }
+
     if (error) setError(null);
     if (success) setSuccess(null);
   };
@@ -187,6 +196,68 @@ const DesignerRegistration = () => {
     return { exists: false, type: null };
   };
 
+  const handleEmailBlur = async () => {
+    if (isEditMode) return;
+
+    const emailValue = formData.email.trim();
+    const emailError = validateEmail(emailValue);
+
+    if (emailError || !emailValue) {
+      setEmailExists(false);
+      return;
+    }
+
+    setCheckingEmail(true);
+    setError(null);
+
+    try {
+      const emailCheck = await checkEmailExists(emailValue);
+
+      if (emailCheck.exists) {
+        if (emailCheck.type === 'customer') {
+          setError('This email is already registered as a customer. A user cannot be both a customer and a designer.');
+          setEmailExists(false);
+        } else if (emailCheck.type === 'designer') {
+          setEmailExists(true);
+          setError(null);
+        }
+      } else {
+        setEmailExists(false);
+      }
+    } catch (error) {
+      console.error('Error checking email:', error);
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        formData.email.toLowerCase().trim(),
+        {
+          redirectTo: `${window.location.origin}/`,
+        }
+      );
+
+      if (resetError) {
+        throw resetError;
+      }
+
+      setResetEmailSent(true);
+      setSuccess('Password reset email sent! Please check your inbox and follow the instructions to reset your password.');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      setError(error.message || 'Failed to send password reset email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const validateForm = async () => {
     if (!formData.name.trim()) {
       setError('Full name is required');
@@ -200,6 +271,11 @@ const DesignerRegistration = () => {
     }
 
     if (!isEditMode) {
+      if (emailExists) {
+        setError('This email is already registered. Please use the password reset option above.');
+        return false;
+      }
+
       const passwordError = validatePassword(formData.password);
       if (passwordError) {
         setError(passwordError);
@@ -498,15 +574,27 @@ const DesignerRegistration = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
+                        onBlur={handleEmailBlur}
                         className={`pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isEditMode ? 'bg-gray-100' : ''}`}
                         placeholder="Enter your email"
                         required
-                        disabled={isEditMode}
+                        disabled={isEditMode || checkingEmail}
                       />
+                      {checkingEmail && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+                        </div>
+                      )}
                     </div>
+                    {emailExists && !isEditMode && (
+                      <p className="text-sm text-amber-600 mt-1 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        This email is already registered. Use forgot password to reset.
+                      </p>
+                    )}
                   </div>
 
-                  {!isEditMode && (
+                  {!isEditMode && !emailExists && (
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Password *
@@ -533,6 +621,40 @@ const DesignerRegistration = () => {
                       <p className="text-xs text-gray-500 mt-1">
                         Password must contain at least 6 characters with uppercase, lowercase, and numbers
                       </p>
+                    </div>
+                  )}
+
+                  {!isEditMode && emailExists && (
+                    <div className="md:col-span-2">
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-amber-800 mb-1">
+                              Email Already Registered
+                            </h3>
+                            <p className="text-sm text-amber-700 mb-3">
+                              This email is already registered in our system. If you forgot your password, you can reset it using the button below.
+                            </p>
+                            {resetEmailSent ? (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <p className="text-sm text-green-700">
+                                  Password reset email sent successfully! Please check your inbox and follow the instructions.
+                                </p>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={handlePasswordReset}
+                                disabled={loading}
+                                className="btn-primary text-sm py-2 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {loading ? 'Sending...' : 'Reset Password'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -799,7 +921,7 @@ const DesignerRegistration = () => {
                 )}
                 <button
                   type="submit"
-                  disabled={loading || !!error}
+                  disabled={loading || !!error || (emailExists && !isEditMode)}
                   className="btn-primary px-12 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   {isEditMode ? <Save className="w-5 h-5" /> : null}
