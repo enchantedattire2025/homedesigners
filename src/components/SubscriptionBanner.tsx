@@ -59,28 +59,7 @@ const SubscriptionBanner: React.FC = () => {
   }
 
   if (subscription.isTrial) {
-    return (
-      <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Crown className="w-6 h-6 text-green-500 mr-3" />
-            <div>
-              <h3 className="text-lg font-semibold text-green-800">Free Trial Active</h3>
-              <p className="text-green-700">
-                You have {subscription.daysRemaining} days remaining in your free trial.
-                Explore all features and upgrade when ready.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/designer-subscription')}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold"
-          >
-            View Plans
-          </button>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return null;
