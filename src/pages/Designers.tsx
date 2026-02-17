@@ -238,11 +238,19 @@ const Designers = () => {
                       <div className="w-2/3 p-6">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center">
-                              <span className="text-white font-semibold">
-                                {designer.name.charAt(0)}
-                              </span>
-                            </div>
+                            {designer.profile_image ? (
+                              <img
+                                src={designer.profile_image}
+                                alt={designer.name}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center">
+                                <span className="text-white font-semibold">
+                                  {designer.name.charAt(0)}
+                                </span>
+                              </div>
+                            )}
                             <div>
                               <h3 className="text-lg font-semibold text-secondary-800">
                                 {designer.name}

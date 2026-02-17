@@ -20,7 +20,8 @@ import {
   BarChart as BarChartIcon,
   PieChart as PieChartIcon,
   LineChart as LineChartIcon,
-  Box
+  Box,
+  User
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -795,13 +796,26 @@ const DesignerDashboard = () => {
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-secondary-800">
-                Welcome back, {designer.name}!
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Here's what's happening with your design business today.
-              </p>
+            <div className="flex items-center space-x-4">
+              {designer.profile_image ? (
+                <img
+                  src={designer.profile_image}
+                  alt={designer.name}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center">
+                  <User className="w-8 h-8 text-white" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-secondary-800">
+                  Welcome back, {designer.name}!
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  Here's what's happening with your design business today.
+                </p>
+              </div>
             </div>
             <div className="flex space-x-4">
               {subscriptionManagementEnabled && (
