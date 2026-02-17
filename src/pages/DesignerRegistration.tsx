@@ -468,8 +468,11 @@ const DesignerRegistration = () => {
           throw new Error('Failed to create user account. Please try again.');
         }
 
-        // Upload profile image if provided
-        if (profileImageFile) {
+        if (profileImageFile && authData.session) {
+          await supabase.auth.setSession({
+            access_token: authData.session.access_token,
+            refresh_token: authData.session.refresh_token,
+          });
           const uploadedUrl = await uploadProfileImage(authData.user.id);
           if (uploadedUrl) {
             profileImageUrl = uploadedUrl;
