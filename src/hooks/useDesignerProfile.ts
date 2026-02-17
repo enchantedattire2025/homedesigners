@@ -4,14 +4,17 @@ import { useAuth } from './useAuth';
 import type { Designer } from '../lib/supabase';
 
 export const useDesignerProfile = () => {
- const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [designer, setDesigner] = useState<Designer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDesignerProfile = useCallback(async () => {
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
-      console.log('No user found, resetting designer state');
       setDesigner(null);
       setLoading(false);
       setError(null);
@@ -60,7 +63,7 @@ export const useDesignerProfile = () => {
       // Remove the artificial delay that might be causing issues
       setLoading(false);
     } 
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
     fetchDesignerProfile();
