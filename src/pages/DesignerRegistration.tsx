@@ -21,6 +21,9 @@ const DesignerRegistration = () => {
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string>('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const isEditMode = location.pathname === '/edit-designer-profile';
 
@@ -96,6 +99,11 @@ const DesignerRegistration = () => {
           materials_expertise: designer.materials_expertise && designer.materials_expertise.length > 0 ? designer.materials_expertise : [''],
           awards: designer.awards && designer.awards.length > 0 ? designer.awards : ['']
         });
+
+        if (designer.profile_image) {
+          setProfileImagePreview(designer.profile_image);
+        }
+
         setFormInitialized(true);
       }
     } else {
@@ -140,6 +148,84 @@ const DesignerRegistration = () => {
       ...prev,
       [field]: prev[field].filter((_, i) => i !== index)
     }));
+  };
+
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setError('Please select a valid image file (JPEG, PNG, or WebP)');
+      return;
+    }
+
+    // Validate file size (2MB = 2 * 1024 * 1024 bytes)
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError('Image size must not exceed 2MB. Please choose a smaller image.');
+      return;
+    }
+
+    setError(null);
+    setProfileImageFile(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfileImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadProfileImage = async (userId: string): Promise<string | null> => {
+    if (!profileImageFile) return null;
+
+    try {
+      setUploadingImage(true);
+
+      const fileExt = profileImageFile.name.split('.').pop();
+      const fileName = `${userId}/profile.${fileExt}`;
+
+      // Delete old image if exists
+      const { data: existingFiles } = await supabase.storage
+        .from('designer-profiles')
+        .list(userId);
+
+      if (existingFiles && existingFiles.length > 0) {
+        const filesToDelete = existingFiles.map(file => `${userId}/${file.name}`);
+        await supabase.storage
+          .from('designer-profiles')
+          .remove(filesToDelete);
+      }
+
+      // Upload new image
+      const { data, error: uploadError } = await supabase.storage
+        .from('designer-profiles')
+        .upload(fileName, profileImageFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Failed to upload image: ${uploadError.message}`);
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('designer-profiles')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error: any) {
+      console.error('Image upload error:', error);
+      throw error;
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const validateEmail = (email: string): string | undefined => {
@@ -321,6 +407,16 @@ const DesignerRegistration = () => {
     setLoading(true);
 
     try {
+      let profileImageUrl = formData.profile_image.trim();
+
+      // Handle image upload for edit mode
+      if (isEditMode && designer && profileImageFile) {
+        const uploadedUrl = await uploadProfileImage(designer.user_id);
+        if (uploadedUrl) {
+          profileImageUrl = uploadedUrl;
+        }
+      }
+
       const cleanedData = {
         name: formData.name.trim(),
         email: formData.email.toLowerCase().trim(),
@@ -331,7 +427,7 @@ const DesignerRegistration = () => {
         bio: formData.bio.trim(),
         website: formData.website.trim(),
         starting_price: formData.starting_price.trim(),
-        profile_image: formData.profile_image.trim(),
+        profile_image: profileImageUrl,
         services: formData.services.filter(s => s.trim() !== ''),
         materials_expertise: formData.materials_expertise.filter(m => m.trim() !== ''),
         awards: formData.awards.filter(a => a.trim() !== '')
@@ -372,6 +468,14 @@ const DesignerRegistration = () => {
           throw new Error('Failed to create user account. Please try again.');
         }
 
+        // Upload profile image if provided
+        if (profileImageFile) {
+          const uploadedUrl = await uploadProfileImage(authData.user.id);
+          if (uploadedUrl) {
+            profileImageUrl = uploadedUrl;
+          }
+        }
+
         const { error: designerError } = await supabase
           .from('designers')
           .insert([{
@@ -385,7 +489,7 @@ const DesignerRegistration = () => {
             bio: cleanedData.bio,
             website: cleanedData.website,
             starting_price: cleanedData.starting_price,
-            profile_image: cleanedData.profile_image,
+            profile_image: profileImageUrl,
             services: cleanedData.services,
             materials_expertise: cleanedData.materials_expertise,
             awards: cleanedData.awards,
@@ -775,22 +879,53 @@ const DesignerRegistration = () => {
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Profile Image URL
+                      Profile Image
                     </label>
-                    <div className="relative">
-                      <Upload className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="url"
-                        name="profile_image"
-                        value={formData.profile_image}
-                        onChange={handleInputChange}
-                        className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="https://example.com/your-photo.jpg"
-                      />
+                    <div className="space-y-3">
+                      {profileImagePreview && (
+                        <div className="flex items-center space-x-4">
+                          <img
+                            src={profileImagePreview}
+                            alt="Profile preview"
+                            className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfileImageFile(null);
+                              setProfileImagePreview('');
+                              setFormData(prev => ({ ...prev, profile_image: '' }));
+                            }}
+                            className="text-sm text-red-600 hover:text-red-700"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
+                      )}
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="profile-image-upload"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          onChange={handleProfileImageChange}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="profile-image-upload"
+                          className="flex items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg px-4 py-6 cursor-pointer hover:border-primary-500 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="text-center">
+                            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-600">
+                              Click to upload profile image
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              JPEG, PNG, or WebP (Max 2MB)
+                            </p>
+                          </div>
+                        </label>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Upload your professional photo to a cloud service and paste the URL here.
-                    </p>
                   </div>
                 </div>
 
@@ -921,12 +1056,14 @@ const DesignerRegistration = () => {
                 )}
                 <button
                   type="submit"
-                  disabled={loading || !!error || (emailExists && !isEditMode)}
+                  disabled={loading || uploadingImage || !!error || (emailExists && !isEditMode)}
                   className="btn-primary px-12 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   {isEditMode ? <Save className="w-5 h-5" /> : null}
                   <span>
-                    {loading
+                    {uploadingImage
+                      ? 'Uploading Image...'
+                      : loading
                       ? (isEditMode ? 'Updating Profile...' : 'Registering...')
                       : (isEditMode ? 'Update Profile' : 'Register as Designer')
                     }
