@@ -63,14 +63,7 @@ export const useAuth = () => {
 
   const signOut = async () => {
     try {
-      // Use a timeout to prevent hanging (3 seconds)
-      const signOutPromise = supabase.auth.signOut();
-      const timeoutPromise = new Promise<void>((resolve) =>
-        setTimeout(resolve, 3000)
-      );
-
-      // Wait for signOut or timeout, whichever comes first
-      await Promise.race([signOutPromise, timeoutPromise]);
+      await supabase.auth.signOut();
 
       // Clear Supabase-related items from storage
       const keysToRemove = [];
@@ -85,13 +78,15 @@ export const useAuth = () => {
       // Clear session storage
       sessionStorage.clear();
 
-      // Force redirect to home page
-      window.location.href = '/';
-
     } catch (error) {
       console.error('Error signing out:', error);
-      // Even if there's an error, still redirect to home
-      window.location.href = '/';
+      // Clear storage even on error
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      sessionStorage.clear();
     }
   };
 

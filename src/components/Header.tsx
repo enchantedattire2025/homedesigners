@@ -44,12 +44,15 @@ const Header = () => {
         console.log('Customer/Designer logout selected');
         await customerDesignerLogout();
       }
+
+      // Navigate to home after logout
+      navigate('/');
     } catch (error) {
       console.error('Error during sign out:', error);
       // Force clear everything on error
       localStorage.clear();
       sessionStorage.clear();
-      window.location.replace('/');
+      navigate('/');
     }
   };
 
@@ -126,17 +129,17 @@ const Header = () => {
 
         if (!result) {
           console.error('handleAuthSuccess: Failed to detect user type');
-          window.location.href = '/';
+          navigate('/');
           return;
         }
 
         console.log(`handleAuthSuccess: Redirecting ${result.userType} to ${result.redirectPath}`);
-        window.location.href = result.redirectPath;
+        navigate(result.redirectPath);
       } catch (error) {
         console.error('handleAuthSuccess: Error during redirect:', error);
-        window.location.href = '/';
+        navigate('/');
       }
-    }, 1500); // Increased delay to ensure auth state is fully set
+    }, 500);
   };
 
   return (

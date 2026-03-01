@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-// Admin logout - clears everything and redirects to home
+// Admin logout - clears everything
 export const adminLogout = async () => {
   try {
     console.log('Admin logout initiated...');
@@ -24,14 +24,10 @@ export const adminLogout = async () => {
     });
 
     console.log('Admin logged out successfully');
-
-    // Redirect to home page
-    window.location.replace('/');
   } catch (error) {
     console.error('Error during admin logout:', error);
     localStorage.clear();
     sessionStorage.clear();
-    window.location.replace('/');
   }
 };
 
@@ -61,9 +57,6 @@ export const customerDesignerLogout = async () => {
     sessionStorage.clear();
 
     console.log('Customer/Designer logged out successfully');
-
-    // Redirect to home page
-    window.location.replace('/');
   } catch (error) {
     console.error('Error during customer/designer logout:', error);
     // Clear Supabase keys on error
@@ -73,7 +66,6 @@ export const customerDesignerLogout = async () => {
       }
     });
     sessionStorage.clear();
-    window.location.replace('/');
   }
 };
 

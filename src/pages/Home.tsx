@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Star, Award, Users, ArrowRight, Play, Palette, UserPlus, Percent, Clock, Gift, ExternalLink, IndianRupee as Rupee, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUserRegistrationStatus } from '../hooks/useUserRegistrationStatus';
@@ -33,6 +33,7 @@ interface Deal {
 
 const Home = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { hasAnyRegistration, loading: registrationLoading } = useUserRegistrationStatus();
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -182,7 +183,7 @@ const Home = () => {
   };
 
   const handleDesignerRegistration = () => {
-    window.location.href = '/register-designer';
+    navigate('/register-designer');
   };
 
   const handleCustomerRegistration = () => {
@@ -192,7 +193,7 @@ const Home = () => {
       setShowAuthModal(true);
       return;
     }
-    window.location.href = '/register-customer';
+    navigate('/register-customer');
   };
 
   const handleContactDesigner = (designerId: string) => {
@@ -203,15 +204,15 @@ const Home = () => {
       return;
     }
     // User is authenticated, proceed to contact
-    window.location.href = `/designers/${designerId}`;
+    navigate(`/designers/${designerId}`);
   };
 
   const handleAuthSuccess = () => {
     // After successful authentication, redirect based on pending action
     if (pendingAction === 'designer') {
-      window.location.href = '/register-designer';
+      navigate('/register-designer');
     } else if (pendingAction === 'customer') {
-      window.location.href = '/register-customer';
+      navigate('/register-customer');
     }
     setPendingAction(null);
   };

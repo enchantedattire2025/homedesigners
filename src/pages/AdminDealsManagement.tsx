@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Plus, Edit2, Trash2, Eye, EyeOff, Star, Tag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -50,6 +51,7 @@ interface DealFormData {
 
 export default function AdminDealsManagement() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [designers, setDesigners] = useState<Designer[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -317,7 +319,7 @@ export default function AdminDealsManagement() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
           <p className="text-gray-600 mb-6">Please log in to access the admin panel.</p>
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => navigate('/')}
             className="bg-sky-600 text-white px-6 py-3 rounded-lg hover:bg-sky-700 transition-colors"
           >
             Go to Home
@@ -335,7 +337,7 @@ export default function AdminDealsManagement() {
           <p className="text-gray-600 mb-2">You do not have permission to access this page.</p>
           <p className="text-sm text-gray-500 mb-6">This area is restricted to administrators only.</p>
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => navigate('/')}
             className="bg-sky-600 text-white px-6 py-3 rounded-lg hover:bg-sky-700 transition-colors"
           >
             Go to Home

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Calendar, Award, Phone, Mail, ArrowLeft, ExternalLink, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -23,6 +23,7 @@ interface Testimonial {
 const DesignerDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [designer, setDesigner] = useState<Designer | null>(null);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +146,7 @@ const DesignerDetail = () => {
       return;
     }
     // Redirect to customer registration or project creation
-    window.location.href = '/register-customer';
+    navigate('/register-customer');
   };
 
   if (loading) {
