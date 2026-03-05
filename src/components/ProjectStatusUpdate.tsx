@@ -23,8 +23,13 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
 
   // Define status progression logic
   const isStatusDisabled = (status: string) => {
+    // Once completed, no status changes allowed
+    if (currentStatus === 'completed') {
+      return true;
+    }
+
     // Once a project is finalized, it cannot go back to assigned or pending
-    if (['finalized', 'in_progress', 'completed'].includes(currentStatus)) {
+    if (['finalized', 'in_progress'].includes(currentStatus)) {
       return ['assigned', 'pending'].includes(status);
     }
     return false;
@@ -129,8 +134,18 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
       <div className="mt-4 text-sm text-gray-500 space-y-2">
         <p>Current status: <span className="font-medium">{currentStatus || 'Not set'}</span></p>
         <p className="mt-1">Last updated: {new Date().toLocaleString()}</p>
-        
-        {['finalized', 'in_progress', 'completed'].includes(currentStatus) && (
+
+        {currentStatus === 'completed' && (
+          <div className="flex items-start space-x-2 text-green-600 bg-green-50 p-3 rounded-lg mt-3">
+            <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <p>
+              This project is marked as completed. No further status changes or edits are allowed.
+              All project details and updates are now locked.
+            </p>
+          </div>
+        )}
+
+        {['finalized', 'in_progress'].includes(currentStatus) && (
           <div className="flex items-start space-x-2 text-blue-600 bg-blue-50 p-3 rounded-lg mt-3">
             <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <p>

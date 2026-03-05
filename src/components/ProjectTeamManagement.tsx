@@ -182,6 +182,7 @@ const ProjectTeamManagement: React.FC<ProjectTeamManagementProps> = ({
 
   // Only show for designers and only when project is finalized or beyond
   const isFinalized = ['finalized', 'in_progress', 'completed'].includes(currentStatus);
+  const isCompleted = currentStatus === 'completed';
   if (!isDesigner || !isFinalized) return null;
 
   return (
@@ -191,7 +192,7 @@ const ProjectTeamManagement: React.FC<ProjectTeamManagementProps> = ({
           <Users className="w-5 h-5 mr-2 text-primary-600" />
           Project Team
         </h3>
-        {!showAddForm && (
+        {!showAddForm && !isCompleted && (
           <button
             onClick={() => setShowAddForm(true)}
             className="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
@@ -201,6 +202,14 @@ const ProjectTeamManagement: React.FC<ProjectTeamManagementProps> = ({
           </button>
         )}
       </div>
+
+      {isCompleted && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-green-700">
+            Project is completed. Team members list is locked and cannot be modified.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4 flex items-start space-x-2">
@@ -321,9 +330,11 @@ const ProjectTeamManagement: React.FC<ProjectTeamManagementProps> = ({
           <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h4 className="text-lg font-medium text-gray-900 mb-2">No Team Members Yet</h4>
           <p className="text-gray-500 mb-4">
-            Add team members to help manage and execute this project.
+            {isCompleted
+              ? 'No team members were added to this project.'
+              : 'Add team members to help manage and execute this project.'}
           </p>
-          {!showAddForm && (
+          {!showAddForm && !isCompleted && (
             <button
               onClick={() => setShowAddForm(true)}
               className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center space-x-1"
@@ -355,13 +366,15 @@ const ProjectTeamManagement: React.FC<ProjectTeamManagementProps> = ({
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">{member.contact}</td>
                   <td className="py-3 px-4 text-right">
-                    <button
-                      onClick={() => handleDeleteMember(member.id)}
-                      className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
-                      title="Remove team member"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {!isCompleted && (
+                      <button
+                        onClick={() => handleDeleteMember(member.id)}
+                        className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+                        title="Remove team member"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

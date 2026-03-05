@@ -148,8 +148,9 @@ const ProjectDetailWithTracking = () => {
   const isProjectOwner = project?.user_id === user?.id;
   const isAssignedDesigner = isDesigner && project?.assigned_designer_id === designer?.id;
   const hasAcceptedQuote = acceptedQuote !== null;
-  // Customers cannot edit after quote acceptance, designers can still update
-  const canEdit = isAssignedDesigner || (isProjectOwner && !hasAcceptedQuote);
+  const isCompleted = project?.assignment_status === 'completed';
+  // Customers cannot edit after quote acceptance, designers can still update but not when completed
+  const canEdit = !isCompleted && (isAssignedDesigner || (isProjectOwner && !hasAcceptedQuote));
 
   if (loading || designerLoading) {
     return (
@@ -228,8 +229,8 @@ const ProjectDetailWithTracking = () => {
                   <span>Edit Project</span>
                 </button>
               )}
-              
-              {isAssignedDesigner && (
+
+              {isAssignedDesigner && !isCompleted && (
                 <button
                   onClick={() => setActiveTab('updates')}
                   className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
@@ -287,11 +288,39 @@ const ProjectDetailWithTracking = () => {
           <div className="p-6">
             {activeTab === 'details' && (
               <div className="space-y-6">
+                {/* Completion Notice - Visible to everyone when project is completed */}
+                {isCompleted && (
+                  <div className="bg-green-50 border-2 border-green-300 rounded-lg p-6">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="w-7 h-7 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-green-800 mb-2">
+                          Project Completed
+                        </h3>
+                        <p className="text-green-700 mb-3">
+                          This project has been marked as completed. All project details, status updates, and editing capabilities are now locked to preserve the final state.
+                        </p>
+                        <div className="bg-white border border-green-200 rounded-lg p-3">
+                          <p className="text-sm text-green-800 font-medium mb-1">Locked Features:</p>
+                          <ul className="text-sm text-green-700 space-y-1 ml-4 list-disc">
+                            <li>Project details cannot be edited</li>
+                            <li>Status cannot be changed</li>
+                            <li>New updates cannot be added</li>
+                            <li>Team assignments are frozen</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Project Status Update - Only visible to assigned designers */}
                 {isAssignedDesigner && (
-                  <ProjectStatusUpdate 
-                    projectId={project.id} 
-                    currentStatus={project.assignment_status || 'assigned'} 
+                  <ProjectStatusUpdate
+                    projectId={project.id}
+                    currentStatus={project.assignment_status || 'assigned'}
                     onStatusUpdate={handleStatusUpdate}
                   />
                 )}
@@ -632,19 +661,34 @@ const ProjectDetailWithTracking = () => {
 
             {activeTab === 'updates' && (
               <div className="space-y-6">
-                {/* Show update form button for assigned designers */}
-                {isAssignedDesigner && (
-                  <ProjectUpdateForm 
-                    projectId={project.id} 
+                {/* Completion Notice */}
+                {isCompleted && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold text-green-800 mb-1">Project Completed</h4>
+                        <p className="text-sm text-green-700">
+                          This project is completed. No new updates can be added. You can view all existing updates below.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show update form button for assigned designers (only if not completed) */}
+                {isAssignedDesigner && !isCompleted && (
+                  <ProjectUpdateForm
+                    projectId={project.id}
                     designerId={designer!.id}
                     onSuccess={handleUpdateSuccess}
                     onCancel={() => setShowUpdateForm(false)}
                   />
                 )}
-                
+
                 {/* Project Updates List */}
-                <ProjectUpdates 
-                  projectId={project.id} 
+                <ProjectUpdates
+                  projectId={project.id}
                   refreshTrigger={updateRefreshKey}
                 />
               </div>
