@@ -32,6 +32,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminDealsManagement from './pages/AdminDealsManagement';
 import AdminSubscriptionManagement from './pages/AdminSubscriptionManagement';
 import AdminVideoManagement from './pages/AdminVideoManagement';
+import AdminWhatsAppSettings from './pages/AdminWhatsAppSettings';
 import AdminSignup from './pages/AdminSignup';
 import AdminLogin from './pages/AdminLogin';
 import DebugPage from './pages/DebugPage';
@@ -133,6 +134,7 @@ function App() {
             <Route path="/admin/deals" element={<AdminDealsManagement />} />
             <Route path="/admin/subscriptions" element={<AdminSubscriptionManagement />} />
             <Route path="/admin/video" element={<AdminVideoManagement />} />
+            <Route path="/admin/whatsapp" element={<AdminWhatsAppSettings />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin-signup" element={<AdminSignup />} />
             <Route path="/debug" element={<DebugPage />} />
