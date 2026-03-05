@@ -54,6 +54,8 @@ interface DashboardStats {
   totalReviews: number;
   pendingAssignments: number;
   profileViews: number;
+  projectsGrowth: number;
+  revenueGrowth: number;
 }
 
 interface ProjectData {
@@ -130,7 +132,7 @@ const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
       break;
     case 'revenue':
       title = 'Revenue Analytics';
-      description = `Your total revenue is ${formatCurrency(stats.totalRevenue)} with an 8% increase from last month.`;
+      description = `Your total revenue is ${formatCurrency(stats.totalRevenue)}${stats.revenueGrowth !== 0 ? ` with a ${stats.revenueGrowth > 0 ? '+' : ''}${stats.revenueGrowth}% change from last month` : ''}.`;
       break;
   }
   
@@ -357,7 +359,11 @@ const AnalyticsModal: React.FC<AnalyticsModalProps> = ({
                   </li>
                   <li className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-primary-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <span>Revenue has grown 8% compared to last month</span>
+                    <span>
+                      {stats.revenueGrowth > 0 && `Revenue has grown ${stats.revenueGrowth}% compared to last month`}
+                      {stats.revenueGrowth < 0 && `Revenue has decreased ${Math.abs(stats.revenueGrowth)}% compared to last month`}
+                      {stats.revenueGrowth === 0 && 'Revenue is stable compared to last month'}
+                    </span>
                   </li>
                 </ul>
               )}
@@ -436,7 +442,9 @@ const DesignerDashboard = () => {
     averageRating: 0,
     totalReviews: 0,
     pendingAssignments: 0,
-    profileViews: 0
+    profileViews: 0,
+    projectsGrowth: 0,
+    revenueGrowth: 0
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -559,6 +567,32 @@ const DesignerDashboard = () => {
       let totalRevenue = 0;
       const completedProjectIds = completedProjectsList.map(p => p.id);
 
+      // Calculate growth percentages
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+      // Get current month projects count
+      const currentMonthProjects = projects?.filter(p => {
+        const createdAt = new Date(p.created_at);
+        return createdAt >= currentMonthStart;
+      }).length || 0;
+
+      // Get last month projects count
+      const lastMonthProjects = projects?.filter(p => {
+        const createdAt = new Date(p.created_at);
+        return createdAt >= lastMonthStart && createdAt <= lastMonthEnd;
+      }).length || 0;
+
+      // Calculate project growth percentage
+      const projectsGrowth = lastMonthProjects > 0
+        ? Math.round(((currentMonthProjects - lastMonthProjects) / lastMonthProjects) * 100)
+        : 0;
+
+      let currentMonthRevenue = 0;
+      let lastMonthRevenue = 0;
+
       if (completedProjectIds.length > 0) {
         const { data: quotes, error: quotesError } = await supabase
           .from('designer_quotes')
@@ -571,6 +605,16 @@ const DesignerDashboard = () => {
         if (!quotesError && quotes) {
           totalRevenue = quotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
 
+          // Calculate monthly revenues for growth
+          quotes.forEach(quote => {
+            const quoteDate = new Date(quote.created_at);
+            if (quoteDate >= currentMonthStart) {
+              currentMonthRevenue += quote.total_amount || 0;
+            } else if (quoteDate >= lastMonthStart && quoteDate <= lastMonthEnd) {
+              lastMonthRevenue += quote.total_amount || 0;
+            }
+          });
+
           // Generate monthly revenue data from actual quotes
           generateMonthlyRevenueData(quotes, completedProjectsList);
         }
@@ -578,6 +622,11 @@ const DesignerDashboard = () => {
         // No completed projects, set empty revenue data
         setRevenueData([]);
       }
+
+      // Calculate revenue growth percentage
+      const revenueGrowth = lastMonthRevenue > 0
+        ? Math.round(((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+        : 0;
 
       setStats({
         totalProjects: projects?.length || 0,
@@ -587,7 +636,9 @@ const DesignerDashboard = () => {
         averageRating: designer.rating || 0,
         totalReviews: designer.total_reviews || 0,
         pendingAssignments: assignments?.length || 0,
-        profileViews: Math.floor(Math.random() * 500) + 100
+        profileViews: Math.floor(Math.random() * 500) + 100,
+        projectsGrowth,
+        revenueGrowth
       });
 
       // Generate chart data for projects
@@ -611,7 +662,9 @@ const DesignerDashboard = () => {
         averageRating: designer?.rating || 0,
         totalReviews: designer?.total_reviews || 0,
         pendingAssignments: 0,
-        profileViews: 0
+        profileViews: 0,
+        projectsGrowth: 0,
+        revenueGrowth: 0
       });
       setRecentActivity([]);
       setRevenueData([]);
@@ -862,8 +915,17 @@ const DesignerDashboard = () => {
               </div>
             </div>
             <div className="mt-4 flex items-center text-sm">
-              <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-              <span className="text-green-600">+12% from last month</span>
+              {stats.projectsGrowth !== 0 && (
+                <>
+                  <TrendingUp className={`w-4 h-4 mr-1 ${stats.projectsGrowth > 0 ? 'text-green-500' : 'text-red-500'}`} />
+                  <span className={stats.projectsGrowth > 0 ? 'text-green-600' : 'text-red-600'}>
+                    {stats.projectsGrowth > 0 ? '+' : ''}{stats.projectsGrowth}% from last month
+                  </span>
+                </>
+              )}
+              {stats.projectsGrowth === 0 && (
+                <span className="text-gray-600">No change from last month</span>
+              )}
             </div>
           </div>
 
@@ -917,8 +979,17 @@ const DesignerDashboard = () => {
               </div>
             </div>
             <div className="mt-4 flex items-center text-sm">
-              <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-              <span className="text-green-600">+8% from last month</span>
+              {stats.revenueGrowth !== 0 && (
+                <>
+                  <TrendingUp className={`w-4 h-4 mr-1 ${stats.revenueGrowth > 0 ? 'text-green-500' : 'text-red-500'}`} />
+                  <span className={stats.revenueGrowth > 0 ? 'text-green-600' : 'text-red-600'}>
+                    {stats.revenueGrowth > 0 ? '+' : ''}{stats.revenueGrowth}% from last month
+                  </span>
+                </>
+              )}
+              {stats.revenueGrowth === 0 && (
+                <span className="text-gray-600">No change from last month</span>
+              )}
             </div>
           </div>
         </div>
