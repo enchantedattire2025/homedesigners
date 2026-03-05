@@ -22,7 +22,7 @@ interface Testimonial {
 
 const DesignerDetail = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, isDesigner } = useAuth();
   const navigate = useNavigate();
   const [designer, setDesigner] = useState<Designer | null>(null);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -441,7 +441,7 @@ const DesignerDetail = () => {
                   </div>
                 )}
 
-                {user && (
+                {user && !isDesigner && (
                   <div className="space-y-3">
                     <button
                       onClick={handleGetQuote}

@@ -6,6 +6,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isDesigner, setIsDesigner] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -13,7 +14,7 @@ export const useAuth = () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
 
-      // Check if user is admin
+      // Check if user is admin or designer
       if (session?.user) {
         const { data: adminData } = await supabase
           .from('admin_users')
@@ -22,9 +23,18 @@ export const useAuth = () => {
           .eq('is_active', true)
           .maybeSingle();
 
+        const { data: designerData } = await supabase
+          .from('designers')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
         setIsAdmin(!!adminData);
+        setIsDesigner(!!designerData);
       } else {
         setIsAdmin(false);
+        setIsDesigner(false);
       }
 
       setLoading(false);
@@ -39,7 +49,7 @@ export const useAuth = () => {
 
         // Use async block inside callback to avoid deadlock
         (async () => {
-          // Check if user is admin
+          // Check if user is admin or designer
           if (session?.user) {
             const { data: adminData } = await supabase
               .from('admin_users')
@@ -48,9 +58,18 @@ export const useAuth = () => {
               .eq('is_active', true)
               .maybeSingle();
 
+            const { data: designerData } = await supabase
+              .from('designers')
+              .select('id')
+              .eq('user_id', session.user.id)
+              .eq('is_active', true)
+              .maybeSingle();
+
             setIsAdmin(!!adminData);
+            setIsDesigner(!!designerData);
           } else {
             setIsAdmin(false);
+            setIsDesigner(false);
           }
 
           setLoading(false);
@@ -94,6 +113,7 @@ export const useAuth = () => {
     user,
     loading,
     isAdmin,
+    isDesigner,
     signOut
   };
 };
