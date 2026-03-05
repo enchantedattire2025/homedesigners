@@ -15,7 +15,7 @@ interface WhatsAppSettings {
 
 const AdminWhatsAppSettings = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,10 +35,15 @@ const AdminWhatsAppSettings = () => {
 
   useEffect(() => {
     const init = async () => {
-      console.log('AdminWhatsAppSettings: Init, user:', user);
+      console.log('AdminWhatsAppSettings: Init, authLoading:', authLoading, 'user:', user);
+
+      if (authLoading) {
+        console.log('AdminWhatsAppSettings: Auth still loading, waiting...');
+        return;
+      }
 
       if (!user) {
-        console.log('AdminWhatsAppSettings: No user, redirecting to login');
+        console.log('AdminWhatsAppSettings: No user after auth loaded, redirecting to login');
         setLoading(false);
         navigate('/admin-login');
         return;
@@ -73,7 +78,7 @@ const AdminWhatsAppSettings = () => {
     };
 
     init();
-  }, [user]);
+  }, [user, authLoading]);
 
   const fetchSettings = async () => {
     try {
