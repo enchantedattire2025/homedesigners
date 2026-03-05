@@ -16,6 +16,7 @@ interface WhatsAppSettings {
 const AdminWhatsAppSettings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -33,27 +34,46 @@ const AdminWhatsAppSettings = () => {
   });
 
   useEffect(() => {
-    checkAdminAccess();
-    fetchSettings();
+    const init = async () => {
+      console.log('AdminWhatsAppSettings: Init, user:', user);
+
+      if (!user) {
+        console.log('AdminWhatsAppSettings: No user, redirecting to login');
+        setLoading(false);
+        navigate('/admin-login');
+        return;
+      }
+
+      try {
+        console.log('AdminWhatsAppSettings: Checking admin status for user:', user.id);
+        const { data: adminUser, error } = await supabase
+          .from('admin_users')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        console.log('AdminWhatsAppSettings: Admin check result:', { adminUser, error });
+
+        if (error || !adminUser) {
+          console.log('AdminWhatsAppSettings: Not an admin, redirecting to login');
+          setLoading(false);
+          navigate('/admin-login');
+          return;
+        }
+
+        console.log('AdminWhatsAppSettings: User is admin, loading settings');
+        setIsAdmin(true);
+        await fetchSettings();
+      } catch (err) {
+        console.error('AdminWhatsAppSettings: Error checking admin access:', err);
+        setLoading(false);
+        navigate('/admin-login');
+      }
+    };
+
+    init();
   }, [user]);
-
-  const checkAdminAccess = async () => {
-    if (!user) {
-      navigate('/admin-login');
-      return;
-    }
-
-    const { data: adminUser, error } = await supabase
-      .from('admin_users')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle();
-
-    if (error || !adminUser) {
-      navigate('/admin-login');
-    }
-  };
 
   const fetchSettings = async () => {
     try {
@@ -181,7 +201,7 @@ const AdminWhatsAppSettings = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -197,7 +217,7 @@ const AdminWhatsAppSettings = () => {
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <button
-            onClick={() => navigate('/admin-dashboard')}
+            onClick={() => navigate('/admin')}
             className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
