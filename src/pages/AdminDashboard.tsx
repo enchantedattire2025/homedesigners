@@ -1,28 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Users,
-  UserCheck,
-  Briefcase,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Eye,
-  Edit,
-  Trash2,
-  Search,
-  Filter,
-  Download,
-  BarChart3,
-  PieChart,
-  Calendar,
-  DollarSign,
-  TrendingDown,
-  Tag,
-  Video,
-  Settings,
-  MessageSquare
-} from 'lucide-react';
+import { Users, UserCheck, Briefcase, TrendingUp, AlertTriangle, CheckCircle, XCircle, Eye, CreditCard as Edit, Trash2, Search, Filter, Download, BarChart3, PieChart, Calendar, DollarSign, TrendingDown, Tag, Video, Settings, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
