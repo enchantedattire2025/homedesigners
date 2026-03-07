@@ -11,6 +11,8 @@ interface WhatsAppSettings {
   auth_token: string;
   from_number: string;
   is_enabled: boolean;
+  supabase_url: string;
+  supabase_anon_key: string;
 }
 
 const AdminWhatsAppSettings = () => {
@@ -31,6 +33,8 @@ const AdminWhatsAppSettings = () => {
     auth_token: '',
     from_number: '',
     is_enabled: false,
+    supabase_url: import.meta.env.VITE_SUPABASE_URL || '',
+    supabase_anon_key: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   });
 
   useEffect(() => {
@@ -130,6 +134,8 @@ const AdminWhatsAppSettings = () => {
         auth_token: settings.auth_token,
         from_number: settings.from_number,
         is_enabled: settings.is_enabled,
+        supabase_url: settings.supabase_url || import.meta.env.VITE_SUPABASE_URL,
+        supabase_anon_key: settings.supabase_anon_key || import.meta.env.VITE_SUPABASE_ANON_KEY,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       };

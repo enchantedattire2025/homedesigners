@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 import { useAuth } from './hooks/useAuth';
 import { useDesignerProfile } from './hooks/useDesignerProfile';
 import { detectUserTypeAndRedirect } from './utils/userTypeDetection';
+import { processQueuedNotifications } from './utils/whatsappNotification';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
@@ -102,6 +103,16 @@ const DashboardRedirectHandler = () => {
 };
 
 function App() {
+  useEffect(() => {
+    processQueuedNotifications();
+
+    const interval = setInterval(() => {
+      processQueuedNotifications();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col">
