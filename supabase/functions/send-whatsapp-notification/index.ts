@@ -295,6 +295,99 @@ Deno.serve(async (req: Request) => {
           }
         );
       }
+    } else if (settings.provider === "waha") {
+      const wahaApiUrl = settings.waha_api_url;
+      const wahaSession = settings.waha_session || "default";
+      const wahaApiKey = settings.waha_api_key;
+
+      if (!wahaApiUrl) {
+        await supabase
+          .from("whatsapp_notification_logs")
+          .update({
+            status: "failed",
+            error_message: "WAHA API URL not configured",
+            failed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", logId);
+
+        return new Response(
+          JSON.stringify({ error: "WAHA API URL not configured" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const wahaUrl = `${wahaApiUrl}/api/sendText`;
+      const wahaHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (wahaApiKey) {
+        wahaHeaders["X-Api-Key"] = wahaApiKey;
+      }
+
+      const chatId = formattedPhone.replace("+", "") + "@c.us";
+
+      const wahaResponse = await fetch(wahaUrl, {
+        method: "POST",
+        headers: wahaHeaders,
+        body: JSON.stringify({
+          session: wahaSession,
+          chatId: chatId,
+          text: messageBody,
+        }),
+      });
+
+      const wahaData = await wahaResponse.json();
+
+      if (wahaResponse.ok) {
+        await supabase
+          .from("whatsapp_notification_logs")
+          .update({
+            status: "sent",
+            provider_message_id: wahaData.id || wahaData.messageId || logId,
+            provider_status: "sent",
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", logId);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "WhatsApp notification sent successfully via WAHA",
+            messageId: wahaData.id || wahaData.messageId,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      } else {
+        await supabase
+          .from("whatsapp_notification_logs")
+          .update({
+            status: "failed",
+            error_message: JSON.stringify(wahaData),
+            failed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", logId);
+
+        return new Response(
+          JSON.stringify({
+            error: "Failed to send WhatsApp notification via WAHA",
+            details: wahaData,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     } else {
       await supabase
         .from("whatsapp_notification_logs")

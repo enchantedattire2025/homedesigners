@@ -13,6 +13,9 @@ interface WhatsAppSettings {
   is_enabled: boolean;
   supabase_url: string;
   supabase_anon_key: string;
+  waha_api_url?: string;
+  waha_session?: string;
+  waha_api_key?: string;
 }
 
 const AdminWhatsAppSettings = () => {
@@ -28,13 +31,16 @@ const AdminWhatsAppSettings = () => {
   const [testPhone, setTestPhone] = useState('');
 
   const [settings, setSettings] = useState<WhatsAppSettings>({
-    provider: 'twilio',
+    provider: 'waha',
     account_sid: '',
     auth_token: '',
     from_number: '',
     is_enabled: false,
     supabase_url: import.meta.env.VITE_SUPABASE_URL || '',
     supabase_anon_key: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+    waha_api_url: '',
+    waha_session: 'default',
+    waha_api_key: '',
   });
 
   useEffect(() => {
@@ -136,6 +142,9 @@ const AdminWhatsAppSettings = () => {
         is_enabled: settings.is_enabled,
         supabase_url: settings.supabase_url || import.meta.env.VITE_SUPABASE_URL,
         supabase_anon_key: settings.supabase_anon_key || import.meta.env.VITE_SUPABASE_ANON_KEY,
+        waha_api_url: settings.waha_api_url || null,
+        waha_session: settings.waha_session || 'default',
+        waha_api_key: settings.waha_api_key || null,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       };
@@ -273,13 +282,23 @@ const AdminWhatsAppSettings = () => {
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h3 className="font-semibold text-blue-800 mb-2">Setup Instructions</h3>
-          <ol className="text-sm text-blue-700 space-y-2 ml-4 list-decimal">
-            <li>Sign up for a Twilio account at <a href="https://www.twilio.com" target="_blank" rel="noopener noreferrer" className="underline">twilio.com</a></li>
-            <li>Enable WhatsApp messaging in your Twilio console</li>
-            <li>Get your Account SID and Auth Token from the Twilio dashboard</li>
-            <li>Set up your WhatsApp sender number</li>
-            <li>Enter the credentials below and enable notifications</li>
-          </ol>
+          {settings.provider === 'waha' ? (
+            <ol className="text-sm text-blue-700 space-y-2 ml-4 list-decimal">
+              <li>Install WAHA (WhatsApp HTTP API) using Docker: <code className="bg-blue-100 px-1 rounded">docker run -it -p 3000:3000 devlikeapro/waha</code></li>
+              <li>Scan QR code with your business WhatsApp account (+919960515686)</li>
+              <li>Enter your WAHA instance URL below (e.g., http://localhost:3000 or https://waha.yourdomain.com)</li>
+              <li>Set session name (default is fine) and API key if you secured your instance</li>
+              <li>Enable notifications and test the connection</li>
+            </ol>
+          ) : (
+            <ol className="text-sm text-blue-700 space-y-2 ml-4 list-decimal">
+              <li>Sign up for a Twilio account at <a href="https://www.twilio.com" target="_blank" rel="noopener noreferrer" className="underline">twilio.com</a></li>
+              <li>Enable WhatsApp messaging in your Twilio console</li>
+              <li>Get your Account SID and Auth Token from the Twilio dashboard</li>
+              <li>Set up your WhatsApp sender number</li>
+              <li>Enter the credentials below and enable notifications</li>
+            </ol>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -311,66 +330,134 @@ const AdminWhatsAppSettings = () => {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               >
+                <option value="waha">WAHA (Open Source)</option>
                 <option value="twilio">Twilio</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Account SID *
-              </label>
-              <input
-                type="text"
-                name="account_sid"
-                value={settings.account_sid}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                required
-              />
-            </div>
+            {settings.provider === 'waha' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    WAHA API URL *
+                  </label>
+                  <input
+                    type="text"
+                    name="waha_api_url"
+                    value={settings.waha_api_url || ''}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="http://localhost:3000 or https://waha.yourdomain.com"
+                    required
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Your WAHA instance URL (include http:// or https://)
+                  </p>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Auth Token *
-              </label>
-              <div className="relative">
-                <input
-                  type={showAuthToken ? 'text' : 'password'}
-                  name="auth_token"
-                  value={settings.auth_token}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="********************************"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowAuthToken(!showAuthToken)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showAuthToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Session Name
+                  </label>
+                  <input
+                    type="text"
+                    name="waha_session"
+                    value={settings.waha_session || 'default'}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="default"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    WAHA session name (default is fine for single account)
+                  </p>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                From Number (WhatsApp) *
-              </label>
-              <input
-                type="text"
-                name="from_number"
-                value={settings.from_number}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="+14155238886"
-                required
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Your Twilio WhatsApp-enabled phone number (include country code with +)
-              </p>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    API Key (Optional)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showAuthToken ? 'text' : 'password'}
+                      name="waha_api_key"
+                      value={settings.waha_api_key || ''}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Leave empty if not using API key"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthToken(!showAuthToken)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showAuthToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Only required if you secured your WAHA instance with an API key
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Account SID *
+                  </label>
+                  <input
+                    type="text"
+                    name="account_sid"
+                    value={settings.account_sid}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Auth Token *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showAuthToken ? 'text' : 'password'}
+                      name="auth_token"
+                      value={settings.auth_token}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="********************************"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthToken(!showAuthToken)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showAuthToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    From Number (WhatsApp) *
+                  </label>
+                  <input
+                    type="text"
+                    name="from_number"
+                    value={settings.from_number}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="+14155238886"
+                    required
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Your Twilio WhatsApp-enabled phone number (include country code with +)
+                  </p>
+                </div>
+              </>
+            )}
 
             <div className="flex justify-end space-x-3 pt-4 border-t">
               <button
