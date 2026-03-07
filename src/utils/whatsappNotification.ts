@@ -58,28 +58,17 @@ export const sendWhatsAppNotification = async ({
 
 export const processQueuedNotifications = async (): Promise<void> => {
   try {
-    const { data: queuedNotifications, error } = await supabase
-      .from('whatsapp_notification_logs')
-      .select('*')
-      .eq('status', 'queued')
-      .limit(10);
+    const { data, error } = await supabase.functions.invoke('process-whatsapp-queue', {
+      body: {},
+    });
 
     if (error) {
-      console.error('Error fetching queued notifications:', error);
+      console.error('Error processing queued notifications:', error);
       return;
     }
 
-    if (!queuedNotifications || queuedNotifications.length === 0) {
-      return;
-    }
-
-    for (const notification of queuedNotifications) {
-      await sendWhatsAppNotification({
-        projectId: notification.project_id,
-        notificationType: notification.notification_type,
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    if (data && data.processed > 0) {
+      console.log(`Processed ${data.processed} WhatsApp notifications (${data.succeeded} succeeded, ${data.failed} failed)`);
     }
   } catch (error) {
     console.error('Error processing queued notifications:', error);

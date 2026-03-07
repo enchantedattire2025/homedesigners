@@ -48,17 +48,33 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader ? authHeader.replace("Bearer ", "") : "";
 
     const { createClient } = await import("npm:@supabase/supabase-js@2");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    let isServiceRole = false;
 
-    if (userError || !user) {
+    if (token === supabaseServiceKey) {
+      isServiceRole = true;
+    } else if (token) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+      if (userError || !user) {
+        if (!testMode) {
+          return new Response(
+            JSON.stringify({ error: "Unauthorized" }),
+            {
+              status: 401,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+      }
+    } else if (!testMode) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized - No token provided" }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
