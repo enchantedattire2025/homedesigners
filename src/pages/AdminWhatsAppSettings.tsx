@@ -183,6 +183,7 @@ const AdminWhatsAppSettings = () => {
 
       if (!testProject) {
         setError('No projects found to test with. Please create a project first.');
+        setTesting(false);
         return;
       }
 
@@ -191,13 +192,21 @@ const AdminWhatsAppSettings = () => {
           projectId: testProject.id,
           notificationType: 'status_update',
           customMessage: `This is a test message from The Home Designers WhatsApp notification system. If you receive this, your WhatsApp integration is working correctly! 🎉`,
+          testMode: true,
+          testPhone: testPhone,
         },
       });
 
       if (error) throw error;
 
-      setSuccess('Test notification sent successfully! Check the phone number.');
-      setTimeout(() => setSuccess(null), 5000);
+      if (data?.skipped) {
+        setError(data.message || 'Test notification was skipped');
+      } else if (data?.error) {
+        setError(data.error);
+      } else {
+        setSuccess(`Test notification sent successfully to ${testPhone}! Check your WhatsApp.`);
+        setTimeout(() => setSuccess(null), 5000);
+      }
     } catch (err: any) {
       console.error('Error sending test notification:', err);
       setError(err.message || 'Failed to send test notification');

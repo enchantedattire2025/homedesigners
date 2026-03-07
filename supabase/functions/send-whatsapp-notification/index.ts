@@ -10,6 +10,8 @@ interface NotificationRequest {
   projectId: string;
   notificationType: string;
   customMessage?: string;
+  testMode?: boolean;
+  testPhone?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -21,11 +23,21 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { projectId, notificationType, customMessage }: NotificationRequest = await req.json();
+    const { projectId, notificationType, customMessage, testMode, testPhone }: NotificationRequest = await req.json();
 
     if (!projectId || !notificationType) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: projectId, notificationType" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (testMode && !testPhone) {
+      return new Response(
+        JSON.stringify({ error: "Test phone number is required in test mode" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -86,42 +98,44 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: preferences, error: preferencesError } = await supabase
-      .from("customer_notification_preferences")
-      .select("*")
-      .eq("customer_id", projectId)
-      .maybeSingle();
+    if (!testMode) {
+      const { data: preferences, error: preferencesError } = await supabase
+        .from("customer_notification_preferences")
+        .select("*")
+        .eq("customer_id", projectId)
+        .maybeSingle();
 
-    if (preferencesError || !preferences || !preferences.whatsapp_enabled) {
-      console.log("Customer has disabled WhatsApp notifications");
-      return new Response(
-        JSON.stringify({ message: "Customer has disabled notifications", skipped: true }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+      if (preferencesError || !preferences || !preferences.whatsapp_enabled) {
+        console.log("Customer has disabled WhatsApp notifications");
+        return new Response(
+          JSON.stringify({ message: "Customer has disabled notifications", skipped: true }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
 
-    const notificationTypeMap: Record<string, keyof typeof preferences> = {
-      "quote_generated": "notify_quote_generated",
-      "quote_accepted": "notify_quote_accepted",
-      "status_update": "notify_status_update",
-      "project_update": "notify_project_update",
-      "team_assigned": "notify_team_assigned",
-      "project_completed": "notify_project_completed",
-    };
+      const notificationTypeMap: Record<string, keyof typeof preferences> = {
+        "quote_generated": "notify_quote_generated",
+        "quote_accepted": "notify_quote_accepted",
+        "status_update": "notify_status_update",
+        "project_update": "notify_project_update",
+        "team_assigned": "notify_team_assigned",
+        "project_completed": "notify_project_completed",
+      };
 
-    const preferenceKey = notificationTypeMap[notificationType];
-    if (preferenceKey && !preferences[preferenceKey]) {
-      console.log(`Customer has disabled ${notificationType} notifications`);
-      return new Response(
-        JSON.stringify({ message: "Notification type disabled by customer", skipped: true }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      const preferenceKey = notificationTypeMap[notificationType];
+      if (preferenceKey && !preferences[preferenceKey]) {
+        console.log(`Customer has disabled ${notificationType} notifications`);
+        return new Response(
+          JSON.stringify({ message: "Notification type disabled by customer", skipped: true }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     let messageBody = customMessage || "";
@@ -153,16 +167,33 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const phoneNumber = project.phone.replace(/[^0-9+]/g, "");
-    let formattedPhone = phoneNumber;
+    let formattedPhone: string;
 
-    if (!phoneNumber.startsWith("+")) {
-      if (phoneNumber.startsWith("91")) {
-        formattedPhone = `+${phoneNumber}`;
-      } else if (phoneNumber.length === 10) {
-        formattedPhone = `+91${phoneNumber}`;
-      } else {
-        formattedPhone = `+${phoneNumber}`;
+    if (testMode && testPhone) {
+      const cleanTestPhone = testPhone.replace(/[^0-9+]/g, "");
+      formattedPhone = cleanTestPhone;
+
+      if (!cleanTestPhone.startsWith("+")) {
+        if (cleanTestPhone.startsWith("91")) {
+          formattedPhone = `+${cleanTestPhone}`;
+        } else if (cleanTestPhone.length === 10) {
+          formattedPhone = `+91${cleanTestPhone}`;
+        } else {
+          formattedPhone = `+${cleanTestPhone}`;
+        }
+      }
+    } else {
+      const phoneNumber = project.phone.replace(/[^0-9+]/g, "");
+      formattedPhone = phoneNumber;
+
+      if (!phoneNumber.startsWith("+")) {
+        if (phoneNumber.startsWith("91")) {
+          formattedPhone = `+${phoneNumber}`;
+        } else if (phoneNumber.length === 10) {
+          formattedPhone = `+91${phoneNumber}`;
+        } else {
+          formattedPhone = `+${phoneNumber}`;
+        }
       }
     }
 
