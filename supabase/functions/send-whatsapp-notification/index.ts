@@ -25,9 +25,21 @@ Deno.serve(async (req: Request) => {
   try {
     const { projectId, notificationType, customMessage, testMode, testPhone }: NotificationRequest = await req.json();
 
-    if (!projectId || !notificationType) {
+    console.log("Received request:", { projectId, notificationType, testMode, testPhone });
+
+    if (!notificationType) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: projectId, notificationType" }),
+        JSON.stringify({ error: "Missing required field: notificationType" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!testMode && !projectId) {
+      return new Response(
+        JSON.stringify({ error: "Missing required field: projectId" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -87,7 +99,31 @@ Deno.serve(async (req: Request) => {
       .select("*")
       .maybeSingle();
 
-    if (settingsError || !settings || !settings.is_enabled) {
+    console.log("WhatsApp settings:", { settings, error: settingsError });
+
+    if (settingsError) {
+      console.error("Error fetching settings:", settingsError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch WhatsApp settings", details: settingsError.message }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!settings) {
+      console.log("WhatsApp settings not configured");
+      return new Response(
+        JSON.stringify({ error: "WhatsApp settings not configured", skipped: true }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!settings.is_enabled) {
       console.log("WhatsApp notifications are not enabled");
       return new Response(
         JSON.stringify({ message: "WhatsApp notifications are not enabled", skipped: true }),
@@ -98,20 +134,50 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: project, error: projectError } = await supabase
-      .from("customers")
-      .select("*, assigned_designer:designers(name)")
-      .eq("id", projectId)
-      .maybeSingle();
+    let project: any = null;
 
-    if (projectError || !project) {
-      return new Response(
-        JSON.stringify({ error: "Project not found" }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (testMode) {
+      project = {
+        id: projectId || "test-project",
+        name: "Test Customer",
+        project_name: "Test Project",
+        phone: testPhone,
+        user_id: null,
+        assignment_status: "pending",
+        assigned_designer: null,
+      };
+      console.log("Using test mode with mock project data");
+    } else {
+      const { data: projectData, error: projectError } = await supabase
+        .from("customers")
+        .select("*, assigned_designer:designers(name)")
+        .eq("id", projectId)
+        .maybeSingle();
+
+      console.log("Project lookup:", { projectData, error: projectError });
+
+      if (projectError) {
+        console.error("Error fetching project:", projectError);
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch project", details: projectError.message }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      if (!projectData) {
+        return new Response(
+          JSON.stringify({ error: "Project not found" }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      project = projectData;
     }
 
     if (!testMode) {
@@ -214,18 +280,24 @@ Deno.serve(async (req: Request) => {
     }
 
     const logId = crypto.randomUUID();
-    await supabase
-      .from("whatsapp_notification_logs")
-      .insert({
-        id: logId,
-        project_id: projectId,
-        customer_id: projectId,
-        user_id: project.user_id,
-        notification_type: notificationType,
-        phone_number: formattedPhone,
-        message_body: messageBody,
-        status: "pending",
-      });
+
+    if (!testMode) {
+      await supabase
+        .from("whatsapp_notification_logs")
+        .insert({
+          id: logId,
+          project_id: projectId,
+          customer_id: projectId,
+          user_id: project.user_id,
+          notification_type: notificationType,
+          phone_number: formattedPhone,
+          message_body: messageBody,
+          status: "pending",
+        });
+      console.log("Created notification log:", logId);
+    } else {
+      console.log("Test mode: skipping notification log creation");
+    }
 
     if (settings.provider === "twilio") {
       const accountSid = settings.account_sid;
@@ -331,6 +403,13 @@ Deno.serve(async (req: Request) => {
 
       const chatId = formattedPhone.replace("+", "") + "@c.us";
 
+      console.log("Sending to WAHA:", {
+        url: wahaUrl,
+        session: wahaSession,
+        chatId,
+        hasApiKey: !!wahaApiKey
+      });
+
       const wahaResponse = await fetch(wahaUrl, {
         method: "POST",
         headers: wahaHeaders,
@@ -341,25 +420,39 @@ Deno.serve(async (req: Request) => {
         }),
       });
 
-      const wahaData = await wahaResponse.json();
+      console.log("WAHA response status:", wahaResponse.status);
+
+      let wahaData;
+      try {
+        wahaData = await wahaResponse.json();
+        console.log("WAHA response data:", wahaData);
+      } catch (e) {
+        console.error("Failed to parse WAHA response:", e);
+        const responseText = await wahaResponse.text();
+        console.log("WAHA response text:", responseText);
+        wahaData = { error: "Failed to parse response", rawResponse: responseText };
+      }
 
       if (wahaResponse.ok) {
-        await supabase
-          .from("whatsapp_notification_logs")
-          .update({
-            status: "sent",
-            provider_message_id: wahaData.id || wahaData.messageId || logId,
-            provider_status: "sent",
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", logId);
+        if (!testMode) {
+          await supabase
+            .from("whatsapp_notification_logs")
+            .update({
+              status: "sent",
+              provider_message_id: wahaData.id || wahaData.messageId || logId,
+              provider_status: "sent",
+              sent_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", logId);
+        }
 
         return new Response(
           JSON.stringify({
             success: true,
             message: "WhatsApp notification sent successfully via WAHA",
             messageId: wahaData.id || wahaData.messageId,
+            testMode,
           }),
           {
             status: 200,
@@ -367,20 +460,30 @@ Deno.serve(async (req: Request) => {
           }
         );
       } else {
-        await supabase
-          .from("whatsapp_notification_logs")
-          .update({
-            status: "failed",
-            error_message: JSON.stringify(wahaData),
-            failed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", logId);
+        if (!testMode) {
+          await supabase
+            .from("whatsapp_notification_logs")
+            .update({
+              status: "failed",
+              error_message: JSON.stringify(wahaData),
+              failed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", logId);
+        }
+
+        console.error("WAHA API error:", wahaData);
 
         return new Response(
           JSON.stringify({
             error: "Failed to send WhatsApp notification via WAHA",
             details: wahaData,
+            debugInfo: {
+              url: wahaUrl,
+              session: wahaSession,
+              chatId,
+              status: wahaResponse.status,
+            },
           }),
           {
             status: 500,
