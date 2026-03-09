@@ -299,75 +299,7 @@ Deno.serve(async (req: Request) => {
       console.log("Test mode: skipping notification log creation");
     }
 
-    if (settings.provider === "twilio") {
-      const accountSid = settings.account_sid;
-      const authToken = settings.auth_token;
-      const fromNumber = settings.from_number;
-
-      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-      const auth = btoa(`${accountSid}:${authToken}`);
-
-      const twilioResponse = await fetch(twilioUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Basic ${auth}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          From: `whatsapp:${fromNumber}`,
-          To: `whatsapp:${formattedPhone}`,
-          Body: messageBody,
-        }),
-      });
-
-      const twilioData = await twilioResponse.json();
-
-      if (twilioResponse.ok) {
-        await supabase
-          .from("whatsapp_notification_logs")
-          .update({
-            status: "sent",
-            provider_message_id: twilioData.sid,
-            provider_status: twilioData.status,
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", logId);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: "WhatsApp notification sent successfully",
-            messageId: twilioData.sid,
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      } else {
-        await supabase
-          .from("whatsapp_notification_logs")
-          .update({
-            status: "failed",
-            error_message: JSON.stringify(twilioData),
-            failed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", logId);
-
-        return new Response(
-          JSON.stringify({
-            error: "Failed to send WhatsApp notification",
-            details: twilioData,
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-    } else if (settings.provider === "waha") {
+    if (settings.provider === "waha") {
       const wahaApiUrl = settings.waha_api_url;
       const wahaSession = settings.waha_session || "default";
       const wahaApiKey = settings.waha_api_key;
@@ -492,18 +424,20 @@ Deno.serve(async (req: Request) => {
         );
       }
     } else {
-      await supabase
-        .from("whatsapp_notification_logs")
-        .update({
-          status: "failed",
-          error_message: "Unsupported provider",
-          failed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", logId);
+      if (!testMode) {
+        await supabase
+          .from("whatsapp_notification_logs")
+          .update({
+            status: "failed",
+            error_message: "Unsupported provider - only WAHA is supported",
+            failed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", logId);
+      }
 
       return new Response(
-        JSON.stringify({ error: "Unsupported WhatsApp provider" }),
+        JSON.stringify({ error: "Unsupported WhatsApp provider - only WAHA is supported" }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
