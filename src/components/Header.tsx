@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Home as HomeIcon, User, LogOut, Palette, UserPlus, Edit, Loader2, FolderOpen, Users, BarChart3, FileText, Shield, Ruler, Wallpaper } from 'lucide-react';
+import { Menu, X, Home as HomeIcon, User, LogOut, Palette, UserPlus, CreditCard as Edit, Loader2, FolderOpen, Users, BarChart3, FileText, Shield, Ruler, Wallpaper } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { useUserRegistrationStatus } from '../hooks/useUserRegistrationStatus';
