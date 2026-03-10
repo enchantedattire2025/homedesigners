@@ -39,6 +39,9 @@ export default function WallpaperOrder() {
     customer_name: '',
     customer_phone: '',
     customer_address: '',
+    customer_city: 'Pune',
+    customer_state: 'Maharashtra',
+    customer_pincode: '',
     wall_size_length: '',
     wall_size_height: '',
     wall_unit: 'feet',
@@ -179,6 +182,16 @@ export default function WallpaperOrder() {
       return;
     }
 
+    if (formData.customer_city.toLowerCase() !== 'pune') {
+      alert('Service is currently available only in Pune, Maharashtra');
+      return;
+    }
+
+    if (formData.customer_state.toLowerCase() !== 'maharashtra') {
+      alert('Service is currently available only in Pune, Maharashtra');
+      return;
+    }
+
     if (!paymentScreenshot) {
       alert('Please upload payment screenshot');
       return;
@@ -200,6 +213,8 @@ export default function WallpaperOrder() {
         return;
       }
 
+      const fullAddress = `${formData.customer_address}, ${formData.customer_city}, ${formData.customer_state} - ${formData.customer_pincode}, India`;
+
       let finalCustomerId = customerId;
 
       if (!customerId) {
@@ -209,7 +224,7 @@ export default function WallpaperOrder() {
             user_id: user.id,
             name: formData.customer_name,
             phone: formData.customer_phone,
-            address: formData.customer_address,
+            address: fullAddress,
             email: user.email
           })
           .select()
@@ -228,7 +243,7 @@ export default function WallpaperOrder() {
           customer_id: finalCustomerId,
           customer_name: formData.customer_name,
           customer_phone: formData.customer_phone,
-          customer_address: formData.customer_address,
+          customer_address: fullAddress,
           wall_size_length: parseFloat(formData.wall_size_length),
           wall_size_height: parseFloat(formData.wall_size_height),
           wall_unit: formData.wall_unit,
@@ -250,6 +265,9 @@ export default function WallpaperOrder() {
         customer_name: formData.customer_name,
         customer_phone: formData.customer_phone,
         customer_address: formData.customer_address,
+        customer_city: 'Pune',
+        customer_state: 'Maharashtra',
+        customer_pincode: formData.customer_pincode,
         wall_size_length: '',
         wall_size_height: '',
         wall_unit: 'feet',
@@ -274,7 +292,14 @@ export default function WallpaperOrder() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">3D Wallpaper Orders</h1>
-          <p className="text-gray-600 mb-6">Order custom 3D wallpapers for your space</p>
+          <p className="text-gray-600 mb-6">Order custom 3D wallpapers for your space in Pune, Maharashtra</p>
+
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+            <h3 className="font-semibold text-orange-900 mb-2">Service Location</h3>
+            <p className="text-sm text-orange-800">
+              Currently available only in Pune, Maharashtra, India
+            </p>
+          </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-blue-900 mb-2">Pricing Information</h3>
@@ -346,15 +371,60 @@ export default function WallpaperOrder() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address <span className="text-red-500">*</span>
+                  Street Address <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   required
-                  rows={3}
+                  rows={2}
                   value={formData.customer_address}
                   onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
+                  placeholder="House/Flat No, Building Name, Street Name"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.customer_city}
+                    readOnly
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Service available only in Pune</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    State <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.customer_state}
+                    readOnly
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Pincode <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    pattern="[0-9]{6}"
+                    value={formData.customer_pincode}
+                    onChange={(e) => setFormData({ ...formData, customer_pincode: e.target.value })}
+                    placeholder="411001"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
