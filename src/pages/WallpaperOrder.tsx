@@ -51,13 +51,11 @@ export default function WallpaperOrder() {
   const [uploadingPayment, setUploadingPayment] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
+    if (user) {
+      fetchCustomerData();
+      fetchOrders();
     }
-    fetchCustomerData();
-    fetchOrders();
-  }, [user, navigate]);
+  }, [user]);
 
   const fetchCustomerData = async () => {
     if (!user) return;
@@ -176,8 +174,8 @@ export default function WallpaperOrder() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!customerId) {
-      alert('Customer information not found. Please complete your profile first.');
+    if (!user) {
+      alert('Please login to place an order');
       return;
     }
 
@@ -202,12 +200,32 @@ export default function WallpaperOrder() {
         return;
       }
 
+      let finalCustomerId = customerId;
+
+      if (!customerId) {
+        const { data: newCustomer, error: customerError } = await supabase
+          .from('customers')
+          .insert({
+            user_id: user.id,
+            name: formData.customer_name,
+            phone: formData.customer_phone,
+            address: formData.customer_address,
+            email: user.email
+          })
+          .select()
+          .single();
+
+        if (customerError) throw customerError;
+        finalCustomerId = newCustomer.id;
+        setCustomerId(newCustomer.id);
+      }
+
       const filteredImages = formData.reference_images.filter(img => img.trim() !== '');
 
       const { error } = await supabase
         .from('wallpaper_orders')
         .insert({
-          customer_id: customerId,
+          customer_id: finalCustomerId,
           customer_name: formData.customer_name,
           customer_phone: formData.customer_phone,
           customer_address: formData.customer_address,
@@ -269,17 +287,23 @@ export default function WallpaperOrder() {
             </ul>
           </div>
 
-          {!showForm && (
+          {!user ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-800 text-center">
+                Please login to place a wallpaper order
+              </p>
+            </div>
+          ) : !showForm ? (
             <button
               onClick={() => setShowForm(true)}
               className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
               Place New Order
             </button>
-          )}
+          ) : null}
         </div>
 
-        {showForm && (
+        {user && showForm && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">New Order</h2>
@@ -531,8 +555,9 @@ export default function WallpaperOrder() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">My Orders</h2>
+        {user && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">My Orders</h2>
 
           {orders.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
@@ -622,7 +647,8 @@ export default function WallpaperOrder() {
               ))}
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
