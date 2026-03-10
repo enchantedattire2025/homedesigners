@@ -42,6 +42,8 @@ import SharePhotoForm from './pages/SharePhotoForm';
 import ClearSession from './pages/ClearSession';
 import DesignTool from './pages/DesignTool';
 import EmailConfirmation from './pages/EmailConfirmation';
+import WallpaperOrder from './pages/WallpaperOrder';
+import AdminWallpaperOrders from './pages/AdminWallpaperOrders';
 import { forceLogoutAll } from './utils/clearAuth';
 import { debugAuthState } from './utils/debugDesigner';
 
@@ -146,6 +148,7 @@ function App() {
             <Route path="/admin/subscriptions" element={<AdminSubscriptionManagement />} />
             <Route path="/admin/video" element={<AdminVideoManagement />} />
             <Route path="/admin/whatsapp" element={<AdminWhatsAppSettings />} />
+            <Route path="/admin/wallpaper-orders" element={<AdminWallpaperOrders />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin-signup" element={<AdminSignup />} />
             <Route path="/debug" element={<DebugPage />} />
@@ -153,6 +156,7 @@ function App() {
             <Route path="/share-photo" element={<SharePhotoForm />} />
             <Route path="/clear-session" element={<ClearSession />} />
             <Route path="/design-tool" element={<DesignTool />} />
+            <Route path="/wallpaper-order" element={<WallpaperOrder />} />
             <Route path="/auth/confirm" element={<EmailConfirmation />} />
           </Routes>
         </main>

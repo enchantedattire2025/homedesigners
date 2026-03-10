@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Home as HomeIcon, User, LogOut, Palette, UserPlus, Edit, Loader2, FolderOpen, Users, BarChart3, FileText, Shield, Ruler } from 'lucide-react';
+import { Menu, X, Home as HomeIcon, User, LogOut, Palette, UserPlus, Edit, Loader2, FolderOpen, Users, BarChart3, FileText, Shield, Ruler, Wallpaper } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { useUserRegistrationStatus } from '../hooks/useUserRegistrationStatus';
@@ -26,6 +26,7 @@ const Header = () => {
     { name: 'Projects', href: '/projects' },
     { name: 'Gallery', href: '/gallery' },
     { name: 'Materials', href: '/materials' },
+    { name: '3D Wallpaper', href: '/wallpaper-order' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -222,6 +223,16 @@ const Header = () => {
                                 <BarChart3 className="w-4 h-4" />
                                 <span>Manage Deals</span>
                               </button>
+                              <button
+                                onClick={() => {
+                                  navigate('/admin/wallpaper-orders');
+                                  setShowUserMenu(false);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                              >
+                                <Wallpaper className="w-4 h-4" />
+                                <span>Wallpaper Orders</span>
+                              </button>
                             </>
                           ) : isDesigner && designer?.verification_status === 'verified' ? (
                             <>
@@ -399,6 +410,16 @@ const Header = () => {
                             >
                               <BarChart3 className="w-4 h-4" />
                               <span>Manage Deals</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                navigate('/admin/wallpaper-orders');
+                                setIsMenuOpen(false);
+                              }}
+                              className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 flex items-center space-x-2"
+                            >
+                              <Wallpaper className="w-4 h-4" />
+                              <span>Wallpaper Orders</span>
                             </button>
                           </>
                         ) : isDesigner ? (
