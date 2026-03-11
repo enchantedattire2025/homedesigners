@@ -43,6 +43,7 @@ import ClearSession from './pages/ClearSession';
 import DesignTool from './pages/DesignTool';
 import EmailConfirmation from './pages/EmailConfirmation';
 import WallpaperOrder from './pages/WallpaperOrder';
+import WallpaperGallery from './pages/WallpaperGallery';
 import AdminWallpaperOrders from './pages/AdminWallpaperOrders';
 import { forceLogoutAll } from './utils/clearAuth';
 import { debugAuthState } from './utils/debugDesigner';
@@ -156,6 +157,7 @@ function App() {
             <Route path="/share-photo" element={<SharePhotoForm />} />
             <Route path="/clear-session" element={<ClearSession />} />
             <Route path="/design-tool" element={<DesignTool />} />
+            <Route path="/wallpaper-gallery" element={<WallpaperGallery />} />
             <Route path="/wallpaper-order" element={<WallpaperOrder />} />
             <Route path="/auth/confirm" element={<EmailConfirmation />} />
           </Routes>
