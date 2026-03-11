@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Trash2, Edit2, Eye, EyeOff, Plus, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Upload, Trash2, CreditCard as Edit2, Eye, EyeOff, Plus, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
