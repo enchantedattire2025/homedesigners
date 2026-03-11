@@ -233,6 +233,16 @@ const Header = () => {
                                 <Wallpaper className="w-4 h-4" />
                                 <span>Wallpaper Orders</span>
                               </button>
+                              <button
+                                onClick={() => {
+                                  navigate('/admin/3d-wallpapers');
+                                  setShowUserMenu(false);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                              >
+                                <Wallpaper className="w-4 h-4" />
+                                <span>Manage 3D Wallpapers</span>
+                              </button>
                             </>
                           ) : isDesigner && designer?.verification_status === 'verified' ? (
                             <>
@@ -420,6 +430,16 @@ const Header = () => {
                             >
                               <Wallpaper className="w-4 h-4" />
                               <span>Wallpaper Orders</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                navigate('/admin/3d-wallpapers');
+                                setIsMenuOpen(false);
+                              }}
+                              className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 flex items-center space-x-2"
+                            >
+                              <Wallpaper className="w-4 h-4" />
+                              <span>Manage 3D Wallpapers</span>
                             </button>
                           </>
                         ) : isDesigner ? (
