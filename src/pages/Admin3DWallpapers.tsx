@@ -31,7 +31,7 @@ const CATEGORIES = [
 
 export default function Admin3DWallpapers() {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [wallpapers, setWallpapers] = useState<Wallpaper[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -49,11 +49,19 @@ export default function Admin3DWallpapers() {
 
   useEffect(() => {
     console.log('Admin3DWallpapers - Auth check:', {
+      authLoading,
       hasUser: !!user,
       isAdmin,
       userId: user?.id
     });
 
+    // Wait for auth to finish loading
+    if (authLoading) {
+      console.log('Auth still loading, waiting...');
+      return;
+    }
+
+    // Now check authorization
     if (!user || !isAdmin) {
       console.log('Not authorized, redirecting to admin login');
       navigate('/admin-login');
@@ -62,7 +70,7 @@ export default function Admin3DWallpapers() {
 
     console.log('Admin authorized, fetching wallpapers');
     fetchWallpapers();
-  }, [user, isAdmin, navigate]);
+  }, [authLoading, user, isAdmin, navigate]);
 
   const fetchWallpapers = async () => {
     try {
@@ -253,10 +261,14 @@ export default function Admin3DWallpapers() {
     setImagePreview(null);
   };
 
-  if (loading) {
+  // Show loading while auth is being checked
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
+          <p className="text-gray-600">{authLoading ? 'Checking authorization...' : 'Loading wallpapers...'}</p>
+        </div>
       </div>
     );
   }

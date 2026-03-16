@@ -41,7 +41,7 @@ interface DesignerSubscription {
 
 const AdminSubscriptionManagement: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<SubscriptionStats>({
     totalSubscriptions: 0,
@@ -57,8 +57,12 @@ const AdminSubscriptionManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     checkAdminAccess();
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
     filterSubscriptions();
@@ -185,12 +189,12 @@ const AdminSubscriptionManagement: React.FC = () => {
     }).format(amount);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading subscription data...</p>
+          <p className="mt-4 text-gray-600">{authLoading ? 'Checking authorization...' : 'Loading subscription data...'}</p>
         </div>
       </div>
     );

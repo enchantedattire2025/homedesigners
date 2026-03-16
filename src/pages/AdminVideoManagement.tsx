@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Video, Save, Upload, Youtube, Link as LinkIcon, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 interface VideoSettings {
   id: string;
@@ -12,6 +13,7 @@ interface VideoSettings {
 }
 
 const AdminVideoManagement = () => {
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,8 +27,17 @@ const AdminVideoManagement = () => {
   });
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!user) {
+      navigate('/admin-login');
+      return;
+    }
+
     fetchVideoSettings();
-  }, []);
+  }, [user, authLoading]);
 
   const fetchVideoSettings = async () => {
     try {
@@ -98,10 +109,13 @@ const AdminVideoManagement = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">{authLoading ? 'Checking authorization...' : 'Loading video settings...'}</p>
+        </div>
       </div>
     );
   }

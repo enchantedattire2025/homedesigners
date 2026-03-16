@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Star, Tag } from 'lucide-react';
+import { Plus, CreditCard as Edit2, Trash2, Eye, EyeOff, Star, Tag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 interface Designer {
@@ -50,7 +50,7 @@ interface DealFormData {
 }
 
 export default function AdminDealsManagement() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [designers, setDesigners] = useState<Designer[]>([]);
@@ -77,12 +77,16 @@ export default function AdminDealsManagement() {
   });
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     if (user) {
       checkAdminStatus();
     } else if (user === null) {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -301,12 +305,12 @@ export default function AdminDealsManagement() {
     });
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admin panel...</p>
+          <p className="text-gray-600">{authLoading ? 'Checking authorization...' : 'Loading admin panel...'}</p>
         </div>
       </div>
     );

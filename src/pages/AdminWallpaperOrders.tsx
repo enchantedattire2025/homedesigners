@@ -32,7 +32,7 @@ interface WallpaperOrder {
 
 export default function AdminWallpaperOrders() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<WallpaperOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<WallpaperOrder | null>(null);
@@ -43,8 +43,12 @@ export default function AdminWallpaperOrders() {
   const [adminNotes, setAdminNotes] = useState('');
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     checkAdminAndFetchOrders();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const checkAdminAndFetchOrders = async () => {
     if (!user) {
@@ -189,12 +193,12 @@ export default function AdminWallpaperOrders() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading orders...</p>
+          <p className="text-gray-600">{authLoading ? 'Checking authorization...' : 'Loading orders...'}</p>
         </div>
       </div>
     );
