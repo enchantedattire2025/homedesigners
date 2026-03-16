@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { useUserRegistrationStatus } from '../hooks/useUserRegistrationStatus';
 import AuthModal from './AuthModal';
+import NotificationBell from './NotificationBell';
 import { adminLogout, customerDesignerLogout } from '../utils/clearAuth';
 import { detectUserTypeAndRedirect } from '../utils/userTypeDetection';
 
@@ -178,26 +179,28 @@ const Header = () => {
             {/* Auth Section */}
             <div className="hidden md:flex items-center space-x-4">
               {user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    {isDesigner && designer?.profile_image ? (
-                      <img
-                        src={designer.profile_image}
-                        alt={designer.name}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                    <span className="text-sm font-medium text-gray-700">
-                      {user.user_metadata?.name || user.email}
-                    </span>
-                  </button>
+                <>
+                  <NotificationBell />
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      {isDesigner && designer?.profile_image ? (
+                        <img
+                          src={designer.profile_image}
+                          alt={designer.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                      <span className="text-sm font-medium text-gray-700">
+                        {user.user_metadata?.name || user.email}
+                      </span>
+                    </button>
 
                   {showUserMenu && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
@@ -350,7 +353,8 @@ const Header = () => {
                       </button>
                     </div>
                   )}
-                </div>
+                  </div>
+                </>
               ) : (
                 <button
                   onClick={() => {
