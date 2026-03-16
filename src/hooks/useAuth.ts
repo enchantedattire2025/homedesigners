@@ -11,28 +11,47 @@ export const useAuth = () => {
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
+      console.log('useAuth - Getting session...');
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('useAuth - Session:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        email: session?.user?.email
+      });
+
       setUser(session?.user ?? null);
 
       // Check if user is admin or designer
       if (session?.user) {
-        const { data: adminData } = await supabase
+        console.log('useAuth - Checking admin status for:', session.user.id);
+
+        const { data: adminData, error: adminError } = await supabase
           .from('admin_users')
-          .select('id')
+          .select('id, is_active')
           .eq('user_id', session.user.id)
           .eq('is_active', true)
           .maybeSingle();
 
-        const { data: designerData } = await supabase
+        console.log('useAuth - Admin check result:', { adminData, adminError });
+
+        const { data: designerData, error: designerError } = await supabase
           .from('designers')
-          .select('id')
+          .select('id, is_active')
           .eq('user_id', session.user.id)
           .eq('is_active', true)
           .maybeSingle();
+
+        console.log('useAuth - Designer check result:', { designerData, designerError });
 
         setIsAdmin(!!adminData);
         setIsDesigner(!!designerData);
+
+        console.log('useAuth - Final state:', {
+          isAdmin: !!adminData,
+          isDesigner: !!designerData
+        });
       } else {
+        console.log('useAuth - No session, clearing admin/designer flags');
         setIsAdmin(false);
         setIsDesigner(false);
       }

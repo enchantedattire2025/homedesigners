@@ -46,6 +46,7 @@ import WallpaperOrder from './pages/WallpaperOrder';
 import WallpaperGallery from './pages/WallpaperGallery';
 import AdminWallpaperOrders from './pages/AdminWallpaperOrders';
 import Admin3DWallpapers from './pages/Admin3DWallpapers';
+import AdminAuthDebug from './pages/AdminAuthDebug';
 import { forceLogoutAll } from './utils/clearAuth';
 import { debugAuthState } from './utils/debugDesigner';
 
@@ -152,6 +153,7 @@ function App() {
             <Route path="/admin/whatsapp" element={<AdminWhatsAppSettings />} />
             <Route path="/admin/wallpaper-orders" element={<AdminWallpaperOrders />} />
             <Route path="/admin/3d-wallpapers" element={<Admin3DWallpapers />} />
+            <Route path="/admin/auth-debug" element={<AdminAuthDebug />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin-signup" element={<AdminSignup />} />
             <Route path="/debug" element={<DebugPage />} />
