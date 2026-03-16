@@ -24,12 +24,23 @@ export default function NotificationBell() {
     markAsRead(notification.id);
     setIsOpen(false);
 
-    // Navigate based on reference type
+    // Navigate based on reference type and user type
     if (notification.reference_type === 'project') {
-      navigate(`/projects/${notification.reference_id}`);
+      if (notification.user_type === 'designer') {
+        // Designer views project in customer projects page
+        navigate('/customer-projects');
+      } else {
+        // Customer views their own project
+        navigate(`/customer-projects`);
+      }
     } else if (notification.reference_type === 'quotation') {
-      // Navigate to quotes page
-      navigate('/customer/quotes');
+      if (notification.user_type === 'designer') {
+        // Designer views their quotes
+        navigate('/designer-quotes');
+      } else {
+        // Customer views their quotes
+        navigate('/customer-quotes');
+      }
     }
   };
 
