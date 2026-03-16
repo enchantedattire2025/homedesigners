@@ -48,27 +48,42 @@ export default function Admin3DWallpapers() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('Admin3DWallpapers - Auth check:', {
+      hasUser: !!user,
+      isAdmin,
+      userId: user?.id
+    });
+
     if (!user || !isAdmin) {
+      console.log('Not authorized, redirecting to admin login');
       navigate('/admin-login');
       return;
     }
 
+    console.log('Admin authorized, fetching wallpapers');
     fetchWallpapers();
   }, [user, isAdmin, navigate]);
 
   const fetchWallpapers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching wallpapers...');
+
       const { data, error } = await supabase
         .from('wallpapers_3d')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Wallpapers fetched:', data);
       setWallpapers(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching wallpapers:', error);
-      alert('Failed to load wallpapers');
+      alert(`Failed to load wallpapers: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -91,16 +106,22 @@ export default function Admin3DWallpapers() {
     const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
     const filePath = fileName;
 
+    console.log('Uploading image:', { fileName, fileSize: file.size });
+
     const { error: uploadError } = await supabase.storage
       .from('wallpaper-images')
       .upload(filePath, file);
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw uploadError;
+    }
 
     const { data: { publicUrl } } = supabase.storage
       .from('wallpaper-images')
       .getPublicUrl(filePath);
 
+    console.log('Image uploaded successfully:', publicUrl);
     return publicUrl;
   };
 
@@ -114,6 +135,7 @@ export default function Admin3DWallpapers() {
 
     try {
       setUploading(true);
+      console.log('Submitting wallpaper...', { editMode: !!editingWallpaper });
 
       let imageUrl = editingWallpaper?.image_url || '';
 
@@ -130,28 +152,36 @@ export default function Admin3DWallpapers() {
         created_by: user?.id
       };
 
+      console.log('Saving wallpaper data:', wallpaperData);
+
       if (editingWallpaper) {
         const { error } = await supabase
           .from('wallpapers_3d')
           .update(wallpaperData)
           .eq('id', editingWallpaper.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         alert('Wallpaper updated successfully!');
       } else {
         const { error } = await supabase
           .from('wallpapers_3d')
           .insert([wallpaperData]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         alert('Wallpaper added successfully!');
       }
 
       closeModal();
       fetchWallpapers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving wallpaper:', error);
-      alert('Failed to save wallpaper');
+      alert(`Failed to save wallpaper: ${error.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
