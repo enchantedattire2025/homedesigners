@@ -383,36 +383,49 @@ const DesignerQuoteGenerator = () => {
         ...updatedItems[index],
         [field]: value
       };
-      
-      // Recalculate amount if quantity, unit_price, or discount_percent changes
-      if (field === 'quantity' || field === 'unit_price' || field === 'discount_percent') {
-        const item = updatedItems[index];
+
+      const item = updatedItems[index];
+
+      // Check if unit is area-based (should auto-calculate quantity from length x breadth)
+      const isAreaBasedUnit = ['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase());
+
+      // Auto-calculate quantity if length or breadth changes for area-based units
+      if (isAreaBasedUnit && (field === 'length' || field === 'breadth' || field === 'unit')) {
+        const length = parseFloat(String(item.length || 0));
+        const breadth = parseFloat(String(item.breadth || 0));
+
+        if (length > 0 && breadth > 0) {
+          item.quantity = length * breadth;
+        }
+      }
+
+      // Recalculate amount if quantity, unit_price, discount_percent, length, or breadth changes
+      if (field === 'quantity' || field === 'unit_price' || field === 'discount_percent' ||
+          field === 'length' || field === 'breadth' || field === 'unit') {
         const discountMultiplier = 1 - (item.discount_percent / 100);
         item.amount = item.quantity * item.unit_price * discountMultiplier;
       }
-      
+
       // If material_id changes, update other fields from the selected material
       if (field === 'material_id' && value) {
         const material = materials.find(m => m.id === value);
         if (material) {
+          const unitPrice = material.is_discounted && material.discount_price !== null
+            ? material.discount_price
+            : material.base_price;
+
           updatedItems[index] = {
             ...updatedItems[index],
             material_id: material.id,
             name: material.name,
             description: material.description || '',
             unit: material.unit,
-            unit_price: material.is_discounted && material.discount_price !== null 
-              ? material.discount_price 
-              : material.base_price,
-            amount: updatedItems[index].quantity * (
-              material.is_discounted && material.discount_price !== null 
-                ? material.discount_price 
-                : material.base_price
-            ) * (1 - (updatedItems[index].discount_percent / 100))
+            unit_price: unitPrice,
+            amount: updatedItems[index].quantity * unitPrice * (1 - (updatedItems[index].discount_percent / 100))
           };
         }
       }
-      
+
       return {
         ...prev,
         items: updatedItems
@@ -1020,7 +1033,9 @@ const DesignerQuoteGenerator = () => {
                           
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Quantity *
+                              Quantity * {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth &&
+                                <span className="text-xs text-green-600 font-normal">(Auto-calculated)</span>
+                              }
                             </label>
                             <input
                               type="number"
@@ -1028,9 +1043,23 @@ const DesignerQuoteGenerator = () => {
                               onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
                               min="0.01"
                               step="0.01"
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              readOnly={['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && !!(item.length && item.breadth)}
+                              className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                                ['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth
+                                  ? 'bg-gray-50 cursor-not-allowed'
+                                  : ''
+                              }`}
+                              title={['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth
+                                ? 'Quantity is auto-calculated from length × breadth'
+                                : ''
+                              }
                               required
                             />
+                            {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {item.length} × {item.breadth} = {item.quantity.toFixed(2)} {item.unit}
+                              </p>
+                            )}
                           </div>
                           
                           <div>
@@ -1048,7 +1077,9 @@ const DesignerQuoteGenerator = () => {
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Length
+                              Length {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) &&
+                                <span className="text-xs text-blue-600 font-normal">(for auto-calc)</span>
+                              }
                             </label>
                             <input
                               type="number"
@@ -1063,7 +1094,9 @@ const DesignerQuoteGenerator = () => {
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Breadth
+                              Breadth {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) &&
+                                <span className="text-xs text-blue-600 font-normal">(for auto-calc)</span>
+                              }
                             </label>
                             <input
                               type="number"
