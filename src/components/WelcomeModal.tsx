@@ -50,20 +50,25 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose, userType }
         ) : (
           <div>
             <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-              Thank you for registering your project! Our expert designers will review your 
-              requirements and get in touch with you soon to bring your vision to life.
+              Congratulations! Your project has been created successfully.
+              Now it's time to find the perfect designer to bring your vision to life.
             </p>
             <div className="bg-secondary-50 rounded-lg p-4 mb-6">
               <div className="flex items-center space-x-3 text-secondary-800">
                 <Heart className="w-5 h-5" />
-                <span className="font-medium">What happens next?</span>
+                <span className="font-medium">Next Steps:</span>
               </div>
               <ul className="mt-2 text-sm text-secondary-700 space-y-1 text-left">
-                <li>• Browse and connect with designers</li>
-                <li>• Share your project with specific designers</li>
-                <li>• Track your project progress</li>
-                <li>• Collaborate with your assigned designer</li>
+                <li>• Browse our expert designers and their portfolios</li>
+                <li>• Select a designer that matches your style and budget</li>
+                <li>• Assign your project to your chosen designer</li>
+                <li>• Receive quotations and collaborate to finalize design</li>
               </ul>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-left">
+              <p className="text-xs text-blue-800 font-medium">
+                💡 Tip: Visit the "Designers" page to explore profiles, view portfolios, and assign your project to the designer of your choice.
+              </p>
             </div>
           </div>
         )}
