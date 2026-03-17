@@ -31,68 +31,8 @@ const Gallery = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const categories = [
-    'All', 'Living Room', 'Kitchen', 'Bedroom', 'Dining Room', 'Bathroom', 
+    'All', 'Living Room', 'Kitchen', 'Bedroom', 'Dining Room', 'Bathroom',
     'Office', 'Entryway', 'Pooja Room', 'Kids Room', 'Other'
-  ];
-  
-  // Mock data for initial display [cite: 9]
-  const mockGalleryItems: GalleryItem[] = [
-    {
-      id: 'mock-1',
-      title: 'Modern Living Room',
-      designer: 'Priya Sharma',
-      designerId: '550e8400-e29b-41d4-a716-446655440001', 
-      location: 'Mumbai',
-      category: 'Living Room',
-      date: 'March 2024',
-      image: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'A contemporary living space with clean lines and neutral tones.',
-      materials: ['Italian Marble', 'Teak Wood', 'LED Lighting'], // [cite: 10]
-      projectId: 'proj1',
-      is_approved: true
-    },
-    {
-      id: 'mock-2',
-      title: 'Traditional Kitchen',
-      designer: 'Rajesh Kumar',
-      designerId: '550e8400-e29b-41d4-a716-446655440002',
-      location: 'Delhi',
-      category: 'Kitchen',
-      date: 'February 2024',
-      image: 'https://images.pexels.com/photos/1571453/pexels-photo-1571453.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'Classic Indian kitchen design with modern functionality.', // [cite: 11]
-      materials: ['Granite Counters', 'Sheesham Wood', 'Brass Hardware'], // [cite: 11]
-      projectId: 'proj2',
-      is_approved: true
-    },
-     {
-      id: 'mock-3',
-      title: 'Minimalist Bedroom',
-      designer: 'Anita Desai',
-      designerId: '550e8400-e29b-41d4-a716-446655440003',
-      location: 'Bangalore',
-      category: 'Bedroom',
-      date: 'April 2024',
-      image: 'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=800', // [cite: 12]
-      description: 'Serene bedroom with clean aesthetics and natural materials.',
-      materials: ['Bamboo Flooring', 'Linen Fabrics', 'Natural Wood'],
-      projectId: 'proj3',
-      is_approved: true
-    },
-    {
-      id: 'mock-4',
-      title: 'Luxury Dining Room',
-      designer: 'Vikram Singh',
-      designerId: '550e8400-e29b-41d4-a716-446655440004',
-      location: 'Gurgaon',
-      category: 'Dining Room',
-      date: 'January 2024', // [cite: 13]
-      image: 'https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=800',
-      description: 'Opulent dining space with crystal chandeliers and marble finishes.',
-      materials: ['Carrara Marble', 'Crystal Chandelier', 'Velvet Upholstery'],
-      projectId: 'proj4',
-      is_approved: true
-    },
   ];
 
   useEffect(() => {
@@ -103,41 +43,81 @@ const Gallery = () => {
     try {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase
-        .from('shared_gallery_items')
+
+      // Fetch completed projects with their images and designer info
+      const { data: projects, error: projectsError } = await supabase
+        .from('customers')
         .select(`
-          *,
-          designer:designers(id, name)
+          id,
+          project_name,
+          location,
+          property_type,
+          requirements,
+          room_types,
+          work_end_date,
+          designers!customers_assigned_designer_id_fkey(
+            id,
+            name
+          ),
+          project_images(
+            id,
+            image_url,
+            caption,
+            is_primary,
+            display_order
+          )
         `)
-        .eq('is_approved', false) // Changed to 'true' to show approved items
-        .order('created_at', { ascending: false });
+        .eq('assignment_status', 'completed')
+        .order('work_end_date', { ascending: false });
 
-      if (error) throw error; // [cite: 17]
+      if (projectsError) throw projectsError;
 
-      const sharedItems: GalleryItem[] = (data || []).map(item => ({
-        id: item.id,
-        title: item.title,
-        designer: item.designer?.name || 'Unknown Designer',
-        designerId: item.designer?.id || '',
-        location: item.location,
-        category: item.category,
-        date: new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-        image: item.image_url,
-        description: item.description || '', // [cite: 19]
-        // NEW: Added this line to read materials from the fetched data.
-        materials: item.materials || [],
-        is_approved: item.is_approved
-      }));
+      // Transform completed projects into gallery items
+      const completedProjectItems: GalleryItem[] = (projects || [])
+        .filter(project => project.project_images && project.project_images.length > 0)
+        .map(project => {
+          // Get primary image or first image
+          const primaryImage = project.project_images.find((img: any) => img.is_primary) || project.project_images[0];
 
-      // Combine mock data with fetched data [cite: 20]
-      setAllGalleryItems([...mockGalleryItems, ...sharedItems]);
+          // Determine category from room_types or property_type
+          let category = 'Other';
+          if (project.room_types && project.room_types.length > 0) {
+            const roomType = project.room_types[0];
+            if (roomType.includes('Living')) category = 'Living Room';
+            else if (roomType.includes('Kitchen')) category = 'Kitchen';
+            else if (roomType.includes('Bedroom')) category = 'Bedroom';
+            else if (roomType.includes('Dining')) category = 'Dining Room';
+            else if (roomType.includes('Bathroom')) category = 'Bathroom';
+            else if (roomType.includes('Office')) category = 'Office';
+            else if (roomType.includes('Pooja')) category = 'Pooja Room';
+            else if (roomType.includes('Kids')) category = 'Kids Room';
+            else category = roomType;
+          }
+
+          return {
+            id: project.id,
+            title: project.project_name,
+            designer: project.designers?.name || 'Unknown Designer',
+            designerId: project.designers?.id || '',
+            location: project.location,
+            category: category,
+            date: project.work_end_date
+              ? new Date(project.work_end_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+              : 'Recently',
+            image: primaryImage.image_url,
+            description: project.requirements || 'Beautifully designed space',
+            projectId: project.id,
+            is_approved: true
+          };
+        });
+
+      setAllGalleryItems(completedProjectItems);
     } catch (error: any) {
-      console.error('Error fetching gallery items:', error); // [cite: 21]
-      setError(error.message || 'Failed to load gallery items'); // [cite: 22]
-      // Fallback to only mock data if there's an error [cite: 22]
-      setAllGalleryItems(mockGalleryItems);
+      console.error('Error fetching gallery items:', error);
+      setError(error.message || 'Failed to load gallery items');
+      setAllGalleryItems([]);
     } finally {
-      setLoading(false); // [cite: 23]
+      setLoading(false);
     }
   };
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, IndianRupee as Rupee, Clock, User, Mail, Phone, MessageSquare, ArrowLeft, Loader2, AlertCircle, RefreshCw, FileText, Upload, Eye, BarChart3, Users, Star, TrendingUp, CheckCircle, Award, Target, Activity, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, Filter, Search, Edit, Trash2, Send, Plus } from 'lucide-react';
+import { Calendar, MapPin, IndianRupee as Rupee, Clock, User, Mail, Phone, MessageSquare, ArrowLeft, Loader2, AlertCircle, RefreshCw, FileText, Upload, Eye, BarChart3, Users, Star, TrendingUp, CheckCircle, Award, Target, Activity, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, Filter, Search, CreditCard as Edit, Trash2, Send, Plus, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
+import ProjectImageUploader from '../components/ProjectImageUploader';
 
 interface ProjectShare {
   id: string;
@@ -75,6 +76,8 @@ const CustomerProjects = () => {
   const [acceptedQuotes, setAcceptedQuotes] = useState<any[]>([]);
   const [projectQuotes, setProjectQuotes] = useState<Record<string, any>>({});
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [showImageUploader, setShowImageUploader] = useState(false);
+  const [selectedProjectForUpload, setSelectedProjectForUpload] = useState<AssignedProject | null>(null);
 
 interface Quote {
   id: string;
@@ -739,7 +742,18 @@ interface Quote {
                       >
                         <Upload className="w-4 h-4" />
                       </button>
-
+                      {project.assignment_status === 'completed' && (
+                        <button
+                          onClick={() => {
+                            setSelectedProjectForUpload(project);
+                            setShowImageUploader(true);
+                          }}
+                          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg font-medium transition-colors"
+                          title="Upload Gallery Images"
+                        >
+                          <ImageIcon className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1074,6 +1088,21 @@ interface Quote {
     </div>
   </div>
 )}
+
+      {/* Image Uploader Modal */}
+      {showImageUploader && selectedProjectForUpload && (
+        <ProjectImageUploader
+          projectId={selectedProjectForUpload.id}
+          projectName={selectedProjectForUpload.project_name}
+          onClose={() => {
+            setShowImageUploader(false);
+            setSelectedProjectForUpload(null);
+          }}
+          onUploadComplete={() => {
+            fetchProjects();
+          }}
+        />
+      )}
 
     </div>
   );
