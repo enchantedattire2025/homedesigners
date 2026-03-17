@@ -44,74 +44,90 @@ const Gallery = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch completed projects with their images and designer info
-      const { data: projects, error: projectsError } = await supabase
-        .from('customers')
-        .select(`
-          id,
-          project_name,
-          location,
-          property_type,
-          requirements,
-          room_types,
-          work_end_date,
-          designers!customers_assigned_designer_id_fkey(
-            id,
-            name
-          ),
-          project_images(
-            id,
-            image_url,
-            caption,
-            is_primary,
-            display_order
-          )
-        `)
-        .eq('assignment_status', 'completed')
-        .order('work_end_date', { ascending: false });
+      // Gallery now shows demo/stock images only
+      // Real project images are shown in the Projects Portfolio page instead
+      const demoGalleryItems: GalleryItem[] = [
+        {
+          id: 'gallery-1',
+          title: 'Modern Living Room Design',
+          designer: 'Priya Sharma',
+          designerId: 'designer-1',
+          location: 'Mumbai',
+          category: 'Living Room',
+          date: 'January 2024',
+          image: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
+          description: 'Contemporary living space with minimalist aesthetics and premium finishes',
+          materials: ['Italian Marble', 'LED Lighting', 'Designer Furniture', 'Premium Paint'],
+          is_approved: true
+        },
+        {
+          id: 'gallery-2',
+          title: 'Luxury Kitchen Interior',
+          designer: 'Rajesh Kumar',
+          designerId: 'designer-2',
+          location: 'Delhi',
+          category: 'Kitchen',
+          date: 'February 2024',
+          image: 'https://images.pexels.com/photos/2724749/pexels-photo-2724749.jpeg?auto=compress&cs=tinysrgb&w=800',
+          description: 'Spacious modular kitchen with granite counters and modern appliances',
+          materials: ['Granite Counters', 'Modular Cabinets', 'Brass Fixtures', 'LED Strips'],
+          is_approved: true
+        },
+        {
+          id: 'gallery-3',
+          title: 'Elegant Bedroom Suite',
+          designer: 'Anita Desai',
+          designerId: 'designer-3',
+          location: 'Bangalore',
+          category: 'Bedroom',
+          date: 'March 2024',
+          image: 'https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=800',
+          description: 'Serene bedroom design with wooden accents and soft lighting',
+          materials: ['Teak Wood', 'Linen Fabrics', 'Ambient Lighting', 'Premium Paint'],
+          is_approved: true
+        },
+        {
+          id: 'gallery-4',
+          title: 'Contemporary Dining Space',
+          designer: 'Vikram Singh',
+          designerId: 'designer-4',
+          location: 'Gurgaon',
+          category: 'Dining Room',
+          date: 'April 2024',
+          image: 'https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=800',
+          description: 'Sophisticated dining area with statement chandelier and modern furniture',
+          materials: ['Marble Flooring', 'Designer Chandelier', 'Upholstered Chairs', 'Wall Art'],
+          is_approved: true
+        },
+        {
+          id: 'gallery-5',
+          title: 'Spa-Inspired Bathroom',
+          designer: 'Meera Reddy',
+          designerId: 'designer-5',
+          location: 'Hyderabad',
+          category: 'Bathroom',
+          date: 'May 2024',
+          image: 'https://images.pexels.com/photos/1454804/pexels-photo-1454804.jpeg?auto=compress&cs=tinysrgb&w=800',
+          description: 'Luxurious bathroom with premium fixtures and natural stone finishes',
+          materials: ['Ceramic Tiles', 'Brass Fixtures', 'Natural Stone', 'LED Mirrors'],
+          is_approved: true
+        },
+        {
+          id: 'gallery-6',
+          title: 'Modern Office Design',
+          designer: 'Arjun Patel',
+          designerId: 'designer-6',
+          location: 'Pune',
+          category: 'Office',
+          date: 'June 2024',
+          image: 'https://images.pexels.com/photos/1599791/pexels-photo-1599791.jpeg?auto=compress&cs=tinysrgb&w=800',
+          description: 'Productive workspace with ergonomic furniture and natural lighting',
+          materials: ['Ergonomic Furniture', 'Sound Panels', 'LED Lighting', 'Smart Storage'],
+          is_approved: true
+        }
+      ];
 
-      if (projectsError) throw projectsError;
-
-      // Transform completed projects into gallery items
-      const completedProjectItems: GalleryItem[] = (projects || [])
-        .filter(project => project.project_images && project.project_images.length > 0)
-        .map(project => {
-          // Get primary image or first image
-          const primaryImage = project.project_images.find((img: any) => img.is_primary) || project.project_images[0];
-
-          // Determine category from room_types or property_type
-          let category = 'Other';
-          if (project.room_types && project.room_types.length > 0) {
-            const roomType = project.room_types[0];
-            if (roomType.includes('Living')) category = 'Living Room';
-            else if (roomType.includes('Kitchen')) category = 'Kitchen';
-            else if (roomType.includes('Bedroom')) category = 'Bedroom';
-            else if (roomType.includes('Dining')) category = 'Dining Room';
-            else if (roomType.includes('Bathroom')) category = 'Bathroom';
-            else if (roomType.includes('Office')) category = 'Office';
-            else if (roomType.includes('Pooja')) category = 'Pooja Room';
-            else if (roomType.includes('Kids')) category = 'Kids Room';
-            else category = roomType;
-          }
-
-          return {
-            id: project.id,
-            title: project.project_name,
-            designer: project.designers?.name || 'Unknown Designer',
-            designerId: project.designers?.id || '',
-            location: project.location,
-            category: category,
-            date: project.work_end_date
-              ? new Date(project.work_end_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-              : 'Recently',
-            image: primaryImage.image_url,
-            description: project.requirements || 'Beautifully designed space',
-            projectId: project.id,
-            is_approved: true
-          };
-        });
-
-      setAllGalleryItems(completedProjectItems);
+      setAllGalleryItems(demoGalleryItems);
     } catch (error: any) {
       console.error('Error fetching gallery items:', error);
       setError(error.message || 'Failed to load gallery items');

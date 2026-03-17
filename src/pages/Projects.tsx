@@ -31,12 +31,13 @@ const Projects = () => {
       let projectsError = null;
 
       try {
-        // Try to fetch from the database first
+        // Try to fetch from the database first with project_images
         const { data, error } = await supabase
           .from('customers')
           .select(`
             *,
-            assigned_designer:designers(id, name, email, specialization, rating, total_reviews, experience, profile_image)
+            assigned_designer:designers(id, name, email, specialization, rating, total_reviews, experience, profile_image),
+            project_images(id, image_url, caption, is_primary, display_order)
           `)
           .eq('assignment_status', 'completed')
           .order('updated_at', { ascending: false });
@@ -312,11 +313,21 @@ const Projects = () => {
   };
 
   const getProjectImage = (project: any) => {
-    // Use layout image if available, otherwise use default based on property type
+    // First priority: Use uploaded project_images (primary image or first image)
+    if (project.project_images && project.project_images.length > 0) {
+      const primaryImage = project.project_images.find((img: any) => img.is_primary);
+      if (primaryImage) {
+        return primaryImage.image_url;
+      }
+      // If no primary image, use the first image
+      return project.project_images[0].image_url;
+    }
+
+    // Second priority: Use layout image if available
     if (project.layout_image_url) {
       return project.layout_image_url;
     }
-    
+
     // Default images based on property type
     const imageMap: Record<string, string> = {
       '1 BHK Apartment': 'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=800',
@@ -328,7 +339,7 @@ const Projects = () => {
       'Commercial Space': 'https://images.pexels.com/photos/1599791/pexels-photo-1599791.jpeg?auto=compress&cs=tinysrgb&w=800',
       'Office': 'https://images.pexels.com/photos/1599791/pexels-photo-1599791.jpeg?auto=compress&cs=tinysrgb&w=800'
     };
-    
+
     return imageMap[project.property_type] || 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800';
   };
 
