@@ -30,12 +30,13 @@ const ProjectDetail = () => {
           .from('customers')
           .select(`
             *,
-            assigned_designer:designers(id, name, email, specialization, rating, total_reviews, experience, profile_image)
+            assigned_designer:designers(id, name, email, specialization, rating, total_reviews, experience, profile_image),
+            project_images(id, image_url, caption, is_primary, display_order)
           `)
           .eq('id', id)
           .eq('assignment_status', 'completed')
           .single();
-        
+
         projectData = data;
         projectError = error;
       } catch (dbError) {
@@ -77,27 +78,6 @@ const ProjectDetail = () => {
       }
 
 
-      // Fetch project updates to get completion photos
-      let updatesData = null;
-      
-      // Only try to fetch updates if we have real project data
-      if (projectData.id && typeof projectData.id === 'string' && projectData.id.includes('-')) {
-        try {
-          const { data, error: updatesError } = await supabase
-            .from('project_updates')
-            .select('*')
-            .eq('project_id', id)
-            .order('created_at', { ascending: false });
-          
-          if (!updatesError) {
-            updatesData = data;
-          }
-        } catch (updatesError) {
-          console.log('Could not fetch updates data');
-        }
-      }
-
-
       // Transform the data to match the existing component structure
       const transformedProject = {
         id: projectData.id,
@@ -108,17 +88,17 @@ const ProjectDetail = () => {
         location: projectData.location,
         budget: quoteData ? `₹${quoteData.total_amount.toLocaleString()}` : projectData.budget_range,
         duration: calculateProjectDuration(projectData.created_at, projectData.updated_at),
-        completedDate: new Date(projectData.updated_at).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
+        completedDate: new Date(projectData.updated_at).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
         }),
         area: projectData.project_area || 'Not specified',
         client: projectData.name,
         description: projectData.requirements,
         challenge: projectData.special_requirements || 'Creating a functional and beautiful space that meets all the client requirements within the specified budget and timeline.',
         solution: `Our team worked closely with ${projectData.name} to understand their vision and requirements. We implemented a comprehensive design solution that maximized the available space while incorporating their preferred style and functional needs.`,
-        images: extractProjectImages(updatesData),
+        images: extractProjectImages(projectData.project_images || []),
         materials: generateMaterialsFromQuote(quoteData),
         timeline: generateProjectTimeline(projectData.created_at, projectData.updated_at),
         tags: generateProjectTags(projectData),
@@ -304,62 +284,63 @@ const ProjectDetail = () => {
     }
   };
 
-  const extractProjectImages = (updates: any[]) => {
+  const extractProjectImages = (projectImages: any[]) => {
     const images = [];
     let imageId = 1;
 
-    // Add default project image
-    images.push({
-      id: imageId++,
-      url: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
-      title: 'Project Overview',
-      description: 'Complete project transformation'
-    });
+    // Extract images from project_images table (uploaded by designers)
+    if (projectImages && projectImages.length > 0) {
+      // Sort by display_order, then by is_primary
+      const sortedImages = [...projectImages].sort((a, b) => {
+        if (a.is_primary && !b.is_primary) return -1;
+        if (!a.is_primary && b.is_primary) return 1;
+        return (a.display_order || 0) - (b.display_order || 0);
+      });
 
-    // Extract images from project updates
-    if (updates && updates.length > 0) {
-      updates.forEach(update => {
-        if (update.photos && update.photos.length > 0) {
-          update.photos.forEach((photo: string, index: number) => {
-            images.push({
-              id: imageId++,
-              url: photo,
-              title: update.title || `Update ${imageId - 1}`,
-              description: update.description || 'Project progress update'
-            });
-          });
+      sortedImages.forEach((img: any) => {
+        images.push({
+          id: imageId++,
+          url: img.image_url,
+          title: img.caption || `Project Image ${imageId - 1}`,
+          description: img.caption || 'Project completion photo'
+        });
+      });
+    }
+
+    // Only add default images if no real images are available
+    if (images.length === 0) {
+      const defaultImages = [
+        {
+          url: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
+          title: 'Project Overview',
+          description: 'Complete project transformation'
+        },
+        {
+          url: 'https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=800',
+          title: 'Living Area',
+          description: 'Beautifully designed living space'
+        },
+        {
+          url: 'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=800',
+          title: 'Bedroom',
+          description: 'Comfortable and stylish bedroom design'
+        },
+        {
+          url: 'https://images.pexels.com/photos/1571461/pexels-photo-1571461.jpeg?auto=compress&cs=tinysrgb&w=800',
+          title: 'Kitchen',
+          description: 'Modern and functional kitchen space'
         }
+      ];
+
+      defaultImages.forEach(img => {
+        images.push({
+          id: imageId++,
+          ...img
+        });
       });
     }
 
-    // Add more default images if we have less than 4
-    const defaultImages = [
-      {
-        url: 'https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=800',
-        title: 'Living Area',
-        description: 'Beautifully designed living space'
-      },
-      {
-        url: 'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=800',
-        title: 'Bedroom',
-        description: 'Comfortable and stylish bedroom design'
-      },
-      {
-        url: 'https://images.pexels.com/photos/1571461/pexels-photo-1571461.jpeg?auto=compress&cs=tinysrgb&w=800',
-        title: 'Kitchen',
-        description: 'Modern and functional kitchen space'
-      }
-    ];
-
-    while (images.length < 4) {
-      const defaultImage = defaultImages[(images.length - 1) % defaultImages.length];
-      images.push({
-        id: imageId++,
-        ...defaultImage
-      });
-    }
-
-    return images.slice(0, 4); // Limit to 4 images
+    return images;
   };
 
   const generateMaterialsFromQuote = (quote: any) => {
