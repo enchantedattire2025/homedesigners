@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, X, Check, CheckCheck } from 'lucide-react';
+import { Bell, X, Check, CheckCheck, Trash2 } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useNavigate } from 'react-router-dom';
 
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -59,6 +60,11 @@ export default function NotificationBell() {
     return date.toLocaleDateString();
   };
 
+  const handleClearAll = () => {
+    clearAll();
+    setShowConfirm(false);
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -88,6 +94,16 @@ export default function NotificationBell() {
                 >
                   <CheckCheck className="w-4 h-4" />
                   Mark all read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
+                  title="Clear all notifications"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear all
                 </button>
               )}
               <button
@@ -160,6 +176,41 @@ export default function NotificationBell() {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Clear All Notifications?
+                </h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  This will permanently delete all your notifications. This action cannot be undone.
+                </p>
+                <div className="flex items-center gap-3 justify-end">
+                  <button
+                    onClick={() => setShowConfirm(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleClearAll}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
