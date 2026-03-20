@@ -64,12 +64,21 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose }) => {
     if (!videoInfo) return '';
 
     if (videoInfo.video_type === 'youtube') {
-      const videoId = videoInfo.video_url.includes('youtu.be')
-        ? videoInfo.video_url.split('/').pop()
-        : videoInfo.video_url.split('v=')[1]?.split('&')[0];
+      let videoId = '';
+
+      if (videoInfo.video_url.includes('/shorts/')) {
+        videoId = videoInfo.video_url.split('/shorts/')[1]?.split('?')[0];
+      } else if (videoInfo.video_url.includes('youtu.be')) {
+        videoId = videoInfo.video_url.split('/').pop()?.split('?')[0];
+      } else if (videoInfo.video_url.includes('embed/')) {
+        videoId = videoInfo.video_url.split('embed/')[1]?.split('?')[0];
+      } else {
+        videoId = videoInfo.video_url.split('v=')[1]?.split('&')[0];
+      }
+
       return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
     } else if (videoInfo.video_type === 'vimeo') {
-      const videoId = videoInfo.video_url.split('/').pop();
+      const videoId = videoInfo.video_url.split('/').pop()?.split('?')[0];
       return `https://player.vimeo.com/video/${videoId}?autoplay=1`;
     } else {
       return videoInfo.video_url;

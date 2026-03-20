@@ -97,12 +97,21 @@ const AdminVideoManagement = () => {
     if (!videoSettings.video_url) return '';
 
     if (videoSettings.video_type === 'youtube') {
-      const videoId = videoSettings.video_url.includes('youtu.be')
-        ? videoSettings.video_url.split('/').pop()
-        : videoSettings.video_url.split('v=')[1]?.split('&')[0];
+      let videoId = '';
+
+      if (videoSettings.video_url.includes('/shorts/')) {
+        videoId = videoSettings.video_url.split('/shorts/')[1]?.split('?')[0];
+      } else if (videoSettings.video_url.includes('youtu.be')) {
+        videoId = videoSettings.video_url.split('/').pop()?.split('?')[0];
+      } else if (videoSettings.video_url.includes('embed/')) {
+        videoId = videoSettings.video_url.split('embed/')[1]?.split('?')[0];
+      } else {
+        videoId = videoSettings.video_url.split('v=')[1]?.split('&')[0];
+      }
+
       return `https://www.youtube.com/embed/${videoId}`;
     } else if (videoSettings.video_type === 'vimeo') {
-      const videoId = videoSettings.video_url.split('/').pop();
+      const videoId = videoSettings.video_url.split('/').pop()?.split('?')[0];
       return `https://player.vimeo.com/video/${videoId}`;
     } else {
       return videoSettings.video_url;
@@ -219,7 +228,7 @@ const AdminVideoManagement = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               />
               <p className="text-sm text-gray-500 mt-1">
-                {videoSettings.video_type === 'youtube' && 'Enter the full YouTube video URL'}
+                {videoSettings.video_type === 'youtube' && 'Enter the full YouTube video URL (supports regular videos, Shorts, and youtu.be links)'}
                 {videoSettings.video_type === 'vimeo' && 'Enter the full Vimeo video URL'}
                 {videoSettings.video_type === 'hosted' && 'Enter the direct URL to your video file'}
               </p>
@@ -302,7 +311,7 @@ const AdminVideoManagement = () => {
           <ul className="text-sm text-blue-800 space-y-2 ml-7">
             <li>Use high-quality videos that showcase your platform effectively</li>
             <li>Keep the video duration between 1-3 minutes for optimal engagement</li>
-            <li>For YouTube videos, you can use either the full URL or the share link</li>
+            <li>For YouTube, you can use regular videos, Shorts, embed links, or youtu.be share links</li>
             <li>Test the video after saving to ensure it plays correctly</li>
             <li>Consider adding captions to make your video accessible</li>
           </ul>
