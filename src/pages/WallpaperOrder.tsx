@@ -306,7 +306,7 @@ export default function WallpaperOrder() {
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• Normal 3D Wallpaper: ₹150 per sq ft</li>
               <li>• Golden Foil 3D Wallpaper: ₹200 per sq ft</li>
-              <li>• 50% advance payment required</li>
+              <li>• 10% advance payment required</li>
               <li>• Preview will be provided before final confirmation</li>
               <li>• Delivery and execution at site after confirmation</li>
             </ul>
