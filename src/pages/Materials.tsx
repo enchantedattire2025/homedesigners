@@ -286,7 +286,7 @@ const Materials = () => {
       applications: ['Under cabinet lighting', 'Cove lighting', 'Accent lighting', 'Display lighting'],
       benefits: ['Energy efficient', 'Long lifespan', 'Flexible installation', 'Dimmable options'],
       considerations: ['Requires proper heat management', 'Quality varies widely', 'Driver compatibility'],
-      image: 'https://images.pexels.com/photos/5974397/pexels-photo-5974397.jpeg?auto=compress&cs=tinysrgb&w=400',
+      image: 'https://images.pexels.com/photos/1111318/pexels-photo-1111318.jpeg?auto=compress&cs=tinysrgb&w=400',
       priceRange: '₹200-800 per meter',
       durability: 8,
       maintenance: 'Low',
