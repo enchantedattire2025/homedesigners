@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Upload, Image as ImageIcon, AlertCircle, Check, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -27,13 +27,23 @@ interface WallpaperOrder {
   notes: string | null;
 }
 
+interface SelectedWallpaper {
+  id: string;
+  title: string;
+  description: string | null;
+  image_url: string;
+  category: string;
+}
+
 export default function WallpaperOrder() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [orders, setOrders] = useState<WallpaperOrder[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [selectedWallpaper, setSelectedWallpaper] = useState<SelectedWallpaper | null>(null);
 
   const [formData, setFormData] = useState({
     customer_name: '',
@@ -59,6 +69,20 @@ export default function WallpaperOrder() {
       fetchOrders();
     }
   }, [user]);
+
+  useEffect(() => {
+    const state = location.state as { selectedWallpaper?: SelectedWallpaper };
+    if (state?.selectedWallpaper) {
+      setSelectedWallpaper(state.selectedWallpaper);
+      setShowForm(true);
+
+      setFormData(prev => ({
+        ...prev,
+        reference_images: [state.selectedWallpaper.image_url],
+        notes: `Selected wallpaper: ${state.selectedWallpaper.title}${state.selectedWallpaper.description ? ` - ${state.selectedWallpaper.description}` : ''}`
+      }));
+    }
+  }, [location]);
 
   const fetchCustomerData = async () => {
     if (!user) return;
@@ -333,12 +357,43 @@ export default function WallpaperOrder() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">New Order</h2>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setSelectedWallpaper(null);
+                }}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
+
+            {selectedWallpaper && (
+              <div className="mb-6 bg-gradient-to-r from-blue-50 to-slate-50 border-2 border-blue-200 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-blue-900 mb-3 uppercase tracking-wide">Selected Wallpaper</h3>
+                <div className="flex gap-4 items-start">
+                  <div className="flex-shrink-0">
+                    <img
+                      src={selectedWallpaper.image_url}
+                      alt={selectedWallpaper.title}
+                      className="w-32 h-40 object-cover rounded-lg shadow-md border-2 border-white"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-lg font-bold text-gray-900 mb-2">{selectedWallpaper.title}</h4>
+                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full mb-2">
+                      {selectedWallpaper.category}
+                    </span>
+                    {selectedWallpaper.description && (
+                      <p className="text-sm text-gray-700 mt-2">{selectedWallpaper.description}</p>
+                    )}
+                    <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+                      <Check className="w-4 h-4" />
+                      <span className="font-medium">This image has been added to your reference images</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -608,7 +663,10 @@ export default function WallpaperOrder() {
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false);
+                    setSelectedWallpaper(null);
+                  }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
                 >
                   Cancel
