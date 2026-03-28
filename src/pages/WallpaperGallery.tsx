@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, LogIn, Loader2 } from 'lucide-react';
+import { ShoppingCart, LogIn, Loader2, Search } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import AuthModal from '../components/AuthModal';
 import { supabase } from '../lib/supabase';
 
 interface Wallpaper {
   id: string;
-  title: string;
-  description: string | null;
   image_url: string;
   category: string;
 }
@@ -18,7 +16,6 @@ const CATEGORIES = ["All", "Geometric", "Nature", "Luxury", "Modern", "Floral", 
 export default function WallpaperGallery() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
@@ -49,9 +46,8 @@ export default function WallpaperGallery() {
   };
 
   const filteredWallpapers = wallpapers.filter(wallpaper => {
-    const matchesSearch = wallpaper.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || wallpaper.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return matchesCategory;
   });
 
   const handleOrderClick = (wallpaper: Wallpaper) => {
@@ -105,18 +101,7 @@ export default function WallpaperGallery() {
           </p>
         </div>
 
-        <div className="mb-8 space-y-6">
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search wallpapers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
-          </div>
-
+        <div className="mb-8">
           <div className="flex flex-wrap justify-center gap-3">
             {CATEGORIES.map((category) => (
               <button
@@ -149,7 +134,7 @@ export default function WallpaperGallery() {
               <div className="relative aspect-[3/4] overflow-hidden">
                 <img
                   src={wallpaper.image_url}
-                  alt={wallpaper.title}
+                  alt={`${wallpaper.category} wallpaper`}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -162,10 +147,6 @@ export default function WallpaperGallery() {
               </div>
 
               <div className="p-5">
-                <h3 className="font-semibold text-gray-900 mb-3 text-lg line-clamp-2">
-                  {wallpaper.title}
-                </h3>
-
                 <button
                   onClick={() => handleOrderClick(wallpaper)}
                   className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 ${
