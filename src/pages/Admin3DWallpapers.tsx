@@ -42,10 +42,12 @@ export default function Admin3DWallpapers() {
     title: '',
     description: '',
     category: 'Geometric',
-    is_active: true
+    is_active: true,
+    imageUrl: ''
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [useUrlInput, setUseUrlInput] = useState(false);
 
   useEffect(() => {
     console.log('Admin3DWallpapers - Auth check:', {
@@ -136,8 +138,8 @@ export default function Admin3DWallpapers() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!imageFile && !editingWallpaper) {
-      alert('Please select an image');
+    if (!imageFile && !editingWallpaper && !formData.imageUrl) {
+      alert('Please select an image or provide an image URL');
       return;
     }
 
@@ -147,7 +149,9 @@ export default function Admin3DWallpapers() {
 
       let imageUrl = editingWallpaper?.image_url || '';
 
-      if (imageFile) {
+      if (formData.imageUrl && useUrlInput) {
+        imageUrl = formData.imageUrl;
+      } else if (imageFile) {
         imageUrl = await uploadImage(imageFile);
       }
 
@@ -201,9 +205,11 @@ export default function Admin3DWallpapers() {
       title: wallpaper.title,
       description: wallpaper.description || '',
       category: wallpaper.category,
-      is_active: wallpaper.is_active
+      is_active: wallpaper.is_active,
+      imageUrl: ''
     });
     setImagePreview(wallpaper.image_url);
+    setUseUrlInput(false);
     setShowModal(true);
   };
 
@@ -255,10 +261,19 @@ export default function Admin3DWallpapers() {
       title: '',
       description: '',
       category: 'Geometric',
-      is_active: true
+      is_active: true,
+      imageUrl: ''
     });
     setImageFile(null);
     setImagePreview(null);
+    setUseUrlInput(false);
+  };
+
+  const handleUrlPreview = () => {
+    if (formData.imageUrl) {
+      setImagePreview(formData.imageUrl);
+      setImageFile(null);
+    }
   };
 
   // Show loading while auth is being checked
@@ -408,43 +423,135 @@ export default function Admin3DWallpapers() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Wallpaper Image *
                   </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    {imagePreview ? (
-                      <div className="space-y-4">
-                        <img
-                          src={imagePreview}
-                          alt="Preview"
-                          className="max-h-64 mx-auto rounded"
+
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseUrlInput(false);
+                        setImagePreview(null);
+                        setFormData({ ...formData, imageUrl: '' });
+                      }}
+                      className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
+                        !useUrlInput
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                      }`}
+                    >
+                      Upload Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseUrlInput(true);
+                        setImageFile(null);
+                        setImagePreview(null);
+                      }}
+                      className={`flex-1 px-4 py-2 rounded-lg border-2 transition-colors ${
+                        useUrlInput
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                      }`}
+                    >
+                      Use Image URL
+                    </button>
+                  </div>
+
+                  {useUrlInput ? (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-900 text-sm mb-2">How to get Pinterest image URLs:</h4>
+                        <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                          <li>Open Pinterest and find your desired image</li>
+                          <li>Right-click on the image and select "Open image in new tab"</li>
+                          <li>Copy the full URL from the address bar</li>
+                          <li>Paste it below</li>
+                        </ol>
+                        <p className="text-xs text-blue-700 mt-2 font-medium">
+                          Also works with Unsplash, Pexels, or any direct image URL
+                        </p>
+                      </div>
+
+                      <div>
+                        <input
+                          type="url"
+                          value={formData.imageUrl}
+                          onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                          placeholder="https://i.pinimg.com/... or any image URL"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                         <button
                           type="button"
-                          onClick={() => {
-                            setImageFile(null);
-                            setImagePreview(editingWallpaper?.image_url || null);
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800"
+                          onClick={handleUrlPreview}
+                          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                         >
-                          Change Image
+                          Preview Image
                         </button>
                       </div>
-                    ) : (
-                      <div>
-                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <label className="cursor-pointer">
-                          <span className="text-blue-600 hover:text-blue-800 font-medium">
-                            Upload an image
-                          </span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
+
+                      {imagePreview && (
+                        <div className="space-y-4">
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="max-h-64 mx-auto rounded border-2 border-gray-200"
+                            onError={() => {
+                              alert('Failed to load image. Please check the URL and try again.');
+                              setImagePreview(null);
+                            }}
                           />
-                        </label>
-                        <p className="text-sm text-gray-500 mt-2">PNG, JPG up to 10MB</p>
-                      </div>
-                    )}
-                  </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview(null);
+                              setFormData({ ...formData, imageUrl: '' });
+                            }}
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Change Image
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      {imagePreview ? (
+                        <div className="space-y-4">
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="max-h-64 mx-auto rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImageFile(null);
+                              setImagePreview(editingWallpaper?.image_url || null);
+                            }}
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Change Image
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <label className="cursor-pointer">
+                            <span className="text-blue-600 hover:text-blue-800 font-medium">
+                              Upload an image
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageChange}
+                              className="hidden"
+                            />
+                          </label>
+                          <p className="text-sm text-gray-500 mt-2">PNG, JPG up to 10MB</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
