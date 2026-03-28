@@ -545,7 +545,7 @@ export default function WallpaperOrder() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Screenshot (50% Advance) <span className="text-red-500">*</span>
+                  Payment Screenshot (10% Advance) <span className="text-red-500">*</span>
                 </label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                   <input
