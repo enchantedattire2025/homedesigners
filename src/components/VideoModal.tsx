@@ -5,6 +5,11 @@ import { supabase } from '../lib/supabase';
 interface VideoModalProps {
   isOpen: boolean;
   onClose: () => void;
+  stats?: {
+    designers: string;
+    projects: string;
+    clients: string;
+  };
 }
 
 interface VideoInfo {
@@ -14,7 +19,7 @@ interface VideoInfo {
   description: string;
 }
 
-const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose }) => {
+const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, stats }) => {
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,9 +93,9 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const highlights = [
-    { icon: Award, text: '500+ Expert Designers', color: 'text-sky-600' },
-    { icon: Users, text: '10,000+ Happy Clients', color: 'text-green-600' },
-    { icon: TrendingUp, text: '2,500+ Projects Completed', color: 'text-orange-600' },
+    { icon: Award, text: `${stats?.designers || '0'} Expert Designers`, color: 'text-sky-600' },
+    { icon: Users, text: `${stats?.clients || '0'} Happy Clients`, color: 'text-green-600' },
+    { icon: TrendingUp, text: `${stats?.projects || '0'} Projects Completed`, color: 'text-orange-600' },
     { icon: Sparkles, text: 'Pan-India Service', color: 'text-purple-600' }
   ];
 

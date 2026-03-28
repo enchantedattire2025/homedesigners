@@ -42,6 +42,11 @@ const Home = () => {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [currentDealIndex, setCurrentDealIndex] = useState(0);
   const [featuredDesigners, setFeaturedDesigners] = useState<any[]>([]);
+  const [stats, setStats] = useState([
+    { icon: Users, label: 'Expert Designers', value: '0' },
+    { icon: Award, label: 'Projects Completed', value: '0' },
+    { icon: Star, label: 'Happy Clients', value: '0' },
+  ]);
 
   const designerAds = [
     {
@@ -103,15 +108,10 @@ const Home = () => {
     }
   ];
 
-  const stats = [
-    { icon: Users, label: 'Expert Designers', value: '500+' },
-    { icon: Award, label: 'Projects Completed', value: '2,500+' },
-    { icon: Star, label: 'Happy Clients', value: '10,000+' },
-  ];
-
   useEffect(() => {
     fetchDeals();
     fetchFeaturedDesigners();
+    fetchStats();
   }, []);
 
   useEffect(() => {
@@ -166,6 +166,48 @@ const Home = () => {
     } catch (error) {
       console.error('Error fetching featured designers:', error);
       setFeaturedDesigners([]);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const [designersResult, projectsResult, customersResult] = await Promise.all([
+        supabase
+          .from('designers')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_active', true),
+        supabase
+          .from('projects')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'finalized'),
+        supabase
+          .from('customers')
+          .select('id', { count: 'exact', head: true })
+      ]);
+
+      const designersCount = designersResult.count || 0;
+      const projectsCount = projectsResult.count || 0;
+      const customersCount = customersResult.count || 0;
+
+      const formatCount = (count: number): string => {
+        if (count >= 10000) {
+          return `${Math.floor(count / 1000)}k+`;
+        } else if (count >= 1000) {
+          return `${(count / 1000).toFixed(1)}k+`;
+        } else if (count >= 100) {
+          return `${Math.floor(count / 100) * 100}+`;
+        } else {
+          return `${count}+`;
+        }
+      };
+
+      setStats([
+        { icon: Users, label: 'Expert Designers', value: formatCount(designersCount) },
+        { icon: Award, label: 'Projects Completed', value: formatCount(projectsCount) },
+        { icon: Star, label: 'Happy Clients', value: formatCount(customersCount) },
+      ]);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
     }
   };
 
@@ -270,7 +312,7 @@ const Home = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-secondary-800">4.9/5 Rating</p>
-                    <p className="text-sm text-gray-600">From 10,000+ clients</p>
+                    <p className="text-sm text-gray-600">From {stats[2].value} clients</p>
                   </div>
                 </div>
               </div>
@@ -631,9 +673,14 @@ const Home = () => {
       )}
 
       {/* Video Modal */}
-      <VideoModal 
-        isOpen={showVideoModal} 
-        onClose={() => setShowVideoModal(false)} 
+      <VideoModal
+        isOpen={showVideoModal}
+        onClose={() => setShowVideoModal(false)}
+        stats={{
+          designers: stats[0].value,
+          projects: stats[1].value,
+          clients: stats[2].value
+        }}
       />
 
       {/* Auth Modal */}
