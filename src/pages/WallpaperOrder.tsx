@@ -89,7 +89,7 @@ export default function WallpaperOrder() {
 
     const { data, error } = await supabase
       .from('customers')
-      .select('id, name, phone, address')
+      .select('id, name, phone')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -98,8 +98,7 @@ export default function WallpaperOrder() {
       setFormData(prev => ({
         ...prev,
         customer_name: data.name || '',
-        customer_phone: data.phone || '',
-        customer_address: data.address || ''
+        customer_phone: data.phone || ''
       }));
     }
   };
@@ -248,7 +247,6 @@ export default function WallpaperOrder() {
             user_id: user.id,
             name: formData.customer_name,
             phone: formData.customer_phone,
-            address: fullAddress,
             email: user.email
           })
           .select()
