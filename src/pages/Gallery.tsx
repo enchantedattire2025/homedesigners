@@ -51,38 +51,42 @@ const Gallery = () => {
           id,
           image_url,
           caption,
-          room_type,
-          uploaded_at,
+          created_at,
           customers!inner (
             id,
             project_name,
             location,
+            room_types,
             assigned_designer_id,
+            assignment_status,
             designers (
               id,
               name
             )
           )
         `)
-        .eq('is_public', true)
-        .order('uploaded_at', { ascending: false });
+        .eq('customers.assignment_status', 'completed')
+        .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
       // Transform database results to GalleryItem format
-      const galleryItems: GalleryItem[] = (projectImages || []).map((item: any) => ({
-        id: item.id,
-        title: item.caption || item.customers.project_name,
-        designer: item.customers.designers?.name || 'Designer',
-        designerId: item.customers.assigned_designer_id || '',
-        location: item.customers.location,
-        category: item.room_type || 'Other',
-        date: new Date(item.uploaded_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-        image: item.image_url,
-        description: item.caption || item.customers.project_name,
-        projectId: item.customers.id,
-        is_approved: true
-      }));
+      const galleryItems: GalleryItem[] = (projectImages || []).map((item: any) => {
+        const roomType = item.customers.room_types?.[0] || 'Other';
+        return {
+          id: item.id,
+          title: item.caption || item.customers.project_name,
+          designer: item.customers.designers?.name || 'Designer',
+          designerId: item.customers.assigned_designer_id || '',
+          location: item.customers.location,
+          category: roomType,
+          date: new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          image: item.image_url,
+          description: item.caption || item.customers.project_name,
+          projectId: item.customers.id,
+          is_approved: true
+        };
+      });
 
       setAllGalleryItems(galleryItems);
     } catch (error: any) {
