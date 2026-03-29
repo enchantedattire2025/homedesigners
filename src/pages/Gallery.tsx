@@ -44,90 +44,47 @@ const Gallery = () => {
       setLoading(true);
       setError(null);
 
-      // Gallery now shows demo/stock images only
-      // Real project images are shown in the Projects Portfolio page instead
-      const demoGalleryItems: GalleryItem[] = [
-        {
-          id: 'gallery-1',
-          title: 'Modern Living Room Design',
-          designer: 'Priya Sharma',
-          designerId: 'designer-1',
-          location: 'Mumbai',
-          category: 'Living Room',
-          date: 'January 2024',
-          image: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
-          description: 'Contemporary living space with minimalist aesthetics and premium finishes',
-          materials: ['Italian Marble', 'LED Lighting', 'Designer Furniture', 'Premium Paint'],
-          is_approved: true
-        },
-        {
-          id: 'gallery-2',
-          title: 'Luxury Kitchen Interior',
-          designer: 'Rajesh Kumar',
-          designerId: 'designer-2',
-          location: 'Delhi',
-          category: 'Kitchen',
-          date: 'February 2024',
-          image: 'https://images.pexels.com/photos/2724749/pexels-photo-2724749.jpeg?auto=compress&cs=tinysrgb&w=800',
-          description: 'Spacious modular kitchen with granite counters and modern appliances',
-          materials: ['Granite Counters', 'Modular Cabinets', 'Brass Fixtures', 'LED Strips'],
-          is_approved: true
-        },
-        {
-          id: 'gallery-3',
-          title: 'Elegant Bedroom Suite',
-          designer: 'Anita Desai',
-          designerId: 'designer-3',
-          location: 'Bangalore',
-          category: 'Bedroom',
-          date: 'March 2024',
-          image: 'https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=800',
-          description: 'Serene bedroom design with wooden accents and soft lighting',
-          materials: ['Teak Wood', 'Linen Fabrics', 'Ambient Lighting', 'Premium Paint'],
-          is_approved: true
-        },
-        {
-          id: 'gallery-4',
-          title: 'Contemporary Dining Space',
-          designer: 'Vikram Singh',
-          designerId: 'designer-4',
-          location: 'Gurgaon',
-          category: 'Dining Room',
-          date: 'April 2024',
-          image: 'https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=800',
-          description: 'Sophisticated dining area with statement chandelier and modern furniture',
-          materials: ['Marble Flooring', 'Designer Chandelier', 'Upholstered Chairs', 'Wall Art'],
-          is_approved: true
-        },
-        {
-          id: 'gallery-5',
-          title: 'Spa-Inspired Bathroom',
-          designer: 'Meera Reddy',
-          designerId: 'designer-5',
-          location: 'Hyderabad',
-          category: 'Bathroom',
-          date: 'May 2024',
-          image: 'https://images.pexels.com/photos/1454804/pexels-photo-1454804.jpeg?auto=compress&cs=tinysrgb&w=800',
-          description: 'Luxurious bathroom with premium fixtures and natural stone finishes',
-          materials: ['Ceramic Tiles', 'Brass Fixtures', 'Natural Stone', 'LED Mirrors'],
-          is_approved: true
-        },
-        {
-          id: 'gallery-6',
-          title: 'Modern Office Design',
-          designer: 'Arjun Patel',
-          designerId: 'designer-6',
-          location: 'Pune',
-          category: 'Office',
-          date: 'June 2024',
-          image: 'https://images.pexels.com/photos/1599791/pexels-photo-1599791.jpeg?auto=compress&cs=tinysrgb&w=800',
-          description: 'Productive workspace with ergonomic furniture and natural lighting',
-          materials: ['Ergonomic Furniture', 'Sound Panels', 'LED Lighting', 'Smart Storage'],
-          is_approved: true
-        }
-      ];
+      // Fetch real project images from the database
+      const { data: projectImages, error: fetchError } = await supabase
+        .from('project_images')
+        .select(`
+          id,
+          image_url,
+          caption,
+          room_type,
+          uploaded_at,
+          customers!inner (
+            id,
+            project_name,
+            location,
+            assigned_designer_id,
+            designers (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('is_public', true)
+        .order('uploaded_at', { ascending: false });
 
-      setAllGalleryItems(demoGalleryItems);
+      if (fetchError) throw fetchError;
+
+      // Transform database results to GalleryItem format
+      const galleryItems: GalleryItem[] = (projectImages || []).map((item: any) => ({
+        id: item.id,
+        title: item.caption || item.customers.project_name,
+        designer: item.customers.designers?.name || 'Designer',
+        designerId: item.customers.assigned_designer_id || '',
+        location: item.customers.location,
+        category: item.room_type || 'Other',
+        date: new Date(item.uploaded_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        image: item.image_url,
+        description: item.caption || item.customers.project_name,
+        projectId: item.customers.id,
+        is_approved: true
+      }));
+
+      setAllGalleryItems(galleryItems);
     } catch (error: any) {
       console.error('Error fetching gallery items:', error);
       setError(error.message || 'Failed to load gallery items');
@@ -209,7 +166,7 @@ const Gallery = () => {
                 Design Gallery
               </h1>
               <p className="text-lg text-gray-600">
-                Explore our collection of stunning interior designs. Get inspired by detailed work from across India.
+                Explore real interior design projects from our talented designers across India.
               </p>
             </div>
             {user && isDesigner && ( // [cite: 34]
@@ -307,10 +264,15 @@ const Gallery = () => {
         </div>
 
         
-        {filteredItems.length === 0 && ( // [cite: 48]
+        {filteredItems.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              No images found in this category.
+            <p className="text-gray-500 text-lg mb-2">
+              {searchQuery || selectedCategory !== 'All'
+                ? 'No images found matching your criteria.'
+                : 'No project images available yet.'}
+            </p>
+            <p className="text-gray-400 text-sm">
+              {user && isDesigner && 'Be the first to share your completed project!'}
             </p>
           </div>
         )}
