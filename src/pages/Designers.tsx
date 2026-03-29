@@ -13,7 +13,7 @@ const Designers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Gurgaon', 'Hyderabad', 'Pune', 'Chennai', 'Kolkata', 'Ahmedabad', 'Jaipur'];
+  const cities = ['Pune', 'Mumbai'];
   const specializations = ['Modern & Contemporary', 'Traditional Indian', 'Minimalist Design', 'Luxury & High-End', 'Eco-Friendly Design', 'Industrial & Loft', 'Scandinavian'];
   const experienceRanges = ['0-5 years', '5-10 years', '10+ years'];
 

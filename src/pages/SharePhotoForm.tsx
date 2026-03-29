@@ -34,10 +34,8 @@ const SharePhotoForm = () => {
     'Office', 'Entryway', 'Pooja Room', 'Kids Room', 'Other'
   ];
   const locations = [
-    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata',
-    'Pune', 'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur',
-    'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad',
-    'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik'
+    'Pune',
+    'Mumbai'
   ];
 
   useEffect(() => {

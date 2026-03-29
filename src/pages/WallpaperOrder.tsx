@@ -65,12 +65,14 @@ export default function WallpaperOrder() {
   const [phoneError, setPhoneError] = useState('');
   const [pincodeError, setPincodeError] = useState('');
 
-  // Pune and Pimpri-Chinchwad pincode ranges
+  // Pune, Pimpri-Chinchwad, and Mumbai pincode ranges
   const validPincodes = [
     // Pune City pincodes (411001 - 411060)
     ...Array.from({ length: 60 }, (_, i) => (411001 + i).toString()),
     // Pimpri-Chinchwad pincodes (411017-411019, 411033, 411044, 411057-411062)
-    '411017', '411018', '411019', '411033', '411044', '411057', '411058', '411059', '411060', '411061', '411062'
+    '411017', '411018', '411019', '411033', '411044', '411057', '411058', '411059', '411060', '411061', '411062',
+    // Mumbai pincodes (400001 - 400104)
+    ...Array.from({ length: 104 }, (_, i) => (400001 + i).toString())
   ];
 
   useEffect(() => {
@@ -208,9 +210,9 @@ export default function WallpaperOrder() {
       return false;
     }
 
-    // Check if pincode is in Pune/Pimpri-Chinchwad area
+    // Check if pincode is in Pune/Pimpri-Chinchwad or Mumbai area
     if (!validPincodes.includes(cleaned)) {
-      setPincodeError('Service available only in Pune and Pimpri-Chinchwad area (411001-411060)');
+      setPincodeError('Service available only in Pune (411001-411060) and Mumbai (400001-400104)');
       return false;
     }
 
@@ -289,17 +291,18 @@ export default function WallpaperOrder() {
 
     // Validate pincode
     if (!validatePincode(formData.customer_pincode)) {
-      alert('Please enter a valid pincode from Pune or Pimpri-Chinchwad area');
+      alert('Please enter a valid pincode from Pune or Mumbai area');
       return;
     }
 
-    if (formData.customer_city.toLowerCase() !== 'pune') {
-      alert('Service is currently available only in Pune, Maharashtra');
+    const cityLower = formData.customer_city.toLowerCase();
+    if (cityLower !== 'pune' && cityLower !== 'mumbai') {
+      alert('Service is currently available only in Pune and Mumbai, Maharashtra');
       return;
     }
 
     if (formData.customer_state.toLowerCase() !== 'maharashtra') {
-      alert('Service is currently available only in Pune, Maharashtra');
+      alert('Service is currently available only in Pune and Mumbai, Maharashtra');
       return;
     }
 
@@ -537,14 +540,16 @@ export default function WallpaperOrder() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     City <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={formData.customer_city}
-                    readOnly
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Service available only in Pune</p>
+                    onChange={(e) => setFormData({ ...formData, customer_city: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="Pune">Pune</option>
+                    <option value="Mumbai">Mumbai</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Service available in Pune and Mumbai</p>
                 </div>
 
                 <div>
@@ -579,7 +584,7 @@ export default function WallpaperOrder() {
                   {pincodeError ? (
                     <p className="mt-1 text-sm text-red-600">{pincodeError}</p>
                   ) : (
-                    <p className="mt-1 text-xs text-gray-500">Valid for Pune and Pimpri-Chinchwad (411001-411060)</p>
+                    <p className="mt-1 text-xs text-gray-500">Valid for Pune (411001-411060) and Mumbai (400001-400104)</p>
                   )}
                 </div>
               </div>
