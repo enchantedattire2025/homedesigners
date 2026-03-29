@@ -62,6 +62,16 @@ export default function WallpaperOrder() {
 
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
   const [uploadingPayment, setUploadingPayment] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [pincodeError, setPincodeError] = useState('');
+
+  // Pune and Pimpri-Chinchwad pincode ranges
+  const validPincodes = [
+    // Pune City pincodes (411001 - 411060)
+    ...Array.from({ length: 60 }, (_, i) => (411001 + i).toString()),
+    // Pimpri-Chinchwad pincodes (411017-411019, 411033, 411044, 411057-411062)
+    '411017', '411018', '411019', '411033', '411044', '411057', '411058', '411059', '411060', '411061', '411062'
+  ];
 
   useEffect(() => {
     if (user) {
@@ -162,6 +172,72 @@ export default function WallpaperOrder() {
     }));
   };
 
+  const validatePhone = (phone: string) => {
+    // Remove any whitespace
+    const cleaned = phone.replace(/\s/g, '');
+
+    // Check if only digits
+    if (!/^\d+$/.test(cleaned)) {
+      setPhoneError('Phone number must contain only numbers');
+      return false;
+    }
+
+    // Check if exactly 10 digits
+    if (cleaned.length !== 10) {
+      setPhoneError('Phone number must be exactly 10 digits');
+      return false;
+    }
+
+    setPhoneError('');
+    return true;
+  };
+
+  const validatePincode = (pincode: string) => {
+    // Remove any whitespace
+    const cleaned = pincode.replace(/\s/g, '');
+
+    // Check if only digits
+    if (!/^\d+$/.test(cleaned)) {
+      setPincodeError('Pincode must contain only numbers');
+      return false;
+    }
+
+    // Check if exactly 6 digits
+    if (cleaned.length !== 6) {
+      setPincodeError('Pincode must be exactly 6 digits');
+      return false;
+    }
+
+    // Check if pincode is in Pune/Pimpri-Chinchwad area
+    if (!validPincodes.includes(cleaned)) {
+      setPincodeError('Service available only in Pune and Pimpri-Chinchwad area (411001-411060)');
+      return false;
+    }
+
+    setPincodeError('');
+    return true;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, customer_phone: value });
+    if (value) {
+      validatePhone(value);
+    } else {
+      setPhoneError('');
+    }
+  };
+
+  const handlePincodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, customer_pincode: value });
+    if (value) {
+      validatePincode(value);
+    } else {
+      setPincodeError('');
+    }
+  };
+
   const handlePaymentScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setPaymentScreenshot(e.target.files[0]);
@@ -202,6 +278,18 @@ export default function WallpaperOrder() {
 
     if (!user) {
       alert('Please login to place an order');
+      return;
+    }
+
+    // Validate phone number
+    if (!validatePhone(formData.customer_phone)) {
+      alert('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    // Validate pincode
+    if (!validatePincode(formData.customer_pincode)) {
+      alert('Please enter a valid pincode from Pune or Pimpri-Chinchwad area');
       return;
     }
 
@@ -416,9 +504,17 @@ export default function WallpaperOrder() {
                     type="tel"
                     required
                     value={formData.customer_phone}
-                    onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={handlePhoneChange}
+                    pattern="\d{10}"
+                    maxLength={10}
+                    placeholder="10-digit mobile number"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      phoneError ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   />
+                  {phoneError && (
+                    <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+                  )}
                 </div>
               </div>
 
@@ -472,11 +568,19 @@ export default function WallpaperOrder() {
                     type="text"
                     required
                     pattern="[0-9]{6}"
+                    maxLength={6}
                     value={formData.customer_pincode}
-                    onChange={(e) => setFormData({ ...formData, customer_pincode: e.target.value })}
+                    onChange={handlePincodeChange}
                     placeholder="411001"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      pincodeError ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   />
+                  {pincodeError ? (
+                    <p className="mt-1 text-sm text-red-600">{pincodeError}</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-gray-500">Valid for Pune and Pimpri-Chinchwad (411001-411060)</p>
+                  )}
                 </div>
               </div>
 
