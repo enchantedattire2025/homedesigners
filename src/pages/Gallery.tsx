@@ -44,49 +44,43 @@ const Gallery = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch real project images from the database
-      const { data: projectImages, error: fetchError } = await supabase
-        .from('project_images')
+      // Fetch gallery items uploaded by designers through the Share Photo feature
+      const { data: galleryData, error: fetchError } = await supabase
+        .from('shared_gallery_items')
         .select(`
           id,
+          title,
+          description,
+          category,
+          location,
           image_url,
-          caption,
+          materials,
           created_at,
-          customers!inner (
+          is_approved,
+          designers!inner (
             id,
-            project_name,
-            location,
-            room_types,
-            assigned_designer_id,
-            assignment_status,
-            designers (
-              id,
-              name
-            )
+            name
           )
         `)
-        .eq('customers.assignment_status', 'completed')
+        .eq('is_approved', true)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
 
       // Transform database results to GalleryItem format
-      const galleryItems: GalleryItem[] = (projectImages || []).map((item: any) => {
-        const roomType = item.customers.room_types?.[0] || 'Other';
-        return {
-          id: item.id,
-          title: item.caption || item.customers.project_name,
-          designer: item.customers.designers?.name || 'Designer',
-          designerId: item.customers.assigned_designer_id || '',
-          location: item.customers.location,
-          category: roomType,
-          date: new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-          image: item.image_url,
-          description: item.caption || item.customers.project_name,
-          projectId: item.customers.id,
-          is_approved: true
-        };
-      });
+      const galleryItems: GalleryItem[] = (galleryData || []).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        designer: item.designers?.name || 'Designer',
+        designerId: item.designers?.id || '',
+        location: item.location,
+        category: item.category || 'Other',
+        date: new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        image: item.image_url,
+        description: item.description,
+        materials: item.materials || [],
+        is_approved: item.is_approved
+      }));
 
       setAllGalleryItems(galleryItems);
     } catch (error: any) {
