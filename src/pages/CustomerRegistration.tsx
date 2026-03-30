@@ -89,33 +89,57 @@ const CustomerRegistration = () => {
       return;
     }
 
-    // Check if user already has a designer profile (conflict)
-    const checkForDesignerProfile = async () => {
-      const { data: designerData } = await supabase
-        .from('designers')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+    let isMounted = true;
 
-      if (designerData) {
-        setError('You are already registered as a designer. A user cannot be both a designer and a customer. Please use a different account to register your project.');
-        return true;
+    // Check if user already has a customer or designer profile
+    const checkUserProfile = async () => {
+      try {
+        // Check for existing customer record
+        const { data: customerData } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (customerData && isMounted) {
+          setError('You have already registered a project. Please check "My Projects" to view your existing projects.');
+          setTimeout(() => {
+            navigate('/my-projects');
+          }, 2000);
+          return;
+        }
+
+        // Check for designer profile (conflict)
+        const { data: designerData } = await supabase
+          .from('designers')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (designerData && isMounted) {
+          setError('You are already registered as a designer. A user cannot be both a designer and a customer. Please use a different account to register your project.');
+          return;
+        }
+
+        // If no conflicts and component is still mounted, populate form
+        if (isMounted) {
+          setFormData(prev => ({
+            ...prev,
+            email: user.email || '',
+            name: user.user_metadata?.name || ''
+          }));
+        }
+      } catch (error) {
+        console.error('Error checking user profile:', error);
       }
-      return false;
     };
 
-    checkForDesignerProfile().then(hasConflict => {
-      if (!hasConflict) {
-        // Only set form data if there's no conflict
-        setFormData(prev => ({
-          ...prev,
-          email: user.email || '',
-          name: user.user_metadata?.name || ''
-        }));
-      } else {
-        console.log('User has designer profile, blocking customer registration');
-      }
-    });
+    checkUserProfile();
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
   }, [user, authLoading, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -149,10 +173,28 @@ const CustomerRegistration = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || loading) return;
 
     setLoading(true);
+    setError(null);
+
     try {
+      // Validate required fields
+      if (!formData.name.trim() || !formData.project_name.trim() || !formData.phone.trim()) {
+        throw new Error('Please fill in all required fields');
+      }
+
+      // Check if user already has a customer record
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingCustomer) {
+        throw new Error('You have already registered a project. Please check "My Projects" to view your existing projects.');
+      }
+
       // Filter out empty strings from arrays
       const cleanedData = {
         ...formData,
@@ -161,15 +203,17 @@ const CustomerRegistration = () => {
         room_types: formData.room_types.filter(room => room.trim() !== '')
       };
 
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('customers')
         .insert([cleanedData]);
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
       setSuccess(true);
       setShowWelcomeModal(true);
     } catch (error: any) {
+      console.error('Error submitting customer registration:', error);
+      setError(error.message || 'An error occurred while registering your project');
       alert('Error: ' + error.message);
     } finally {
       setLoading(false);
