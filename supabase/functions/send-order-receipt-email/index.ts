@@ -32,13 +32,17 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const payload: OrderReceiptPayload = await req.json();
+
+    console.log("Received email request for order:", payload.orderId);
+    console.log("Customer email:", payload.customerEmail);
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
     if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
+      console.error("RESEND_API_KEY is not configured in Edge Function secrets");
+      throw new Error("RESEND_API_KEY is not configured. Please add it to your Supabase Edge Function secrets.");
     }
-
-    const payload: OrderReceiptPayload = await req.json();
 
     const wallpaperTypeDisplay = payload.wallpaperType === "golden_foil"
       ? "Golden Foil 3D Wallpaper"
@@ -210,8 +214,11 @@ Deno.serve(async (req: Request) => {
     const data = await res.json();
 
     if (!res.ok) {
+      console.error("Resend API error:", JSON.stringify(data));
       throw new Error(`Resend API error: ${JSON.stringify(data)}`);
     }
+
+    console.log("Email sent successfully! Email ID:", data.id);
 
     return new Response(
       JSON.stringify({
