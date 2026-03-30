@@ -47,6 +47,7 @@ import WallpaperGallery from './pages/WallpaperGallery';
 import AdminWallpaperOrders from './pages/AdminWallpaperOrders';
 import Admin3DWallpapers from './pages/Admin3DWallpapers';
 import AdminAuthDebug from './pages/AdminAuthDebug';
+import My3DWallpaperOrders from './pages/My3DWallpaperOrders';
 import { forceLogoutAll } from './utils/clearAuth';
 import { debugAuthState } from './utils/debugDesigner';
 
@@ -163,6 +164,7 @@ function App() {
             <Route path="/design-tool" element={<DesignTool />} />
             <Route path="/wallpaper-gallery" element={<WallpaperGallery />} />
             <Route path="/wallpaper-order" element={<WallpaperOrder />} />
+            <Route path="/my-3d-wallpaper-orders" element={<My3DWallpaperOrders />} />
             <Route path="/auth/confirm" element={<EmailConfirmation />} />
           </Routes>
         </main>

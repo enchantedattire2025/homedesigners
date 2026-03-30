@@ -329,6 +329,16 @@ const Header = () => {
                                     <FileText className="w-4 h-4" />
                                     <span>My Quotes</span>
                                   </button>
+                                  <button
+                                    onClick={() => {
+                                      navigate('/my-3d-wallpaper-orders');
+                                      setShowUserMenu(false);
+                                    }}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                                  >
+                                    <Wallpaper className="w-4 h-4" />
+                                    <span>My 3D Wallpaper Orders</span>
+                                  </button>
                                 </>
                               ) : (
                                 <button
