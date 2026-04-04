@@ -91,24 +91,9 @@ const CustomerRegistration = () => {
 
     let isMounted = true;
 
-    // Check if user already has a customer or designer profile
+    // Check if user has a designer profile (conflict with customer role)
     const checkUserProfile = async () => {
       try {
-        // Check for existing customer record
-        const { data: customerData } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (customerData && isMounted) {
-          setError('You have already registered a project. Please check "My Projects" to view your existing projects.');
-          setTimeout(() => {
-            navigate('/my-projects');
-          }, 2000);
-          return;
-        }
-
         // Check for designer profile (conflict)
         const { data: designerData } = await supabase
           .from('designers')
@@ -182,17 +167,6 @@ const CustomerRegistration = () => {
       // Validate required fields
       if (!formData.name.trim() || !formData.project_name.trim() || !formData.phone.trim()) {
         throw new Error('Please fill in all required fields');
-      }
-
-      // Check if user already has a customer record
-      const { data: existingCustomer } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (existingCustomer) {
-        throw new Error('You have already registered a project. Please check "My Projects" to view your existing projects.');
       }
 
       // Filter out empty strings from arrays
