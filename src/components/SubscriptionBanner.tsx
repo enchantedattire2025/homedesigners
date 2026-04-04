@@ -1,13 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Clock, Crown } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
+import { supabase } from '../lib/supabase';
 
 const SubscriptionBanner: React.FC = () => {
   const navigate = useNavigate();
   const { subscription, loading } = useSubscription();
+  const [subscriptionManagementEnabled, setSubscriptionManagementEnabled] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
-  if (loading) return null;
+  useEffect(() => {
+    fetchSubscriptionManagementSetting();
+  }, []);
+
+  const fetchSubscriptionManagementSetting = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('is_active')
+        .eq('setting_key', 'subscription_management_enabled')
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setSubscriptionManagementEnabled(data?.is_active || false);
+    } catch (error) {
+      console.error('Error fetching subscription management setting:', error);
+      setSubscriptionManagementEnabled(false);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  if (loading || settingsLoading) return null;
+
+  if (!subscriptionManagementEnabled) return null;
 
   if (subscription.isExpired) {
     return (
