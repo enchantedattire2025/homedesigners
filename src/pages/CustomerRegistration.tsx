@@ -129,6 +129,18 @@ const CustomerRegistration = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // Validate phone number: only digits, max 10 digits
+    if (name === 'phone') {
+      const digitsOnly = value.replace(/\D/g, '');
+      const truncated = digitsOnly.slice(0, 10);
+      setFormData(prev => ({
+        ...prev,
+        [name]: truncated
+      }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -167,6 +179,11 @@ const CustomerRegistration = () => {
       // Validate required fields
       if (!formData.name.trim() || !formData.project_name.trim() || !formData.phone.trim()) {
         throw new Error('Please fill in all required fields');
+      }
+
+      // Validate phone number format
+      if (!/^\d{10}$/.test(formData.phone)) {
+        throw new Error('Phone number must be exactly 10 digits');
       }
 
       // Filter out empty strings from arrays
@@ -330,7 +347,7 @@ const CustomerRegistration = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number *
+                      Phone Number * <span className="text-xs text-gray-500">(10 digits)</span>
                     </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -340,10 +357,18 @@ const CustomerRegistration = () => {
                         value={formData.phone}
                         onChange={handleInputChange}
                         className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="+91 98765 43210"
+                        placeholder="9876543210"
+                        pattern="\d{10}"
+                        maxLength={10}
+                        inputMode="numeric"
                         required
                       />
                     </div>
+                    {formData.phone && formData.phone.length < 10 && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        {10 - formData.phone.length} more digit{10 - formData.phone.length !== 1 ? 's' : ''} required
+                      </p>
+                    )}
                   </div>
 
                   <div>
