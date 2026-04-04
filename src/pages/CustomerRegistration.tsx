@@ -13,6 +13,8 @@ const CustomerRegistration = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [isFirstProject, setIsFirstProject] = useState(false);
+  const [showSimpleConfirmation, setShowSimpleConfirmation] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -186,6 +188,17 @@ const CustomerRegistration = () => {
         throw new Error('Phone number must be exactly 10 digits');
       }
 
+      // Check if this is the first project for this customer
+      const { data: existingProjects, error: checkError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (checkError) throw checkError;
+
+      const isFirst = !existingProjects || existingProjects.length === 0;
+      setIsFirstProject(isFirst);
+
       // Filter out empty strings from arrays
       const cleanedData = {
         ...formData,
@@ -201,7 +214,13 @@ const CustomerRegistration = () => {
       if (insertError) throw insertError;
 
       setSuccess(true);
-      setShowWelcomeModal(true);
+
+      // Show appropriate modal based on whether this is first project
+      if (isFirst) {
+        setShowWelcomeModal(true);
+      } else {
+        setShowSimpleConfirmation(true);
+      }
     } catch (error: any) {
       console.error('Error submitting customer registration:', error);
       setError(error.message || 'An error occurred while registering your project');
@@ -213,6 +232,11 @@ const CustomerRegistration = () => {
 
   const handleWelcomeModalClose = () => {
     setShowWelcomeModal(false);
+    navigate('/my-projects');
+  };
+
+  const handleSimpleConfirmationClose = () => {
+    setShowSimpleConfirmation(false);
     navigate('/my-projects');
   };
 
@@ -245,8 +269,8 @@ const CustomerRegistration = () => {
     );
   }
 
-  // Show success message
-  if (success && !showWelcomeModal) {
+  // Show success message (only if neither modal is shown)
+  if (success && !showWelcomeModal && !showSimpleConfirmation) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center bg-white rounded-xl p-12 max-w-md w-full mx-4 shadow-lg">
@@ -619,12 +643,37 @@ const CustomerRegistration = () => {
         </div>
       </div>
 
-      {/* Welcome Modal */}
+      {/* Welcome Modal for First Project */}
       <WelcomeModal
         isOpen={showWelcomeModal}
         onClose={handleWelcomeModalClose}
         userType="customer"
       />
+
+      {/* Simple Confirmation Modal for Subsequent Projects */}
+      {showSimpleConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Project Created Successfully!
+              </h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Your project has been created. Please assign a designer to your project to receive quotations and begin collaboration.
+              </p>
+              <button
+                onClick={handleSimpleConfirmationClose}
+                className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-3 px-6 rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+              >
+                View My Projects
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
