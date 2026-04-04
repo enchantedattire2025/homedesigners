@@ -96,11 +96,11 @@ const ProjectDetail = () => {
         area: projectData.project_area || 'Not specified',
         client: projectData.name,
         description: projectData.requirements,
-        challenge: projectData.special_requirements || 'Creating a functional and beautiful space that meets all the client requirements within the specified budget and timeline.',
-        solution: `Our team worked closely with ${projectData.name} to understand their vision and requirements. We implemented a comprehensive design solution that maximized the available space while incorporating their preferred style and functional needs.`,
+        challenge: projectData.challenges_solutions || projectData.special_requirements || 'Creating a functional and beautiful space that meets all the client requirements within the specified budget and timeline.',
+        solution: projectData.challenges_solutions ? '' : `Our team worked closely with ${projectData.name} to understand their vision and requirements. We implemented a comprehensive design solution that maximized the available space while incorporating their preferred style and functional needs.`,
         images: extractProjectImages(projectData.project_images || []),
-        materials: generateMaterialsFromQuote(quoteData),
-        timeline: generateProjectTimeline(projectData.created_at, projectData.updated_at),
+        materials: projectData.materials_cost_breakdown || generateMaterialsFromQuote(quoteData),
+        timeline: projectData.project_timeline_details || generateProjectTimeline(projectData.created_at, projectData.updated_at),
         tags: generateProjectTags(projectData),
         features: generateProjectFeatures(projectData, quoteData),
         designerRating: projectData.assigned_designer?.rating || 0,
@@ -652,78 +652,90 @@ const ProjectDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Challenge & Solution */}
           <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-secondary-800 mb-6">Challenge & Solution</h2>
-            
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-primary-600 mb-3">The Challenge</h3>
-                <p className="text-gray-600 leading-relaxed">{project.challenge}</p>
+            <h2 className="text-2xl font-bold text-secondary-800 mb-6">Challenges & Solutions</h2>
+
+            {project.solution ? (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-primary-600 mb-3">The Challenge</h3>
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">{project.challenge}</p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-primary-600 mb-3">Our Solution</h3>
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">{project.solution}</p>
+                </div>
               </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold text-primary-600 mb-3">Our Solution</h3>
-                <p className="text-gray-600 leading-relaxed">{project.solution}</p>
-              </div>
-            </div>
+            ) : (
+              <div className="text-gray-600 leading-relaxed whitespace-pre-line">{project.challenge}</div>
+            )}
           </div>
 
           {/* Timeline */}
           <div className="bg-white rounded-xl shadow-lg p-8">
             <h2 className="text-2xl font-bold text-secondary-800 mb-6">Project Timeline</h2>
-            
-            <div className="space-y-4">
-              {project.timeline.map((phase, index) => (
-                <div key={index} className="flex space-x-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-                    {index < project.timeline.length - 1 && (
-                      <div className="w-0.5 h-16 bg-gray-200 mt-2"></div>
-                    )}
-                  </div>
-                  <div className="flex-1 pb-8">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="font-semibold text-secondary-800">{phase.phase}</h3>
-                      <span className="bg-accent-100 text-accent-800 px-2 py-1 rounded-md text-xs font-medium">
-                        {phase.duration}
-                      </span>
+
+            {Array.isArray(project.timeline) ? (
+              <div className="space-y-4">
+                {project.timeline.map((phase, index) => (
+                  <div key={index} className="flex space-x-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+                      {index < project.timeline.length - 1 && (
+                        <div className="w-0.5 h-16 bg-gray-200 mt-2"></div>
+                      )}
                     </div>
-                    <p className="text-gray-600 text-sm">{phase.description}</p>
+                    <div className="flex-1 pb-8">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h3 className="font-semibold text-secondary-800">{phase.phase}</h3>
+                        <span className="bg-accent-100 text-accent-800 px-2 py-1 rounded-md text-xs font-medium">
+                          {phase.duration}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 text-sm">{phase.description}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-600 leading-relaxed whitespace-pre-line">{project.timeline}</div>
+            )}
           </div>
         </div>
 
         {/* Materials Used */}
         <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
           <h2 className="text-2xl font-bold text-secondary-800 mb-6">Materials & Cost Breakdown</h2>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-semibold text-secondary-800">Material</th>
-                  <th className="text-left py-3 px-4 font-semibold text-secondary-800">Usage</th>
-                  <th className="text-right py-3 px-4 font-semibold text-secondary-800">Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {project.materials.map((material, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium text-secondary-800">{material.name}</td>
-                    <td className="py-3 px-4 text-gray-600">{material.usage}</td>
-                    <td className="py-3 px-4 text-right font-semibold text-primary-600">{material.cost}</td>
+
+          {Array.isArray(project.materials) ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Material</th>
+                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Usage</th>
+                    <th className="text-right py-3 px-4 font-semibold text-secondary-800">Cost</th>
                   </tr>
-                ))}
-                <tr className="border-t-2 border-primary-200 bg-primary-50">
-                  <td className="py-3 px-4 font-bold text-secondary-800">Total Project Cost</td>
-                  <td className="py-3 px-4"></td>
-                  <td className="py-3 px-4 text-right font-bold text-primary-600 text-lg">{project.budget}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {project.materials.map((material, index) => (
+                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4 font-medium text-secondary-800">{material.name}</td>
+                      <td className="py-3 px-4 text-gray-600">{material.usage}</td>
+                      <td className="py-3 px-4 text-right font-semibold text-primary-600">{material.cost}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-primary-200 bg-primary-50">
+                    <td className="py-3 px-4 font-bold text-secondary-800">Total Project Cost</td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4 text-right font-bold text-primary-600 text-lg">{project.budget}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-gray-600 leading-relaxed whitespace-pre-line">{project.materials}</div>
+          )}
         </div>
 
         {/* CTA */}
