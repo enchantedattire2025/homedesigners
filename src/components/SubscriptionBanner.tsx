@@ -33,9 +33,14 @@ const SubscriptionBanner: React.FC = () => {
     }
   };
 
-  if (loading || settingsLoading) return null;
+  // Don't show anything while checking settings
+  if (settingsLoading) return null;
 
+  // If subscription management is disabled, don't show any subscription messages
   if (!subscriptionManagementEnabled) return null;
+
+  // Don't show anything while loading subscription data
+  if (loading) return null;
 
   if (subscription.isExpired) {
     return (
