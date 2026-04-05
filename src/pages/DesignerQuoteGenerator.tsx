@@ -62,6 +62,7 @@ interface QuoteItem {
   item_type: 'material' | 'labor' | 'service' | 'other' | 'component';
   name: string;
   description: string;
+  number_of_units: number;
   quantity: number;
   unit: string;
   unit_price: number;
@@ -308,6 +309,7 @@ const DesignerQuoteGenerator = () => {
       item_type: 'material',
       name: '',
       description: '',
+      number_of_units: 1,
       quantity: 1,
       unit: 'sq.ft',
       unit_price: '' as any,
@@ -337,6 +339,7 @@ const DesignerQuoteGenerator = () => {
             item_type: 'material',
             name: material.name,
             description: material.description || '',
+            number_of_units: 1,
             quantity: quantity,
             unit: material.unit,
             unit_price: unitPrice,
@@ -489,6 +492,7 @@ const DesignerQuoteGenerator = () => {
         item_type: item.item_type,
         name: item.name,
         description: item.description,
+        number_of_units: item.number_of_units,
         quantity: item.quantity,
         unit: item.unit,
         unit_price: item.unit_price,
@@ -1030,10 +1034,27 @@ const DesignerQuoteGenerator = () => {
                               placeholder="Describe the item, specifications, or scope of work"
                             />
                           </div>
-                          
+
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Quantity * {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth &&
+                              Number of Units *
+                              <span className="text-xs text-gray-500 font-normal ml-1">(count of materials)</span>
+                            </label>
+                            <input
+                              type="number"
+                              value={item.number_of_units}
+                              onChange={(e) => handleItemChange(index, 'number_of_units', parseFloat(e.target.value) || 1)}
+                              min="1"
+                              step="1"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              placeholder="e.g., 5 pieces"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Total Sq Ft * {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth &&
                                 <span className="text-xs text-green-600 font-normal">(Auto-calculated)</span>
                               }
                             </label>
@@ -1050,7 +1071,7 @@ const DesignerQuoteGenerator = () => {
                                   : ''
                               }`}
                               title={['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth
-                                ? 'Quantity is auto-calculated from length × breadth'
+                                ? 'Total sq ft is auto-calculated from length × breadth'
                                 : ''
                               }
                               required
@@ -1061,7 +1082,7 @@ const DesignerQuoteGenerator = () => {
                               </p>
                             )}
                           </div>
-                          
+
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Unit
@@ -1241,7 +1262,8 @@ const DesignerQuoteGenerator = () => {
                           <tr>
                             <th className="text-left py-3 px-4 font-semibold text-secondary-800">Item</th>
                             <th className="text-left py-3 px-4 font-semibold text-secondary-800">Description</th>
-                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Qty</th>
+                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Units</th>
+                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Total Sq Ft</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Unit</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Length</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Breadth</th>
@@ -1255,6 +1277,7 @@ const DesignerQuoteGenerator = () => {
                             <tr key={index} className="border-b border-gray-100">
                               <td className="py-3 px-4 font-medium text-secondary-800">{item.name}</td>
                               <td className="py-3 px-4 text-gray-600">{item.description || '-'}</td>
+                              <td className="py-3 px-4 text-right">{item.number_of_units}</td>
                               <td className="py-3 px-4 text-right">{item.quantity}</td>
                               <td className="py-3 px-4 text-right">{item.unit}</td>
                               <td className="py-3 px-4 text-right">{item.length ? item.length : '-'}</td>

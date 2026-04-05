@@ -754,7 +754,8 @@ const CustomerQuotes = () => {
                         <tr>
                           <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Item</th>
                           <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Description</th>
-                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Quantity</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Units</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Sq Ft</th>
                           <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Length</th>
                           <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Breadth</th>
                           <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Unit Price</th>
@@ -771,6 +772,7 @@ const CustomerQuotes = () => {
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="py-3 px-4 text-sm font-medium text-gray-800">{item.name}</td>
                           <td className="py-3 px-4 text-sm text-gray-600">{item.description || '-'}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.number_of_units || 1}</td>
                           <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.quantity} {item.unit}</td>
                           <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.length ? item.length : '-'}</td>
                           <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.breadth ? item.breadth : '-'}</td>
@@ -779,27 +781,27 @@ const CustomerQuotes = () => {
                         </tr>
                       )) : (
                         <tr>
-                          <td colSpan={7} className="py-3 px-4 text-sm text-gray-500 text-center">No items available for this quote</td>
+                          <td colSpan={8} className="py-3 px-4 text-sm text-gray-500 text-center">No items available for this quote</td>
                         </tr>
                       )}
                     </tbody>
                     <tfoot className="bg-gray-50">
                       <tr>
-                        <td colSpan={6} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Subtotal</td>
+                        <td colSpan={7} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Subtotal</td>
                         <td className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">{formatCurrency(selectedQuote.subtotal)}</td>
                       </tr>
                       {selectedQuote.discount_amount > 0 && (
                         <tr>
-                          <td colSpan={6} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Discount</td>
+                          <td colSpan={7} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Discount</td>
                           <td className="py-3 px-4 text-sm font-semibold text-green-600 text-right">-{formatCurrency(selectedQuote.discount_amount)}</td>
                         </tr>
                       )}
                       <tr>
-                        <td colSpan={6} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Tax ({selectedQuote.tax_rate}%)</td>
+                        <td colSpan={7} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Tax ({selectedQuote.tax_rate}%)</td>
                         <td className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">{formatCurrency(selectedQuote.tax_amount)}</td>
                       </tr>
                       <tr>
-                        <td colSpan={6} className="py-3 px-4 text-base font-bold text-secondary-800 text-right">Total</td>
+                        <td colSpan={7} className="py-3 px-4 text-base font-bold text-secondary-800 text-right">Total</td>
                         <td className="py-3 px-4 text-base font-bold text-primary-600 text-right">{formatCurrency(selectedQuote.total_amount)}</td>
                       </tr>
                     </tfoot>

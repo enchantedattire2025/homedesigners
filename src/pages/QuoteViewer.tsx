@@ -302,7 +302,8 @@ const QuoteViewer = () => {
                   <tr>
                     <th className="text-left py-3 px-4 font-semibold text-secondary-800 border-b">Item</th>
                     <th className="text-left py-3 px-4 font-semibold text-secondary-800 border-b">Description</th>
-                    <th className="text-right py-3 px-4 font-semibold text-secondary-800 border-b">Qty</th>
+                    <th className="text-right py-3 px-4 font-semibold text-secondary-800 border-b">Units</th>
+                    <th className="text-right py-3 px-4 font-semibold text-secondary-800 border-b">Total Sq Ft</th>
                     <th className="text-right py-3 px-4 font-semibold text-secondary-800 border-b">Unit</th>
                     <th className="text-right py-3 px-4 font-semibold text-secondary-800 border-b">Length</th>
                     <th className="text-right py-3 px-4 font-semibold text-secondary-800 border-b">Breadth</th>
@@ -316,6 +317,7 @@ const QuoteViewer = () => {
                     <tr key={item.id} className="border-b border-gray-100">
                       <td className="py-3 px-4 font-medium text-gray-800">{item.name}</td>
                       <td className="py-3 px-4 text-gray-600 text-sm">{item.description || '-'}</td>
+                      <td className="py-3 px-4 text-right text-gray-800">{item.number_of_units || 1}</td>
                       <td className="py-3 px-4 text-right text-gray-800">{item.quantity}</td>
                       <td className="py-3 px-4 text-right text-gray-600">{item.unit}</td>
                       <td className="py-3 px-4 text-right text-gray-600">{item.length ? item.length : '-'}</td>

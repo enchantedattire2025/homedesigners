@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Calendar, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, MessageSquare, Award, Target, Activity, FileText, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, ArrowLeft, Filter, Search, Edit, Trash2, Send, Plus, ThumbsDown, Download } from 'lucide-react';
+import { BarChart3, Users, Calendar, Star, TrendingUp, Clock, CheckCircle, AlertCircle, Eye, MessageSquare, Award, Target, Activity, FileText, X, XCircle, BarChart as BarChartIcon, PieChart as PieChartIcon, LineChart as LineChartIcon, ArrowLeft, Filter, Search, CreditCard as Edit, Trash2, Send, Plus, ThumbsDown, Download } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
@@ -502,7 +502,8 @@ const DesignerQuotes = () => {
                 <tr>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Item</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Description</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Qty</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Units</th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Sq Ft</th>
                   <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Unit Price</th>
                   <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
                 </tr>
@@ -512,35 +513,36 @@ const DesignerQuotes = () => {
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="py-3 px-4 text-sm font-medium text-gray-800">{item.name}</td>
                     <td className="py-3 px-4 text-sm text-gray-600">{item.description}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.number_of_units || 1}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.quantity} {item.unit}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 text-right">₹{item.unit_price.toLocaleString('en-IN')}</td>
                     <td className="py-3 px-4 text-sm font-medium text-gray-800 text-right">₹{item.amount.toLocaleString('en-IN')}</td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={5} className="py-3 px-4 text-sm text-gray-500 text-center">No items available</td>
+                    <td colSpan={6} className="py-3 px-4 text-sm text-gray-500 text-center">No items available</td>
                   </tr>
                 )}
               </tbody>
               <tfoot className="bg-gray-50">
                 <tr>
-                  <td colSpan={4} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Subtotal</td>
+                  <td colSpan={5} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Subtotal</td>
                   <td className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">₹{selectedQuote.subtotal.toLocaleString('en-IN')}</td>
                 </tr>
                 {selectedQuote.discount_amount > 0 && (
                   <tr>
-                    <td colSpan={4} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Discount</td>
+                    <td colSpan={5} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">Discount</td>
                     <td className="py-3 px-4 text-sm font-semibold text-green-600 text-right">-₹{selectedQuote.discount_amount.toLocaleString('en-IN')}</td>
                   </tr>
                 )}
                 <tr>
-                  <td colSpan={4} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">
+                  <td colSpan={5} className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">
                     Tax ({selectedQuote.tax_rate}%)
                   </td>
                   <td className="py-3 px-4 text-sm font-semibold text-gray-700 text-right">₹{selectedQuote.tax_amount.toLocaleString('en-IN')}</td>
                 </tr>
                 <tr>
-                  <td colSpan={4} className="py-3 px-4 text-base font-bold text-secondary-800 text-right">Total</td>
+                  <td colSpan={5} className="py-3 px-4 text-base font-bold text-secondary-800 text-right">Total</td>
                   <td className="py-3 px-4 text-base font-bold text-primary-600 text-right">₹{selectedQuote.total_amount.toLocaleString('en-IN')}</td>
                 </tr>
               </tfoot>
