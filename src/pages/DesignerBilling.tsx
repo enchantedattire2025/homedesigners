@@ -19,11 +19,13 @@ import {
   Receipt,
   History,
   ChevronDown,
-  Eye
+  Eye,
+  Download
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
+import { generateBillPdf } from '../utils/generateBillPdf';
 
 interface BillItem {
   id?: string;
@@ -357,6 +359,38 @@ const DesignerBilling = () => {
     }
   };
 
+  const handleDownloadPdf = () => {
+    if (!bill || !project) return;
+    const pdfItems = viewingVersion && selectedVersion ? selectedVersion.items_snapshot : items;
+    const pdfSubtotal = viewingVersion && selectedVersion ? selectedVersion.subtotal : subtotal;
+    const pdfDiscount = viewingVersion && selectedVersion ? selectedVersion.discount_amount : discountAmount;
+    const pdfTaxRate = viewingVersion && selectedVersion ? selectedVersion.tax_rate : taxRate;
+    const pdfTaxAmount = viewingVersion && selectedVersion ? selectedVersion.tax_amount : taxAmount;
+    const pdfTotal = viewingVersion && selectedVersion ? selectedVersion.total_amount : totalAmount;
+    const pdfNotes = viewingVersion && selectedVersion ? selectedVersion.notes : notes;
+
+    generateBillPdf({
+      billNumber: bill.bill_number,
+      status: viewingVersion && selectedVersion ? selectedVersion.status : bill.status,
+      createdAt: bill.created_at,
+      projectName: project.project_name,
+      customerName: project.name,
+      customerEmail: project.email,
+      customerPhone: project.phone,
+      customerLocation: project.location,
+      designerName: designer?.name,
+      designerSpecialization: (designer as any)?.specialization,
+      items: pdfItems,
+      subtotal: pdfSubtotal,
+      discountAmount: pdfDiscount,
+      taxRate: pdfTaxRate,
+      taxAmount: pdfTaxAmount,
+      totalAmount: pdfTotal,
+      notes: pdfNotes,
+      versionNumber: viewingVersion && selectedVersion ? selectedVersion.version_number : undefined,
+    });
+  };
+
   const { subtotal, taxAmount, totalAmount } = calculateTotals();
 
   if (loading) {
@@ -467,6 +501,14 @@ const DesignerBilling = () => {
                 )}
               </div>
             )}
+
+            <button
+              onClick={handleDownloadPdf}
+              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF</span>
+            </button>
 
             {!viewingVersion && (
               <>
