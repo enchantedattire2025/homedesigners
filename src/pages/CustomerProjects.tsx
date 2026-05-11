@@ -728,7 +728,7 @@ interface Quote {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex space-x-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => navigate(`/project-detail/${project.id}`)}
                         className="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2 px-3 rounded-lg font-medium transition-colors text-center"
@@ -742,6 +742,16 @@ interface Quote {
                       >
                         <Upload className="w-4 h-4" />
                       </button>
+                      {projectQuotes[project.id] && (
+                        <button
+                          onClick={() => navigate(`/project-bill/${project.id}`)}
+                          className="bg-teal-500 hover:bg-teal-600 text-white py-2 px-3 rounded-lg font-medium transition-colors flex items-center gap-1"
+                          title="Manage Bill"
+                        >
+                          <FileText className="w-4 h-4" />
+                          <span className="text-xs">Bill</span>
+                        </button>
+                      )}
                       {project.assignment_status === 'completed' && (
                         <button
                           onClick={() => {

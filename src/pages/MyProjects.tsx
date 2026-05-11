@@ -488,6 +488,13 @@ const MyProjects = () => {
                           <CheckCircle className="w-4 h-4" />
                           <span>View Accepted Quote</span>
                         </button>
+                        <button
+                          onClick={() => navigate(`/my-bill/${project.id}`)}
+                          className="w-full bg-teal-500 hover:bg-teal-600 text-white py-2 px-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          <span>View Bill</span>
+                        </button>
                         {project.assignment_status === 'completed' && !projectHasFeedback[project.id] && (project as any).assigned_designer && (
                           <button
                             onClick={() => handleLeaveFeedback(project)}
