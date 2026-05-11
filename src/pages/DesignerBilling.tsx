@@ -259,6 +259,23 @@ const DesignerBilling = () => {
       const { subtotal, taxAmount, totalAmount } = calculateTotals();
       const newStatus = sendToCustomer ? 'sent' : 'draft';
 
+      // Check if anything actually changed
+      const billFieldsChanged =
+        subtotal !== bill.subtotal ||
+        discountAmount !== bill.discount_amount ||
+        taxRate !== bill.tax_rate ||
+        taxAmount !== bill.tax_amount ||
+        totalAmount !== bill.total_amount ||
+        newStatus !== bill.status ||
+        notes !== (bill.notes || '');
+
+      if (!billFieldsChanged) {
+        setSuccess('No changes to save.');
+        setTimeout(() => setSuccess(null), 2000);
+        setSaving(false);
+        return;
+      }
+
       // Upsert items first so the version trigger captures them
       const { error: deleteError } = await supabase
         .from('bill_items')
