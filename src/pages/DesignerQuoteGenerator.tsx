@@ -394,7 +394,7 @@ const DesignerQuoteGenerator = () => {
             unit: material.unit,
             unit_price: unitPrice,
             discount_percent: 0,
-            amount: quantity * unitPrice
+            amount: 1 * quantity * unitPrice
           });
         }
       }
@@ -452,11 +452,11 @@ const DesignerQuoteGenerator = () => {
         }
       }
 
-      // Recalculate amount if quantity, unit_price, discount_percent, length, or breadth changes
+      // Recalculate amount if quantity, unit_price, discount_percent, number_of_units, length, or breadth changes
       if (field === 'quantity' || field === 'unit_price' || field === 'discount_percent' ||
-          field === 'length' || field === 'breadth' || field === 'unit') {
+          field === 'number_of_units' || field === 'length' || field === 'breadth' || field === 'unit') {
         const discountMultiplier = 1 - (item.discount_percent / 100);
-        item.amount = item.quantity * item.unit_price * discountMultiplier;
+        item.amount = item.number_of_units * item.quantity * item.unit_price * discountMultiplier;
       }
 
       // If material_id changes, update other fields from the selected material
@@ -474,7 +474,7 @@ const DesignerQuoteGenerator = () => {
             description: material.description || '',
             unit: material.unit,
             unit_price: unitPrice,
-            amount: updatedItems[index].quantity * unitPrice * (1 - (updatedItems[index].discount_percent / 100))
+            amount: updatedItems[index].number_of_units * updatedItems[index].quantity * unitPrice * (1 - (updatedItems[index].discount_percent / 100))
           };
         }
       }
@@ -940,7 +940,7 @@ const DesignerQuoteGenerator = () => {
                                     handleItemChange(index, 'unit', selectedComponent.defaultUnit);
                                     handleItemChange(index, 'unit_price', selectedComponent.defaultPrice);
                                     // Recalculate amount
-                                    const amount = item.quantity * selectedComponent.defaultPrice * (1 - (item.discount_percent / 100));
+                                    const amount = item.number_of_units * item.quantity * selectedComponent.defaultPrice * (1 - (item.discount_percent / 100));
                                     handleItemChange(index, 'amount', amount);
                                   }
                                 }}
@@ -994,7 +994,7 @@ const DesignerQuoteGenerator = () => {
                                         const newQuantity = width * height;
                                         handleItemChange(index, 'quantity', newQuantity);
                                         // Update amount
-                                        const amount = newQuantity * item.unit_price * (1 - (item.discount_percent / 100));
+                                        const amount = item.number_of_units * newQuantity * item.unit_price * (1 - (item.discount_percent / 100));
                                         handleItemChange(index, 'amount', amount);
                                       }
                                     }}
@@ -1027,7 +1027,7 @@ const DesignerQuoteGenerator = () => {
                                         const newQuantity = width * height;
                                         handleItemChange(index, 'quantity', newQuantity);
                                         // Update amount
-                                        const amount = newQuantity * item.unit_price * (1 - (item.discount_percent / 100));
+                                        const amount = item.number_of_units * newQuantity * item.unit_price * (1 - (item.discount_percent / 100));
                                         handleItemChange(index, 'amount', amount);
                                       }
                                     }}
