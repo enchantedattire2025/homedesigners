@@ -256,6 +256,7 @@ const DesignerQuoteGenerator = () => {
       setLoading(true);
       setError(null);
 
+      // First try to get designer's own materials
       const { data, error } = await supabase
         .from('designer_material_prices')
         .select('*')
@@ -265,8 +266,57 @@ const DesignerQuoteGenerator = () => {
         .order('name', { ascending: true });
 
       if (error) throw error;
-      
-      setMaterials(data || []);
+
+      // If designer has no materials, load from master and copy to their catalog
+      if (!data || data.length === 0) {
+        const { data: masterData, error: masterError } = await supabase
+          .from('material_pricing_master')
+          .select('*')
+          .eq('is_active', true)
+          .order('category', { ascending: true })
+          .order('name', { ascending: true });
+
+        if (masterError) throw masterError;
+
+        if (masterData && masterData.length > 0) {
+          // Copy master materials to designer's catalog
+          const materialsToInsert = masterData.map(m => ({
+            designer_id: designer.id,
+            category: m.category,
+            name: m.name,
+            description: m.description,
+            unit: m.unit,
+            base_price: m.base_price,
+            discount_price: null,
+            is_discounted: false,
+            brand: m.brand,
+            quality_grade: m.quality_grade,
+            is_available: true
+          }));
+
+          const { error: insertError } = await supabase
+            .from('designer_material_prices')
+            .insert(materialsToInsert);
+
+          if (insertError) throw insertError;
+
+          // Re-fetch to get the inserted records with proper IDs
+          const { data: refreshed, error: refreshError } = await supabase
+            .from('designer_material_prices')
+            .select('*')
+            .eq('designer_id', designer.id)
+            .eq('is_available', true)
+            .order('category', { ascending: true })
+            .order('name', { ascending: true });
+
+          if (refreshError) throw refreshError;
+          setMaterials(refreshed || []);
+        } else {
+          setMaterials([]);
+        }
+      } else {
+        setMaterials(data);
+      }
     } catch (error: any) {
       console.error('Error fetching materials:', error);
       setError(error.message || 'Failed to load materials');

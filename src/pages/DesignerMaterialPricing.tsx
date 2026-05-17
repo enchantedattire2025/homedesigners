@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Save, ArrowLeft, Search, Filter, AlertCircle, CheckCircle, Edit, Package, IndianRupee as Rupee } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Search, Filter, AlertCircle, CheckCircle, CreditCard as Edit, Package, IndianRupee as Rupee } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
@@ -100,11 +100,77 @@ const DesignerMaterialPricing = () => {
         .order('name', { ascending: true });
 
       if (error) throw error;
-      
+
+      // If designer has no materials, auto-import from master
+      if (!data || data.length === 0) {
+        await importFromMaster();
+        return;
+      }
+
       setMaterials(data || []);
     } catch (error: any) {
       console.error('Error fetching materials:', error);
       setError(error.message || 'Failed to load materials');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const importFromMaster = async () => {
+    if (!designer) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: masterData, error: masterError } = await supabase
+        .from('material_pricing_master')
+        .select('*')
+        .eq('is_active', true)
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (masterError) throw masterError;
+
+      if (masterData && masterData.length > 0) {
+        const materialsToInsert = masterData.map(m => ({
+          designer_id: designer.id,
+          category: m.category,
+          name: m.name,
+          description: m.description,
+          unit: m.unit,
+          base_price: m.base_price,
+          discount_price: null,
+          is_discounted: false,
+          brand: m.brand,
+          quality_grade: m.quality_grade,
+          is_available: true
+        }));
+
+        const { error: insertError } = await supabase
+          .from('designer_material_prices')
+          .insert(materialsToInsert);
+
+        if (insertError) throw insertError;
+
+        setSuccess('Master materials imported to your catalog successfully!');
+
+        // Re-fetch materials
+        const { data: refreshed, error: refreshError } = await supabase
+          .from('designer_material_prices')
+          .select('*')
+          .eq('designer_id', designer.id)
+          .order('category', { ascending: true })
+          .order('name', { ascending: true });
+
+        if (refreshError) throw refreshError;
+        setMaterials(refreshed || []);
+      } else {
+        setMaterials([]);
+      }
+    } catch (error: any) {
+      console.error('Error importing master materials:', error);
+      setError(error.message || 'Failed to import master materials');
     } finally {
       setLoading(false);
     }
@@ -583,15 +649,25 @@ const DesignerMaterialPricing = () => {
                 : "No materials match your current search filters."}
             </p>
             {materials.length === 0 && (
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowAddForm(true);
-                }}
-                className="btn-primary"
-              >
-                Add Your First Material
-              </button>
+              <div className="flex flex-col items-center space-y-3">
+                <button
+                  onClick={importFromMaster}
+                  disabled={loading}
+                  className="btn-primary"
+                >
+                  Import Default Materials from Master Catalog
+                </button>
+                <span className="text-sm text-gray-500">or</span>
+                <button
+                  onClick={() => {
+                    resetForm();
+                    setShowAddForm(true);
+                  }}
+                  className="text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  Add a Material Manually
+                </button>
+              </div>
             )}
           </div>
         ) : (
