@@ -98,8 +98,7 @@ export default function WallpaperOrder() {
 
       setFormData(prev => ({
         ...prev,
-        reference_images: [state.selectedWallpaper!.image_url],
-        notes: `Selected wallpaper: ${state.selectedWallpaper!.title}${state.selectedWallpaper!.description ? ` - ${state.selectedWallpaper!.description}` : ''}`
+        reference_images: [state.selectedWallpaper!.image_url]
       }));
     }
   }, [location]);
