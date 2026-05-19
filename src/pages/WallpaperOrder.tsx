@@ -119,7 +119,7 @@ export default function WallpaperOrder() {
       areaSqFt = areaSqFt / 144;
     }
 
-    const rate = formData.wallpaper_type === 'golden_foil' ? 200 : 150;
+    const rate = formData.wallpaper_type === 'golden_foil' ? 260 : 180;
     const total = areaSqFt * rate;
     const advance = total * 0.5;
 
@@ -429,8 +429,8 @@ export default function WallpaperOrder() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-blue-900 mb-2">Pricing Information</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>Normal 3D Wallpaper: Rs.150 per sq ft</li>
-              <li>Golden Foil 3D Wallpaper: Rs.200 per sq ft</li>
+              <li>Normal 3D Wallpaper: Rs.180 per sq ft (with installation)</li>
+              <li>Golden/Silver Foil 3D Wallpaper: Rs.260 per sq ft (with installation)</li>
               <li>50% advance payment required via PayPal</li>
               <li>Preview will be provided before final confirmation</li>
               <li>Delivery and execution at site after confirmation</li>
@@ -660,7 +660,7 @@ export default function WallpaperOrder() {
                     />
                     <div>
                       <div className="font-semibold text-gray-900">Normal 3D Wallpaper</div>
-                      <div className="text-sm text-gray-600">Rs.150 per sq ft</div>
+                      <div className="text-sm text-gray-600">Rs.180 per sq ft (with installation)</div>
                     </div>
                   </label>
 
@@ -674,8 +674,8 @@ export default function WallpaperOrder() {
                       className="mr-3"
                     />
                     <div>
-                      <div className="font-semibold text-gray-900">Golden Foil 3D Wallpaper</div>
-                      <div className="text-sm text-gray-600">Rs.200 per sq ft</div>
+                      <div className="font-semibold text-gray-900">Golden/Silver Foil 3D Wallpaper</div>
+                      <div className="text-sm text-gray-600">Rs.260 per sq ft (with installation)</div>
                     </div>
                   </label>
                 </div>
