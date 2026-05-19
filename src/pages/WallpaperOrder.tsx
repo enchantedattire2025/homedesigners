@@ -120,7 +120,7 @@ export default function WallpaperOrder() {
 
     const rate = formData.wallpaper_type === 'golden_foil' ? 260 : 180;
     const total = areaSqFt * rate;
-    const advance = total * 0.5;
+    const advance = total * 0.1;
 
     return { areaSqFt, rate, total, advance };
   }, [formData.wall_size_length, formData.wall_size_height, formData.wall_unit, formData.wallpaper_type]);
@@ -430,7 +430,7 @@ export default function WallpaperOrder() {
             <ul className="text-sm text-blue-800 space-y-1">
               <li>Normal 3D Wallpaper: Rs.180 per sq ft (with installation)</li>
               <li>Golden/Silver Foil 3D Wallpaper: Rs.260 per sq ft (with installation)</li>
-              <li>50% advance payment required via PayPal</li>
+              <li>10% advance payment required via PayPal</li>
               <li>Preview will be provided before final confirmation</li>
               <li>Delivery and execution at site after confirmation</li>
               <li>Installation within 2 days</li>
@@ -744,7 +744,7 @@ export default function WallpaperOrder() {
                       <span>Rs.{total.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-blue-600 font-semibold">
-                      <span>50% Advance Payment (PayPal):</span>
+                      <span>10% Advance Payment (PayPal):</span>
                       <span>Rs.{advance.toFixed(2)}</span>
                     </div>
                   </div>
@@ -805,7 +805,7 @@ export default function WallpaperOrder() {
                   <span className="font-medium text-blue-900">Rs.{total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-base font-bold border-t border-blue-200 pt-2 mt-2">
-                  <span className="text-blue-900">Advance Payment (50%):</span>
+                  <span className="text-blue-900">Advance Payment (10%):</span>
                   <span className="text-blue-900">Rs.{advance.toFixed(2)}</span>
                 </div>
               </div>
@@ -845,7 +845,7 @@ export default function WallpaperOrder() {
             <div className="mt-6 bg-gray-50 rounded-lg p-4">
               <p className="text-xs text-gray-500 text-center">
                 By completing this payment, you agree to our terms of service.
-                The remaining 50% is payable after preview approval and before delivery.
+                The remaining 90% is payable after preview approval and before delivery.
               </p>
             </div>
           </div>
