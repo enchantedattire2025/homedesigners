@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Briefcase, Globe, IndianRupee, FileText, Award, Plus, X, Upload, ArrowLeft, Save, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, Globe, IndianRupee, FileText, Award, Plus, X, Upload, ArrowLeft, Save, AlertCircle, Lock, Eye, EyeOff, Building2, Wifi } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
@@ -39,6 +39,8 @@ const DesignerRegistration = () => {
     website: '',
     starting_price: '',
     profile_image: '',
+    business_type: '' as '' | 'google_location' | 'virtual',
+    google_location_url: '',
     services: [''],
     materials_expertise: [''],
     awards: ['']
@@ -93,6 +95,8 @@ const DesignerRegistration = () => {
           website: designer.website || '',
           starting_price: designer.starting_price || '',
           profile_image: designer.profile_image || '',
+          business_type: (designer.business_type as '' | 'google_location' | 'virtual') || '',
+          google_location_url: designer.google_location_url || '',
           services: designer.services && designer.services.length > 0 ? designer.services : [''],
           materials_expertise: designer.materials_expertise && designer.materials_expertise.length > 0 ? designer.materials_expertise : [''],
           awards: designer.awards && designer.awards.length > 0 ? designer.awards : ['']
@@ -438,6 +442,8 @@ const DesignerRegistration = () => {
         website: formData.website.trim(),
         starting_price: formData.starting_price.trim(),
         profile_image: profileImageUrl,
+        business_type: formData.business_type || null,
+        google_location_url: formData.business_type === 'google_location' ? formData.google_location_url.trim() : null,
         services: formData.services.filter(s => s.trim() !== ''),
         materials_expertise: formData.materials_expertise.filter(m => m.trim() !== ''),
         awards: formData.awards.filter(a => a.trim() !== '')
@@ -503,6 +509,8 @@ const DesignerRegistration = () => {
             website: cleanedData.website,
             starting_price: cleanedData.starting_price,
             profile_image: profileImageUrl,
+            business_type: cleanedData.business_type,
+            google_location_url: cleanedData.google_location_url,
             services: cleanedData.services,
             materials_expertise: cleanedData.materials_expertise,
             awards: cleanedData.awards,
@@ -819,6 +827,83 @@ const DesignerRegistration = () => {
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Business Type
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, business_type: 'google_location', google_location_url: '' }))}
+                        className={`flex items-start space-x-4 p-4 rounded-xl border-2 transition-all text-left ${
+                          formData.business_type === 'google_location'
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          formData.business_type === 'google_location' ? 'bg-primary-100' : 'bg-gray-100'
+                        }`}>
+                          <Building2 className={`w-5 h-5 ${formData.business_type === 'google_location' ? 'text-primary-600' : 'text-gray-500'}`} />
+                        </div>
+                        <div>
+                          <p className={`font-semibold text-sm ${formData.business_type === 'google_location' ? 'text-primary-700' : 'text-gray-800'}`}>
+                            Google Location
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                            I have a physical studio or office listed on Google Maps
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, business_type: 'virtual', google_location_url: '' }))}
+                        className={`flex items-start space-x-4 p-4 rounded-xl border-2 transition-all text-left ${
+                          formData.business_type === 'virtual'
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          formData.business_type === 'virtual' ? 'bg-primary-100' : 'bg-gray-100'
+                        }`}>
+                          <Wifi className={`w-5 h-5 ${formData.business_type === 'virtual' ? 'text-primary-600' : 'text-gray-500'}`} />
+                        </div>
+                        <div>
+                          <p className={`font-semibold text-sm ${formData.business_type === 'virtual' ? 'text-primary-700' : 'text-gray-800'}`}>
+                            Virtual Business
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                            I operate remotely and serve clients online
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+
+                    {formData.business_type === 'google_location' && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Google Maps Link or Business Address
+                        </label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <input
+                            type="text"
+                            name="google_location_url"
+                            value={formData.google_location_url}
+                            onChange={handleInputChange}
+                            className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="https://maps.google.com/... or your business address"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Paste your Google Maps link or enter your studio address
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

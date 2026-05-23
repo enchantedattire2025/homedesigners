@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MapPin, Filter, Search } from 'lucide-react';
+import { Star, MapPin, Filter, Search, Building2, Wifi } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Designer } from '../lib/supabase';
 
@@ -260,11 +260,25 @@ const Designers = () => {
                               </p>
                             </div>
                           </div>
-                          {designer.is_verified && (
-                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                              Verified
-                            </span>
-                          )}
+                          <div className="flex flex-col items-end gap-1">
+                            {designer.is_verified && (
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                Verified
+                              </span>
+                            )}
+                            {designer.business_type === 'google_location' && (
+                              <span className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full text-xs font-medium">
+                                <Building2 className="w-3 h-3" />
+                                Physical Studio
+                              </span>
+                            )}
+                            {designer.business_type === 'virtual' && (
+                              <span className="flex items-center gap-1 bg-teal-50 text-teal-700 border border-teal-200 px-2 py-1 rounded-full text-xs font-medium">
+                                <Wifi className="w-3 h-3" />
+                                Virtual
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">
@@ -274,7 +288,19 @@ const Designers = () => {
                         <div className="flex items-center space-x-4 mb-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-1">
                             <MapPin className="w-4 h-4" />
-                            <span>{designer.location}</span>
+                            {designer.business_type === 'google_location' && designer.google_location_url ? (
+                              <a
+                                href={designer.google_location_url.startsWith('http') ? designer.google_location_url : `https://maps.google.com/?q=${encodeURIComponent(designer.google_location_url)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary-600 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {designer.location}
+                              </a>
+                            ) : (
+                              <span>{designer.location}</span>
+                            )}
                           </div>
                           <span>•</span>
                           <span>{designer.experience} years exp</span>

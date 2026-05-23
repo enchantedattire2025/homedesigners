@@ -139,6 +139,8 @@ export type Designer = {
   total_projects: number;
   is_verified: boolean;
   is_active: boolean;
+  business_type?: 'google_location' | 'virtual';
+  google_location_url?: string;
   created_at: string;
   updated_at: string;
 };
