@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Calendar, Award, Phone, Mail, ArrowLeft, ExternalLink, User } from 'lucide-react';
+import { Star, MapPin, Calendar, Award, Phone, Mail, ArrowLeft, ExternalLink, User, Navigation } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import AuthModal from '../components/AuthModal';
@@ -138,6 +138,14 @@ const DesignerDetail = () => {
         }
         break;
     }
+  };
+
+  const handleGetDirections = () => {
+    if (!designer?.google_location_url) return;
+    const url = designer.google_location_url.startsWith('http')
+      ? designer.google_location_url
+      : `https://maps.google.com/?q=${encodeURIComponent(designer.google_location_url)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleGetQuote = () => {
@@ -430,6 +438,15 @@ const DesignerDetail = () => {
                       >
                         <ExternalLink className="w-5 h-5" />
                         <span>{designer.website}</span>
+                      </button>
+                    )}
+                    {designer.google_location_url && (
+                      <button
+                        onClick={handleGetDirections}
+                        className="flex items-center justify-center space-x-2 w-full bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-lg font-semibold transition-colors mt-2"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        <span>Get Directions</span>
                       </button>
                     )}
                   </div>
