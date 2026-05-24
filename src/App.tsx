@@ -34,7 +34,6 @@ import AdminDealsManagement from './pages/AdminDealsManagement';
 import AdminSubscriptionManagement from './pages/AdminSubscriptionManagement';
 import AdminVideoManagement from './pages/AdminVideoManagement';
 import AdminWhatsAppSettings from './pages/AdminWhatsAppSettings';
-import AdminSignup from './pages/AdminSignup';
 import AdminLogin from './pages/AdminLogin';
 import DebugPage from './pages/DebugPage';
 import DebugDesignerProfile from './pages/DebugDesignerProfile';
@@ -158,7 +157,6 @@ function App() {
             <Route path="/admin/3d-wallpapers" element={<Admin3DWallpapers />} />
             <Route path="/admin/auth-debug" element={<AdminAuthDebug />} />
             <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/admin-signup" element={<AdminSignup />} />
             <Route path="/debug" element={<DebugPage />} />
             <Route path="/debug-profile" element={<DebugDesignerProfile />} />
             <Route path="/share-photo" element={<SharePhotoForm />} />

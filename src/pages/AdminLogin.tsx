@@ -162,15 +162,6 @@ const AdminLogin = () => {
 
             <div className="mt-8 pt-6 border-t border-gray-200">
               <p className="text-center text-sm text-gray-600">
-                Need an admin account?{' '}
-                <button
-                  onClick={() => navigate('/admin-signup')}
-                  className="text-slate-700 hover:text-slate-900 font-semibold"
-                >
-                  Sign up here
-                </button>
-              </p>
-              <p className="text-center text-sm text-gray-600 mt-3">
                 <button
                   onClick={() => navigate('/')}
                   className="text-slate-700 hover:text-slate-900 font-semibold"
