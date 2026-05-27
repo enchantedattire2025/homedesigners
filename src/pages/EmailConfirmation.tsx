@@ -11,60 +11,65 @@ const EmailConfirmation = () => {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
-        // Supabase PKCE flow: confirmation link has ?code=... in query string
+        // With detectSessionInUrl: true and flowType: 'pkce', Supabase automatically
+        // processes the ?code= param from the URL and establishes a session before
+        // this component even mounts. We must NOT call exchangeCodeForSession manually
+        // (that would fail with "code already used"). Instead, just wait briefly for
+        // the auto-processing to complete, then check the session.
+
         const searchParams = new URLSearchParams(window.location.search);
-        const code = searchParams.get('code');
+        const hasCode = searchParams.has('code');
 
-        // Legacy flow: access_token in hash fragment
+        // Also handle legacy hash-based token (implicit flow)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const hashType = hashParams.get('type');
+        const hasHashToken = hashParams.has('access_token');
 
-        if (code) {
-          // PKCE flow — exchange code for session, which also confirms the email
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!hasCode && !hasHashToken) {
+          // No token at all — not a valid confirmation URL
+          setStatus('error');
+          setMessage('Invalid confirmation link. Please request a new one.');
+          return;
+        }
 
-          if (error) {
-            console.error('Code exchange error:', error);
-            setStatus('error');
-            setMessage('Email confirmation failed. The link may have expired or already been used.');
-            return;
-          }
+        // Give Supabase's detectSessionInUrl a moment to process the code
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
-          if (data.user) {
-            setStatus('success');
-            setMessage('Email confirmed successfully! You can now sign in to your account.');
-            setTimeout(() => navigate('/'), 3000);
-          } else {
-            setStatus('error');
-            setMessage('Could not confirm email. Please request a new confirmation link.');
-          }
-        } else if (accessToken && hashType === 'signup') {
-          // Legacy implicit flow
-          const { data, error } = await supabase.auth.getUser(accessToken);
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-          if (error || !data.user) {
-            console.error('Confirmation error:', error);
-            setStatus('error');
-            setMessage('Email confirmation failed. The link may have expired or is invalid.');
-            return;
-          }
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setStatus('error');
+          setMessage('Email confirmation failed. Please try again or request a new link.');
+          return;
+        }
 
+        if (sessionData.session?.user) {
           setStatus('success');
           setMessage('Email confirmed successfully! You can now sign in to your account.');
           setTimeout(() => navigate('/'), 3000);
         } else {
-          // No recognisable token — Supabase may have already processed it automatically;
-          // check if there is an active session before showing an error.
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData.session?.user) {
-            setStatus('success');
-            setMessage('Email confirmed successfully! You can now sign in to your account.');
-            setTimeout(() => navigate('/'), 3000);
-          } else {
-            setStatus('error');
-            setMessage('Invalid or expired confirmation link. Please request a new one.');
-          }
+          // Session not established — try onAuthStateChange as a last resort
+          // (handles cases where the event fires slightly after getSession)
+          const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+              subscription.unsubscribe();
+              setStatus('success');
+              setMessage('Email confirmed successfully! You can now sign in to your account.');
+              setTimeout(() => navigate('/'), 3000);
+            }
+          });
+
+          // If still no session after 4 more seconds, show error
+          setTimeout(() => {
+            subscription.unsubscribe();
+            setStatus((prev) => {
+              if (prev === 'loading') {
+                setMessage('Email confirmation failed. The link may have expired or already been used.');
+                return 'error';
+              }
+              return prev;
+            });
+          }, 4000);
         }
       } catch (err) {
         console.error('Unexpected error during email confirmation:', err);
