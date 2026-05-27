@@ -117,7 +117,7 @@ const Designers = () => {
             Interior Designers
           </h1>
           <p className="text-lg text-gray-600">
-            Discover talented interior designers across India. Find the perfect match for your project.
+            Discover talented interior designers across Pune. Find the perfect match for your project.
           </p>
         </div>
       </div>
