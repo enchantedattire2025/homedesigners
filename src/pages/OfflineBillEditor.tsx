@@ -191,10 +191,11 @@ const OfflineBillEditor = () => {
   };
 
   const calculateItemAmount = (item: BillItem): number => {
+    const units = item.number_of_units || 1;
     const qty = item.quantity || 0;
     const price = item.unit_price || 0;
     const discount = item.discount_percent || 0;
-    return qty * price * (1 - discount / 100);
+    return units * qty * price * (1 - discount / 100);
   };
 
   const calculateTotals = () => {
