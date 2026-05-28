@@ -3,11 +3,14 @@ interface BillPdfItem {
   name: string;
   description?: string;
   number_of_units: number;
+  source_unit?: string;
   quantity: number;
+  target_unit?: string;
   unit: string;
   unit_price: number;
-  discount_percent: number;
   amount: number;
+  length?: number;
+  breadth?: number;
 }
 
 interface BillPdfData {
@@ -46,20 +49,28 @@ function getItemTypeLabel(type: string): string {
 }
 
 export function generateBillPdf(data: BillPdfData): void {
-  const itemRows = data.items.map((item, i) => `
+  const itemRows = data.items.map((item, i) => {
+    const displayUnit = item.target_unit || item.unit;
+    const dimInfo = item.length && item.breadth && item.source_unit
+      ? `<span class="desc">${item.length} × ${item.breadth} ${item.source_unit}</span>`
+      : '';
+    const qtyDisplay = Number(item.quantity).toFixed(3);
+    const unitsLabel = item.number_of_units > 1 ? ` × ${item.number_of_units}` : '';
+    return `
     <tr>
       <td>${i + 1}</td>
       <td>
         <strong>${item.name}</strong>
         ${item.description ? `<br/><span class="desc">${item.description}</span>` : ''}
+        ${dimInfo ? `<br/>${dimInfo}` : ''}
       </td>
       <td>${getItemTypeLabel(item.item_type)}</td>
-      <td class="center">${item.quantity}${item.number_of_units > 1 ? ` (${item.number_of_units} units)` : ''}</td>
-      <td class="center">${item.unit}</td>
+      <td class="center">${qtyDisplay} ${displayUnit}${unitsLabel}</td>
       <td class="right">${formatCurrency(item.unit_price)}</td>
       <td class="right">${formatCurrency(item.amount)}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   const html = `
 <!DOCTYPE html>
@@ -144,8 +155,7 @@ export function generateBillPdf(data: BillPdfData): void {
         <th style="width:30px">#</th>
         <th>Item</th>
         <th>Type</th>
-        <th class="center">Qty</th>
-        <th class="center">Unit</th>
+        <th class="center">Qty (Unit)</th>
         <th class="right">Rate</th>
         <th class="right">Amount</th>
       </tr>

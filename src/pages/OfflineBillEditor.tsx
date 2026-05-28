@@ -35,10 +35,11 @@ interface BillItem {
   name: string;
   description: string;
   number_of_units: number;
+  source_unit: string;
   quantity: number;
+  target_unit: string;
   unit: string;
   unit_price: number;
-  discount_percent: number;
   amount: number;
   length?: number;
   breadth?: number;
@@ -81,7 +82,40 @@ interface BillVersion {
 }
 
 const ITEM_TYPES = ['material', 'labor', 'service', 'component', 'other'];
-const UNITS = ['sq.ft', 'sq.m', 'per meter', 'hours', 'piece', 'lump sum', 'kg', 'litre', 'nos'];
+const UNITS = ['sq.ft', 'sq.m', 'per meter', 'rft', 'hours', 'piece', 'lump sum', 'kg', 'litre', 'nos'];
+const SOURCE_UNITS = ['mm', 'cm', 'inch', 'feet', 'meter'];
+const TARGET_UNITS = ['sq.ft', 'sq.m', 'sq.inch', 'sq.cm', 'rft', 'per meter'];
+
+// Conversion: area (length × breadth in source) -> target area unit
+// Returns the converted area value. If no valid conversion exists, returns raw l*b.
+function convertArea(l: number, b: number, sourceUnit: string, targetUnit: string): number {
+  // Convert l and b to meters first
+  const toMeter: Record<string, number> = {
+    mm: 0.001,
+    cm: 0.01,
+    inch: 0.0254,
+    feet: 0.3048,
+    meter: 1,
+  };
+  const factor = toMeter[sourceUnit] ?? 1;
+  const lm = l * factor;
+  const bm = b * factor;
+  const areaSqM = lm * bm;
+
+  switch (targetUnit) {
+    case 'sq.m': return areaSqM;
+    case 'sq.ft': return areaSqM * 10.7639;
+    case 'sq.inch': return areaSqM * 1550.0031;
+    case 'sq.cm': return areaSqM * 10000;
+    case 'rft':
+    case 'per meter': {
+      // linear: just convert one dimension (length) to the target
+      const targetLinear = targetUnit === 'rft' ? lm * 3.28084 : lm;
+      return targetLinear;
+    }
+    default: return l * b;
+  }
+}
 
 const DRAFT_KEY = 'offline_bill_draft';
 
@@ -90,10 +124,11 @@ const defaultItem = (): BillItem => ({
   name: '',
   description: '',
   number_of_units: 1,
+  source_unit: 'feet',
   quantity: 0,
+  target_unit: 'sq.ft',
   unit: 'sq.ft',
   unit_price: 0,
-  discount_percent: 0,
   amount: 0,
 });
 
@@ -185,17 +220,11 @@ const OfflineBillEditor = () => {
         .eq('bill_id', id)
         .order('created_at', { ascending: true });
 
-      setItems(itemsData?.length ? itemsData : [{
-        item_type: 'material',
-        name: '',
-        description: '',
-        number_of_units: 1,
-        quantity: 0,
-        unit: 'sq.ft',
-        unit_price: 0,
-        discount_percent: 0,
-        amount: 0,
-      }]);
+      setItems(itemsData?.length ? itemsData.map((it: any) => ({
+        ...it,
+        source_unit: it.source_unit || 'feet',
+        target_unit: it.target_unit || it.unit || 'sq.ft',
+      })) : [defaultItem()]);
 
       const { data: versionsData } = await supabase
         .from('bill_versions')
@@ -215,8 +244,7 @@ const OfflineBillEditor = () => {
     const units = item.number_of_units || 1;
     const qty = item.quantity || 0;
     const price = item.unit_price || 0;
-    const discount = item.discount_percent || 0;
-    return units * qty * price * (1 - discount / 100);
+    return units * qty * price;
   };
 
   const calculateTotals = () => {
@@ -226,39 +254,29 @@ const OfflineBillEditor = () => {
     return { subtotal, taxAmount, totalAmount };
   };
 
+  const recalcQuantity = (item: BillItem): BillItem => {
+    const l = item.length || 0;
+    const b = item.breadth || 0;
+    if (l > 0 && b > 0 && item.source_unit && item.target_unit) {
+      item.quantity = convertArea(l, b, item.source_unit, item.target_unit);
+    }
+    return item;
+  };
+
   const handleItemChange = (index: number, field: keyof BillItem, value: any) => {
     const updated = [...items];
     (updated[index] as any)[field] = value;
 
-    if ((field === 'length' || field === 'breadth') && ['sq.ft', 'sq.m', 'per meter'].includes(updated[index].unit)) {
-      const l = updated[index].length || 0;
-      const b = updated[index].breadth || 0;
-      if (l > 0 && b > 0) {
-        updated[index].quantity = l * b;
-      }
+    if (field === 'length' || field === 'breadth' || field === 'source_unit' || field === 'target_unit') {
+      recalcQuantity(updated[index]);
     }
 
-    if (field === 'number_of_units' || field === 'quantity' || field === 'unit_price' || field === 'discount_percent') {
-      updated[index].amount = calculateItemAmount(updated[index]);
-    } else if (field === 'length' || field === 'breadth') {
-      updated[index].amount = calculateItemAmount(updated[index]);
-    }
-
+    updated[index].amount = calculateItemAmount(updated[index]);
     setItems(updated);
   };
 
   const addItem = () => {
-    setItems([...items, {
-      item_type: 'material',
-      name: '',
-      description: '',
-      number_of_units: 1,
-      quantity: 0,
-      unit: 'sq.ft',
-      unit_price: 0,
-      discount_percent: 0,
-      amount: 0,
-    }]);
+    setItems([...items, defaultItem()]);
   };
 
   const removeItem = async (index: number) => {
@@ -304,10 +322,12 @@ const OfflineBillEditor = () => {
               name: item.name,
               description: item.description,
               number_of_units: item.number_of_units,
+              source_unit: item.source_unit || null,
               quantity: item.quantity,
-              unit: item.unit,
+              target_unit: item.target_unit || null,
+              unit: item.target_unit || item.unit,
               unit_price: item.unit_price,
-              discount_percent: item.discount_percent,
+              discount_percent: 0,
               amount: item.amount,
               length: item.length || null,
               breadth: item.breadth || null,
@@ -384,10 +404,12 @@ const OfflineBillEditor = () => {
               name: item.name,
               description: item.description,
               number_of_units: item.number_of_units,
+              source_unit: item.source_unit || null,
               quantity: item.quantity,
-              unit: item.unit,
+              target_unit: item.target_unit || null,
+              unit: item.target_unit || item.unit,
               unit_price: item.unit_price,
-              discount_percent: item.discount_percent,
+              discount_percent: 0,
               amount: item.amount,
               length: item.length || null,
               breadth: item.breadth || null,
@@ -721,12 +743,12 @@ const OfflineBillEditor = () => {
                   <th className="text-left px-4 py-3 font-medium">Type</th>
                   <th className="text-left px-4 py-3 font-medium min-w-[180px]">Name / Description</th>
                   <th className="text-left px-4 py-3 font-medium">Units</th>
+                  <th className="text-left px-4 py-3 font-medium">Src Unit</th>
                   <th className="text-left px-4 py-3 font-medium">L</th>
                   <th className="text-left px-4 py-3 font-medium">B</th>
                   <th className="text-left px-4 py-3 font-medium">Qty</th>
-                  <th className="text-left px-4 py-3 font-medium">Unit</th>
+                  <th className="text-left px-4 py-3 font-medium">Tgt Unit</th>
                   <th className="text-left px-4 py-3 font-medium">Rate</th>
-                  <th className="text-left px-4 py-3 font-medium">Disc%</th>
                   <th className="text-right px-4 py-3 font-medium">Amount</th>
                   {!viewingVersion && <th className="w-10"></th>}
                 </tr>
@@ -773,6 +795,7 @@ const OfflineBillEditor = () => {
                         </div>
                       )}
                     </td>
+                    {/* Units (count) */}
                     <td className="px-4 py-2">
                       {viewingVersion ? (
                         <span className="text-sm text-gray-700">{item.number_of_units}</span>
@@ -785,6 +808,21 @@ const OfflineBillEditor = () => {
                         />
                       )}
                     </td>
+                    {/* Source Unit */}
+                    <td className="px-4 py-2">
+                      {viewingVersion ? (
+                        <span className="text-xs text-gray-600">{item.source_unit || '—'}</span>
+                      ) : (
+                        <select
+                          value={item.source_unit || 'feet'}
+                          onChange={(e) => handleItemChange(index, 'source_unit', e.target.value)}
+                          className="w-full px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                        >
+                          {SOURCE_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      )}
+                    </td>
+                    {/* Length */}
                     <td className="px-4 py-2">
                       {viewingVersion ? (
                         <span className="text-sm text-gray-700">{item.length || '—'}</span>
@@ -798,6 +836,7 @@ const OfflineBillEditor = () => {
                         />
                       )}
                     </td>
+                    {/* Breadth */}
                     <td className="px-4 py-2">
                       {viewingVersion ? (
                         <span className="text-sm text-gray-700">{item.breadth || '—'}</span>
@@ -811,31 +850,37 @@ const OfflineBillEditor = () => {
                         />
                       )}
                     </td>
+                    {/* Qty (auto-calculated when L+B+units set) */}
                     <td className="px-4 py-2">
                       {viewingVersion ? (
-                        <span className="text-sm text-gray-700">{item.quantity}</span>
+                        <span className="text-sm text-gray-700">{item.quantity != null ? Number(item.quantity).toFixed(3) : '—'}</span>
                       ) : (
                         <input
                           type="number"
-                          value={item.quantity || ''}
+                          value={item.quantity ? Number(item.quantity).toFixed(3) : ''}
                           onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                          className="w-24 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500 bg-gray-50"
+                          readOnly={!!(item.length && item.breadth && item.source_unit && item.target_unit)}
+                          title="Auto-calculated from L × B with unit conversion"
                         />
                       )}
                     </td>
+                    {/* Target Unit */}
                     <td className="px-4 py-2">
                       {viewingVersion ? (
-                        <span className="text-xs text-gray-600">{item.unit}</span>
+                        <span className="text-xs text-gray-600">{item.target_unit || item.unit}</span>
                       ) : (
                         <select
-                          value={item.unit}
-                          onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                          value={item.target_unit || item.unit}
+                          onChange={(e) => handleItemChange(index, 'target_unit', e.target.value)}
                           className="w-full px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         >
-                          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                          {TARGET_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                          {UNITS.filter(u => !TARGET_UNITS.includes(u)).map(u => <option key={u} value={u}>{u}</option>)}
                         </select>
                       )}
                     </td>
+                    {/* Rate */}
                     <td className="px-4 py-2">
                       {viewingVersion ? (
                         <span className="text-sm text-gray-700">{item.unit_price}</span>
@@ -845,18 +890,6 @@ const OfflineBillEditor = () => {
                           value={item.unit_price || ''}
                           onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
                           className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-                        />
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {viewingVersion ? (
-                        <span className="text-sm text-gray-700">{item.discount_percent || 0}</span>
-                      ) : (
-                        <input
-                          type="number"
-                          value={item.discount_percent || ''}
-                          onChange={(e) => handleItemChange(index, 'discount_percent', parseFloat(e.target.value) || 0)}
-                          className="w-16 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />
                       )}
                     </td>
@@ -877,7 +910,7 @@ const OfflineBillEditor = () => {
                 ))}
                 {displayItems.length === 0 && (
                   <tr>
-                    <td colSpan={viewingVersion ? 11 : 12} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={viewingVersion ? 12 : 13} className="px-4 py-8 text-center text-gray-400">
                       No items. Click "Add Item" to start.
                     </td>
                   </tr>
@@ -890,7 +923,7 @@ const OfflineBillEditor = () => {
             <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <Info className="w-3.5 h-3.5" />
-                For area items, enter Length × Breadth to auto-calculate Quantity
+                Enter Length and Breadth in Source Unit — Qty is auto-converted to Target Unit (e.g. mm → sq.ft)
               </div>
             </div>
           )}
