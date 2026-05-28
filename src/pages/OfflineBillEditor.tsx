@@ -86,10 +86,10 @@ const UNITS = ['sq.ft', 'sq.m', 'per meter', 'rft', 'hours', 'piece', 'lump sum'
 const SOURCE_UNITS = ['mm', 'cm', 'inch', 'feet', 'meter'];
 const TARGET_UNITS = ['sq.ft', 'sq.m', 'sq.inch', 'sq.cm', 'rft', 'per meter'];
 
-// Conversion: area (length × breadth in source) -> target area unit
-// Returns the converted area value. If no valid conversion exists, returns raw l*b.
-function convertArea(l: number, b: number, sourceUnit: string, targetUnit: string): number {
-  // Convert l and b to meters first
+const LINEAR_TARGET_UNITS = new Set(['rft', 'per meter']);
+
+// Convert length/breadth in sourceUnit -> quantity in targetUnit
+function convertToTarget(l: number, b: number, sourceUnit: string, targetUnit: string): number {
   const toMeter: Record<string, number> = {
     mm: 0.001,
     cm: 0.01,
@@ -100,20 +100,19 @@ function convertArea(l: number, b: number, sourceUnit: string, targetUnit: strin
   const factor = toMeter[sourceUnit] ?? 1;
   const lm = l * factor;
   const bm = b * factor;
-  const areaSqM = lm * bm;
 
+  if (LINEAR_TARGET_UNITS.has(targetUnit)) {
+    // Linear: only length is used
+    return targetUnit === 'rft' ? lm * 3.28084 : lm;
+  }
+
+  const areaSqM = lm * bm;
   switch (targetUnit) {
-    case 'sq.m': return areaSqM;
-    case 'sq.ft': return areaSqM * 10.7639;
+    case 'sq.m':    return areaSqM;
+    case 'sq.ft':   return areaSqM * 10.7639;
     case 'sq.inch': return areaSqM * 1550.0031;
-    case 'sq.cm': return areaSqM * 10000;
-    case 'rft':
-    case 'per meter': {
-      // linear: just convert one dimension (length) to the target
-      const targetLinear = targetUnit === 'rft' ? lm * 3.28084 : lm;
-      return targetLinear;
-    }
-    default: return l * b;
+    case 'sq.cm':   return areaSqM * 10000;
+    default:        return areaSqM * 10.7639; // fallback to sq.ft
   }
 }
 
@@ -254,24 +253,22 @@ const OfflineBillEditor = () => {
     return { subtotal, taxAmount, totalAmount };
   };
 
-  const recalcQuantity = (item: BillItem): BillItem => {
-    const l = item.length || 0;
-    const b = item.breadth || 0;
-    if (l > 0 && b > 0 && item.source_unit && item.target_unit) {
-      item.quantity = convertArea(l, b, item.source_unit, item.target_unit);
-    }
-    return item;
-  };
-
   const handleItemChange = (index: number, field: keyof BillItem, value: any) => {
-    const updated = [...items];
-    (updated[index] as any)[field] = value;
+    const updated = items.map((it, i) => i === index ? { ...it, [field]: value } : it);
+    const item = updated[index];
 
-    if (field === 'length' || field === 'breadth' || field === 'source_unit' || field === 'target_unit') {
-      recalcQuantity(updated[index]);
+    const triggerRecalc = field === 'length' || field === 'breadth' || field === 'source_unit' || field === 'target_unit';
+    if (triggerRecalc) {
+      const l = item.length || 0;
+      const b = item.breadth || 0;
+      const isLinear = LINEAR_TARGET_UNITS.has(item.target_unit);
+      const canCalc = item.source_unit && item.target_unit && l > 0 && (isLinear || b > 0);
+      if (canCalc) {
+        updated[index] = { ...item, quantity: convertToTarget(l, b, item.source_unit, item.target_unit) };
+      }
     }
 
-    updated[index].amount = calculateItemAmount(updated[index]);
+    updated[index] = { ...updated[index], amount: calculateItemAmount(updated[index]) };
     setItems(updated);
   };
 
@@ -850,20 +847,26 @@ const OfflineBillEditor = () => {
                         />
                       )}
                     </td>
-                    {/* Qty (auto-calculated when L+B+units set) */}
+                    {/* Qty (auto-calculated from L × B with unit conversion) */}
                     <td className="px-4 py-2">
                       {viewingVersion ? (
                         <span className="text-sm text-gray-700">{item.quantity != null ? Number(item.quantity).toFixed(3) : '—'}</span>
-                      ) : (
-                        <input
-                          type="number"
-                          value={item.quantity ? Number(item.quantity).toFixed(3) : ''}
-                          onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
-                          className="w-24 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500 bg-gray-50"
-                          readOnly={!!(item.length && item.breadth && item.source_unit && item.target_unit)}
-                          title="Auto-calculated from L × B with unit conversion"
-                        />
-                      )}
+                      ) : (() => {
+                        const isLinear = LINEAR_TARGET_UNITS.has(item.target_unit);
+                        const isAutoCalc = !!(item.length && item.source_unit && item.target_unit && (isLinear || item.breadth));
+                        return (
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={item.quantity != null && item.quantity !== 0 ? parseFloat(Number(item.quantity).toFixed(6)) : ''}
+                              onChange={(e) => !isAutoCalc && handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                              readOnly={isAutoCalc}
+                              className={`w-24 px-2 py-1.5 border rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500 ${isAutoCalc ? 'bg-teal-50 border-teal-200 text-teal-800 font-medium cursor-default' : 'border-gray-200 bg-white'}`}
+                              title={isAutoCalc ? `Auto: ${item.length}×${item.breadth ?? 1} ${item.source_unit} → ${item.target_unit}` : 'Enter quantity manually'}
+                            />
+                          </div>
+                        );
+                      })()}
                     </td>
                     {/* Target Unit */}
                     <td className="px-4 py-2">
