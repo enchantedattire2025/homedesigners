@@ -133,7 +133,7 @@ const defaultItem = (): BillItem => ({
 
 function loadDraft() {
   try {
-    const raw = sessionStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(DRAFT_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
   return null;
@@ -184,7 +184,7 @@ const OfflineBillEditor = () => {
   useEffect(() => {
     if (isEditMode) return;
     const draft = { customerName, customerEmail, customerPhone, customerAddress, projectDescription, items, discountAmount, taxRate, notes };
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [isEditMode, customerName, customerEmail, customerPhone, customerAddress, projectDescription, items, discountAmount, taxRate, notes]);
 
   const fetchBillData = async (id: string) => {
@@ -415,7 +415,7 @@ const OfflineBillEditor = () => {
           if (itemsError) throw itemsError;
         }
 
-        sessionStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(DRAFT_KEY);
         setSuccess('Bill created successfully!');
         setTimeout(() => navigate(`/offline-bill/${newBill?.id}`, { replace: true }), 1200);
         return;
