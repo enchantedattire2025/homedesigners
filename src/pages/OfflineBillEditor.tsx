@@ -160,6 +160,7 @@ const OfflineBillEditor = () => {
   const [items, setItems] = useState<BillItem[]>(draft?.items ?? [defaultItem()]);
   const [discountAmount, setDiscountAmount] = useState<number>(draft?.discountAmount ?? 0);
   const [taxRate, setTaxRate] = useState<number>(draft?.taxRate ?? 18);
+  const [includeTax, setIncludeTax] = useState<boolean>(draft?.includeTax ?? false);
   const [notes, setNotes] = useState(draft?.notes ?? '');
 
   // UI state
@@ -180,12 +181,22 @@ const OfflineBillEditor = () => {
     }
   }, [isEditMode, user, designer, billId]);
 
-  // Persist draft to sessionStorage on every change (create mode only)
+  // Persist draft to localStorage on every change (create mode only)
   useEffect(() => {
     if (isEditMode) return;
-    const draft = { customerName, customerEmail, customerPhone, customerAddress, projectDescription, items, discountAmount, taxRate, notes };
+    const draft = { customerName, customerEmail, customerPhone, customerAddress, projectDescription, items, discountAmount, taxRate, includeTax, notes };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [isEditMode, customerName, customerEmail, customerPhone, customerAddress, projectDescription, items, discountAmount, taxRate, notes]);
+  }, [isEditMode, customerName, customerEmail, customerPhone, customerAddress, projectDescription, items, discountAmount, taxRate, includeTax, notes]);
+
+  // Warn before accidental page unload when there's unsaved data
+  useEffect(() => {
+    if (isEditMode) return;
+    const hasData = customerName || customerPhone || items.some(i => i.name);
+    if (!hasData) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isEditMode, customerName, customerPhone, items]);
 
   const fetchBillData = async (id: string) => {
     try {
@@ -211,6 +222,7 @@ const OfflineBillEditor = () => {
       setProjectDescription(billData.project_description || '');
       setDiscountAmount(billData.discount_amount || 0);
       setTaxRate(billData.tax_rate || 18);
+      setIncludeTax(billData.tax_rate > 0);
       setNotes(billData.notes || '');
 
       const { data: itemsData } = await supabase
@@ -248,7 +260,7 @@ const OfflineBillEditor = () => {
 
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
-    const taxAmount = (subtotal - discountAmount) * (taxRate / 100);
+    const taxAmount = includeTax ? (subtotal - discountAmount) * (taxRate / 100) : 0;
     const totalAmount = subtotal - discountAmount + taxAmount;
     return { subtotal, taxAmount, totalAmount };
   };
@@ -343,7 +355,7 @@ const OfflineBillEditor = () => {
             project_description: projectDescription,
             subtotal,
             discount_amount: discountAmount,
-            tax_rate: taxRate,
+            tax_rate: includeTax ? taxRate : 0,
             tax_amount: taxAmount,
             total_amount: totalAmount,
             status,
@@ -381,7 +393,7 @@ const OfflineBillEditor = () => {
             project_description: projectDescription,
             subtotal,
             discount_amount: discountAmount,
-            tax_rate: taxRate,
+            tax_rate: includeTax ? taxRate : 0,
             tax_amount: taxAmount,
             total_amount: totalAmount,
             status,
@@ -980,28 +992,45 @@ const OfflineBillEditor = () => {
                 )}
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Tax Rate</span>
+                <span className="text-gray-600">Tax</span>
                 {viewingVersion ? (
-                  <span className="text-gray-800">{displayTaxRate}%</span>
+                  <span className="text-gray-800">
+                    {displayTaxRate > 0 ? `${displayTaxRate}%` : 'No tax'}
+                  </span>
                 ) : (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      value={taxRate || ''}
-                      onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                      className="w-16 px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-                    />
-                    <span className="text-gray-400 text-xs">%</span>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={includeTax}
+                        onChange={(e) => setIncludeTax(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                      />
+                      <span className="text-xs text-gray-500">Include tax</span>
+                    </label>
+                    {includeTax && (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={taxRate || ''}
+                          onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                          className="w-14 px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                        />
+                        <span className="text-gray-400 text-xs">%</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tax Amount</span>
-                <span className="text-gray-800 flex items-center gap-0.5">
-                  <Rupee className="w-3.5 h-3.5" />
-                  {displayTaxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
+              {(includeTax || (viewingVersion && displayTaxRate > 0)) && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Tax Amount</span>
+                  <span className="text-gray-800 flex items-center gap-0.5">
+                    <Rupee className="w-3.5 h-3.5" />
+                    {displayTaxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
               <div className="border-t border-gray-200 pt-3 flex justify-between">
                 <span className="text-base font-semibold text-gray-900">Total</span>
                 <span className="text-lg font-bold text-teal-700 flex items-center gap-0.5">
