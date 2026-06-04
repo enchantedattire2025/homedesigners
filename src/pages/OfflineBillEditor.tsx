@@ -887,8 +887,9 @@ const OfflineBillEditor = () => {
                         <input
                           type="number"
                           value={item.width || ''}
-                          onChange={(e) => handleItemChange(index, 'width', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => handleItemChange(index, 'width', Math.max(0, parseFloat(e.target.value) || 0))}
                           placeholder="—"
+                          min="0"
                           className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />
                       )}
@@ -901,8 +902,9 @@ const OfflineBillEditor = () => {
                         <input
                           type="number"
                           value={item.height || ''}
-                          onChange={(e) => handleItemChange(index, 'height', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => handleItemChange(index, 'height', Math.max(0, parseFloat(e.target.value) || 0))}
                           placeholder="—"
+                          min="0"
                           className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />
                       )}
@@ -915,8 +917,9 @@ const OfflineBillEditor = () => {
                         <input
                           type="number"
                           value={item.depth || ''}
-                          onChange={(e) => handleItemChange(index, 'depth', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => handleItemChange(index, 'depth', Math.max(0, parseFloat(e.target.value) || 0))}
                           placeholder="—"
+                          min="0"
                           className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />
                       )}
