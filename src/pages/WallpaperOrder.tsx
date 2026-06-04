@@ -143,12 +143,15 @@ export default function WallpaperOrder() {
       },
       createOrder: (_data: any, actions: any) => {
         const { advance: currentAdvance } = calculateTotal();
+        // PayPal does not support INR; convert to USD at approx 84 INR = 1 USD
+        const INR_TO_USD = 84;
+        const advanceUsd = (currentAdvance / INR_TO_USD).toFixed(2);
         return actions.order.create({
           purchase_units: [{
             description: '3D Wallpaper Order - Advance Payment',
             amount: {
-              currency_code: 'INR',
-              value: currentAdvance.toFixed(2)
+              currency_code: 'USD',
+              value: advanceUsd
             }
           }]
         });
@@ -804,6 +807,10 @@ export default function WallpaperOrder() {
                 <div className="flex justify-between text-base font-bold border-t border-blue-200 pt-2 mt-2">
                   <span className="text-blue-900">Advance Payment (10%):</span>
                   <span className="text-blue-900">Rs.{advance.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-blue-700 mt-1">
+                  <span>PayPal charges in USD (approx):</span>
+                  <span>~${(advance / 84).toFixed(2)} USD</span>
                 </div>
               </div>
             </div>
