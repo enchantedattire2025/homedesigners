@@ -9,6 +9,9 @@ interface BillPdfItem {
   unit: string;
   unit_price: number;
   amount: number;
+  width?: number;
+  height?: number;
+  depth?: number;
   length?: number;
   breadth?: number;
 }
@@ -51,9 +54,16 @@ function getItemTypeLabel(type: string): string {
 export function generateBillPdf(data: BillPdfData): void {
   const itemRows = data.items.map((item, i) => {
     const displayUnit = item.target_unit || item.unit;
-    const dimInfo = item.length && item.breadth && item.source_unit
-      ? `<span class="desc">${item.length} × ${item.breadth} ${item.source_unit}</span>`
-      : '';
+    const dimInfo = (() => {
+      const w = item.width ?? item.length;
+      const h = item.height ?? item.breadth;
+      const d = item.depth;
+      if (w && h && item.source_unit) {
+        const dims = d ? `${w} × ${h} × ${d}` : `${w} × ${h}`;
+        return `<span class="desc">${dims} ${item.source_unit}</span>`;
+      }
+      return '';
+    })();
     const qtyDisplay = Number(item.quantity).toFixed(3);
     const unitsLabel = item.number_of_units > 1 ? ` × ${item.number_of_units}` : '';
     return `

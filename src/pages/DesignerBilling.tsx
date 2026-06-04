@@ -38,8 +38,9 @@ interface BillItem {
   unit_price: number;
   discount_percent: number;
   amount: number;
-  length?: number;
-  breadth?: number;
+  width?: number;
+  height?: number;
+  depth?: number;
 }
 
 interface Bill {
@@ -157,7 +158,12 @@ const DesignerBilling = () => {
           .order('created_at', { ascending: true });
 
         if (itemsError) throw itemsError;
-        setItems(itemsData || []);
+        setItems((itemsData || []).map((it: any) => ({
+          ...it,
+          width: it.width ?? it.length ?? undefined,
+          height: it.height ?? it.breadth ?? undefined,
+          depth: it.depth ?? undefined,
+        })));
 
         // Fetch versions
         const { data: versionsData } = await supabase
@@ -207,11 +213,12 @@ const DesignerBilling = () => {
     const updated = [...items];
     (updated[index] as any)[field] = value;
 
-    if ((field === 'length' || field === 'breadth') && ['sq.ft', 'sq.m', 'per meter'].includes(updated[index].unit)) {
-      const l = updated[index].length || 0;
-      const b = updated[index].breadth || 0;
-      if (l > 0 && b > 0) {
-        updated[index].quantity = l * b;
+    if ((field === 'width' || field === 'height' || field === 'depth') && ['sq.ft', 'sq.m', 'per meter'].includes(updated[index].unit)) {
+      const w = updated[index].width || 0;
+      const h = updated[index].height || 0;
+      const d = updated[index].depth || 0;
+      if (w > 0 && h > 0) {
+        updated[index].quantity = d > 0 ? w * h * d : w * h;
       }
     }
 
@@ -298,8 +305,11 @@ const DesignerBilling = () => {
           unit_price: item.unit_price,
           discount_percent: item.discount_percent,
           amount: item.amount,
-          length: item.length || null,
-          breadth: item.breadth || null,
+          length: item.width || null,
+          breadth: item.height || null,
+          width: item.width || null,
+          height: item.height || null,
+          depth: item.depth || null,
         }));
 
         const { error: insertError } = await supabase
@@ -623,8 +633,9 @@ const DesignerBilling = () => {
                   <th className="text-left px-4 py-3 font-medium">Type</th>
                   <th className="text-left px-4 py-3 font-medium min-w-[180px]">Name</th>
                   <th className="text-left px-4 py-3 font-medium">Units</th>
-                  <th className="text-left px-4 py-3 font-medium">L</th>
-                  <th className="text-left px-4 py-3 font-medium">B</th>
+                  <th className="text-left px-4 py-3 font-medium">W</th>
+                  <th className="text-left px-4 py-3 font-medium">H</th>
+                  <th className="text-left px-4 py-3 font-medium">D</th>
                   <th className="text-left px-4 py-3 font-medium">Qty</th>
                   <th className="text-left px-4 py-3 font-medium">Unit</th>
                   <th className="text-left px-4 py-3 font-medium">Rate</th>
@@ -681,12 +692,12 @@ const DesignerBilling = () => {
                     </td>
                     <td className="px-4 py-2">
                       {viewingVersion ? (
-                        <span className="text-sm text-gray-700">{item.length || '-'}</span>
+                        <span className="text-sm text-gray-700">{item.width || '-'}</span>
                       ) : (
                         <input
                           type="number"
-                          value={item.length || ''}
-                          onChange={(e) => handleItemChange(index, 'length', parseFloat(e.target.value) || 0)}
+                          value={item.width || ''}
+                          onChange={(e) => handleItemChange(index, 'width', parseFloat(e.target.value) || 0)}
                           placeholder="-"
                           className="w-16 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />
@@ -694,12 +705,25 @@ const DesignerBilling = () => {
                     </td>
                     <td className="px-4 py-2">
                       {viewingVersion ? (
-                        <span className="text-sm text-gray-700">{item.breadth || '-'}</span>
+                        <span className="text-sm text-gray-700">{item.height || '-'}</span>
                       ) : (
                         <input
                           type="number"
-                          value={item.breadth || ''}
-                          onChange={(e) => handleItemChange(index, 'breadth', parseFloat(e.target.value) || 0)}
+                          value={item.height || ''}
+                          onChange={(e) => handleItemChange(index, 'height', parseFloat(e.target.value) || 0)}
+                          placeholder="-"
+                          className="w-16 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                        />
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      {viewingVersion ? (
+                        <span className="text-sm text-gray-700">{item.depth || '-'}</span>
+                      ) : (
+                        <input
+                          type="number"
+                          value={item.depth || ''}
+                          onChange={(e) => handleItemChange(index, 'depth', parseFloat(e.target.value) || 0)}
                           placeholder="-"
                           className="w-16 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />

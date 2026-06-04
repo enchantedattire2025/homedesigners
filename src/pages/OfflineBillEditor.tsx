@@ -42,8 +42,9 @@ interface BillItem {
   unit: string;
   unit_price: number;
   amount: number;
-  length?: number;
-  breadth?: number;
+  width?: number;
+  height?: number;
+  depth?: number;
 }
 
 interface OfflineBill {
@@ -89,8 +90,8 @@ const TARGET_UNITS = ['sq.ft', 'sq.m', 'sq.inch', 'sq.cm', 'rft', 'per meter'];
 
 const LINEAR_TARGET_UNITS = new Set(['rft', 'per meter']);
 
-// Convert length/breadth in sourceUnit -> quantity in targetUnit
-function convertToTarget(l: number, b: number, sourceUnit: string, targetUnit: string): number {
+// Convert width/height/depth in sourceUnit -> quantity in targetUnit
+function convertToTarget(w: number, h: number, d: number, sourceUnit: string, targetUnit: string): number {
   const toMeter: Record<string, number> = {
     mm: 0.001,
     cm: 0.01,
@@ -99,21 +100,24 @@ function convertToTarget(l: number, b: number, sourceUnit: string, targetUnit: s
     meter: 1,
   };
   const factor = toMeter[sourceUnit] ?? 1;
-  const lm = l * factor;
-  const bm = b * factor;
+  const wm = w * factor;
+  const hm = h * factor;
+  const dm = d * factor;
 
   if (LINEAR_TARGET_UNITS.has(targetUnit)) {
-    // Linear: only length is used
-    return targetUnit === 'rft' ? lm * 3.28084 : lm;
+    // Linear: only width is used
+    return targetUnit === 'rft' ? wm * 3.28084 : wm;
   }
 
-  const areaSqM = lm * bm;
+  const areaSqM = wm * hm;
+  // If depth is provided, multiply for volume
+  const measurement = dm > 0 ? areaSqM * dm : areaSqM;
   switch (targetUnit) {
-    case 'sq.m':    return areaSqM;
-    case 'sq.ft':   return areaSqM * 10.7639;
-    case 'sq.inch': return areaSqM * 1550.0031;
-    case 'sq.cm':   return areaSqM * 10000;
-    default:        return areaSqM * 10.7639; // fallback to sq.ft
+    case 'sq.m':    return measurement;
+    case 'sq.ft':   return measurement * 10.7639;
+    case 'sq.inch': return measurement * 1550.0031;
+    case 'sq.cm':   return measurement * 10000;
+    default:        return measurement * 10.7639; // fallback to sq.ft
   }
 }
 
@@ -236,6 +240,9 @@ const OfflineBillEditor = () => {
         ...it,
         source_unit: it.source_unit || 'feet',
         target_unit: it.target_unit || it.unit || 'sq.ft',
+        width: it.width ?? it.length ?? undefined,
+        height: it.height ?? it.breadth ?? undefined,
+        depth: it.depth ?? undefined,
       })) : [defaultItem()]);
 
       const { data: versionsData } = await supabase
@@ -270,14 +277,15 @@ const OfflineBillEditor = () => {
     const updated = items.map((it, i) => i === index ? { ...it, [field]: value } : it);
     const item = updated[index];
 
-    const triggerRecalc = field === 'length' || field === 'breadth' || field === 'source_unit' || field === 'target_unit';
+    const triggerRecalc = field === 'width' || field === 'height' || field === 'depth' || field === 'source_unit' || field === 'target_unit';
     if (triggerRecalc) {
-      const l = item.length || 0;
-      const b = item.breadth || 0;
+      const w = item.width || 0;
+      const h = item.height || 0;
+      const d = item.depth || 0;
       const isLinear = LINEAR_TARGET_UNITS.has(item.target_unit);
-      const canCalc = item.source_unit && item.target_unit && l > 0 && (isLinear || b > 0);
+      const canCalc = item.source_unit && item.target_unit && w > 0 && (isLinear || h > 0);
       if (canCalc) {
-        updated[index] = { ...item, quantity: convertToTarget(l, b, item.source_unit, item.target_unit) };
+        updated[index] = { ...item, quantity: convertToTarget(w, h, d, item.source_unit, item.target_unit) };
       }
     }
 
@@ -347,8 +355,11 @@ const OfflineBillEditor = () => {
               unit_price: item.unit_price,
               discount_percent: 0,
               amount: item.amount,
-              length: item.length || null,
-              breadth: item.breadth || null,
+              length: item.width || null,
+              breadth: item.height || null,
+              width: item.width || null,
+              height: item.height || null,
+              depth: item.depth || null,
             }))
           );
           if (insertError) throw insertError;
@@ -429,8 +440,11 @@ const OfflineBillEditor = () => {
               unit_price: item.unit_price,
               discount_percent: 0,
               amount: item.amount,
-              length: item.length || null,
-              breadth: item.breadth || null,
+              length: item.width || null,
+              breadth: item.height || null,
+              width: item.width || null,
+              height: item.height || null,
+              depth: item.depth || null,
             }))
           );
           if (itemsError) throw itemsError;
@@ -763,8 +777,9 @@ const OfflineBillEditor = () => {
                   <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '200px' }}>Name / Description</th>
                   <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '70px' }}>Units</th>
                   <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '90px' }}>Src Unit</th>
-                  <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '70px' }}>L</th>
-                  <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '70px' }}>B</th>
+                  <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '70px' }}>W</th>
+                  <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '70px' }}>H</th>
+                  <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '70px' }}>D</th>
                   <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '90px' }}>Qty</th>
                   <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '110px' }}>Tgt Unit</th>
                   <th className="text-left px-3 py-3 font-medium" style={{ minWidth: '90px' }}>Rate</th>
@@ -864,29 +879,43 @@ const OfflineBillEditor = () => {
                         </select>
                       )}
                     </td>
-                    {/* Length */}
+                    {/* Width */}
                     <td className="px-3 py-2">
                       {viewingVersion ? (
-                        <span className="text-sm text-gray-700">{item.length || '—'}</span>
+                        <span className="text-sm text-gray-700">{item.width || '—'}</span>
                       ) : (
                         <input
                           type="number"
-                          value={item.length || ''}
-                          onChange={(e) => handleItemChange(index, 'length', parseFloat(e.target.value) || 0)}
+                          value={item.width || ''}
+                          onChange={(e) => handleItemChange(index, 'width', parseFloat(e.target.value) || 0)}
                           placeholder="—"
                           className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />
                       )}
                     </td>
-                    {/* Breadth */}
+                    {/* Height */}
                     <td className="px-3 py-2">
                       {viewingVersion ? (
-                        <span className="text-sm text-gray-700">{item.breadth || '—'}</span>
+                        <span className="text-sm text-gray-700">{item.height || '—'}</span>
                       ) : (
                         <input
                           type="number"
-                          value={item.breadth || ''}
-                          onChange={(e) => handleItemChange(index, 'breadth', parseFloat(e.target.value) || 0)}
+                          value={item.height || ''}
+                          onChange={(e) => handleItemChange(index, 'height', parseFloat(e.target.value) || 0)}
+                          placeholder="—"
+                          className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                        />
+                      )}
+                    </td>
+                    {/* Depth */}
+                    <td className="px-3 py-2">
+                      {viewingVersion ? (
+                        <span className="text-sm text-gray-700">{item.depth || '—'}</span>
+                      ) : (
+                        <input
+                          type="number"
+                          value={item.depth || ''}
+                          onChange={(e) => handleItemChange(index, 'depth', parseFloat(e.target.value) || 0)}
                           placeholder="—"
                           className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />
@@ -898,7 +927,7 @@ const OfflineBillEditor = () => {
                         <span className="text-sm text-gray-700">{item.quantity != null ? Number(item.quantity).toFixed(3) : '—'}</span>
                       ) : (() => {
                         const isLinear = LINEAR_TARGET_UNITS.has(item.target_unit);
-                        const isAutoCalc = !!(item.length && item.source_unit && item.target_unit && (isLinear || item.breadth));
+                        const isAutoCalc = !!(item.width && item.source_unit && item.target_unit && (isLinear || item.height));
                         return (
                           <div className="relative">
                             <input
@@ -907,7 +936,7 @@ const OfflineBillEditor = () => {
                               onChange={(e) => !isAutoCalc && handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
                               readOnly={isAutoCalc}
                               className={`w-full px-2 py-1.5 border rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500 ${isAutoCalc ? 'bg-teal-50 border-teal-200 text-teal-800 font-medium cursor-default' : 'border-gray-200 bg-white'}`}
-                              title={isAutoCalc ? `Auto: ${item.length}×${item.breadth ?? 1} ${item.source_unit} → ${item.target_unit}` : 'Enter quantity manually'}
+                              title={isAutoCalc ? `Auto: ${item.width}×${item.height ?? 1}${item.depth ? `×${item.depth}` : ''} ${item.source_unit} → ${item.target_unit}` : 'Enter quantity manually'}
                             />
                           </div>
                         );
@@ -958,7 +987,7 @@ const OfflineBillEditor = () => {
                 ))}
                 {displayItems.length === 0 && (
                   <tr>
-                    <td colSpan={viewingVersion ? 11 : 13} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={viewingVersion ? 12 : 14} className="px-4 py-8 text-center text-gray-400">
                       No items. Click "Add Item" to start.
                     </td>
                   </tr>
@@ -971,7 +1000,7 @@ const OfflineBillEditor = () => {
             <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <Info className="w-3.5 h-3.5" />
-                Enter Length and Breadth in Source Unit — Qty is auto-converted to Target Unit (e.g. mm → sq.ft)
+                Enter Width, Height and Depth in Source Unit — Qty is auto-converted to Target Unit (e.g. mm → sq.ft)
               </div>
             </div>
           )}

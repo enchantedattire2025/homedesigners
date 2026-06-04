@@ -32,6 +32,9 @@ interface QuoteItem {
   unit_price: number;
   amount: number;
   item_type: string;
+  width?: number;
+  height?: number;
+  depth?: number;
   length?: number;
   breadth?: number;
 }
@@ -755,9 +758,10 @@ const CustomerQuotes = () => {
                           <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Item</th>
                           <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Description</th>
                           <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Units</th>
-                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Sq Ft</th>
-                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Length</th>
-                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Breadth</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Measurement</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Width</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Height</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Depth</th>
                           <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Unit Price</th>
                           <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
                         </tr>
@@ -774,8 +778,9 @@ const CustomerQuotes = () => {
                           <td className="py-3 px-4 text-sm text-gray-600">{item.description || '-'}</td>
                           <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.number_of_units || 1}</td>
                           <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.quantity} {item.unit}</td>
-                          <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.length ? item.length : '-'}</td>
-                          <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.breadth ? item.breadth : '-'}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600 text-right">{(item.width ?? item.length) ? (item.width ?? item.length) : '-'}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600 text-right">{(item.height ?? item.breadth) ? (item.height ?? item.breadth) : '-'}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600 text-right">{item.depth ? item.depth : '-'}</td>
                           <td className="py-3 px-4 text-sm text-gray-600 text-right">{formatCurrency(item.unit_price)}</td>
                           <td className="py-3 px-4 text-sm font-medium text-gray-800 text-right">{formatCurrency(item.amount)}</td>
                         </tr>

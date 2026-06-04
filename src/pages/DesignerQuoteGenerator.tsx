@@ -68,8 +68,9 @@ interface QuoteItem {
   unit_price: number;
   discount_percent: number;
   amount: number;
-  length?: number;
-  breadth?: number;
+  width?: number;
+  height?: number;
+  depth?: number;
 }
 
 interface QuoteData {
@@ -439,22 +440,23 @@ const DesignerQuoteGenerator = () => {
 
       const item = updatedItems[index];
 
-      // Check if unit is area-based (should auto-calculate quantity from length x breadth)
+      // Check if unit is area-based (should auto-calculate quantity from width x height)
       const isAreaBasedUnit = ['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase());
 
-      // Auto-calculate quantity if length or breadth changes for area-based units
-      if (isAreaBasedUnit && (field === 'length' || field === 'breadth' || field === 'unit')) {
-        const length = parseFloat(String(item.length || 0));
-        const breadth = parseFloat(String(item.breadth || 0));
+      // Auto-calculate quantity if width, height, or depth changes for area-based units
+      if (isAreaBasedUnit && (field === 'width' || field === 'height' || field === 'depth' || field === 'unit')) {
+        const w = parseFloat(String(item.width || 0));
+        const h = parseFloat(String(item.height || 0));
+        const d = parseFloat(String(item.depth || 0));
 
-        if (length > 0 && breadth > 0) {
-          item.quantity = length * breadth;
+        if (w > 0 && h > 0) {
+          item.quantity = d > 0 ? w * h * d : w * h;
         }
       }
 
-      // Recalculate amount if quantity, unit_price, discount_percent, number_of_units, length, or breadth changes
+      // Recalculate amount if quantity, unit_price, discount_percent, number_of_units, width, height, or depth changes
       if (field === 'quantity' || field === 'unit_price' || field === 'discount_percent' ||
-          field === 'number_of_units' || field === 'length' || field === 'breadth' || field === 'unit') {
+          field === 'number_of_units' || field === 'width' || field === 'height' || field === 'depth' || field === 'unit') {
         const discountMultiplier = 1 - (item.discount_percent / 100);
         item.amount = item.number_of_units * item.quantity * item.unit_price * discountMultiplier;
       }
@@ -548,8 +550,11 @@ const DesignerQuoteGenerator = () => {
         unit_price: item.unit_price,
         discount_percent: item.discount_percent,
         amount: item.amount,
-        length: item.length,
-        breadth: item.breadth
+        length: item.width,
+        breadth: item.height,
+        width: item.width,
+        height: item.height,
+        depth: item.depth
       }));
       
       const { error: itemsError } = await supabase
@@ -1104,7 +1109,7 @@ const DesignerQuoteGenerator = () => {
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Total Sq Ft * {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth &&
+                              Total Measurement * {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.width && item.height &&
                                 <span className="text-xs text-green-600 font-normal">(Auto-calculated)</span>
                               }
                             </label>
@@ -1114,21 +1119,21 @@ const DesignerQuoteGenerator = () => {
                               onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
                               min="0.01"
                               step="0.01"
-                              readOnly={['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && !!(item.length && item.breadth)}
+                              readOnly={['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && !!(item.width && item.height)}
                               className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                                ['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth
+                                ['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.width && item.height
                                   ? 'bg-gray-50 cursor-not-allowed'
                                   : ''
                               }`}
-                              title={['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth
-                                ? 'Total sq ft is auto-calculated from length × breadth'
+                              title={['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.width && item.height
+                                ? 'Total measurement is auto-calculated from width × height' + (item.depth ? ' × depth' : '')
                                 : ''
                               }
                               required
                             />
-                            {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.length && item.breadth && (
+                            {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) && item.width && item.height && (
                               <p className="text-xs text-gray-500 mt-1">
-                                {item.length} × {item.breadth} = {item.quantity.toFixed(2)} {item.unit}
+                                {item.width} × {item.height}{item.depth ? ` × ${item.depth}` : ''} = {item.quantity.toFixed(2)} {item.unit}
                               </p>
                             )}
                           </div>
@@ -1148,14 +1153,14 @@ const DesignerQuoteGenerator = () => {
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Length {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) &&
+                              Width {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) &&
                                 <span className="text-xs text-blue-600 font-normal">(for auto-calc)</span>
                               }
                             </label>
                             <input
                               type="number"
-                              value={item.length || ''}
-                              onChange={(e) => handleItemChange(index, 'length', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
+                              value={item.width || ''}
+                              onChange={(e) => handleItemChange(index, 'width', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
                               min="0"
                               step="0.01"
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -1165,18 +1170,35 @@ const DesignerQuoteGenerator = () => {
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Breadth {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) &&
+                              Height {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) &&
                                 <span className="text-xs text-blue-600 font-normal">(for auto-calc)</span>
                               }
                             </label>
                             <input
                               type="number"
-                              value={item.breadth || ''}
-                              onChange={(e) => handleItemChange(index, 'breadth', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
+                              value={item.height || ''}
+                              onChange={(e) => handleItemChange(index, 'height', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
                               min="0"
                               step="0.01"
                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                               placeholder="e.g., 5"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Depth {['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase()) &&
+                                <span className="text-xs text-blue-600 font-normal">(optional, for auto-calc)</span>
+                              }
+                            </label>
+                            <input
+                              type="number"
+                              value={item.depth || ''}
+                              onChange={(e) => handleItemChange(index, 'depth', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
+                              min="0"
+                              step="0.01"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              placeholder="e.g., 2"
                             />
                           </div>
 
@@ -1313,10 +1335,11 @@ const DesignerQuoteGenerator = () => {
                             <th className="text-left py-3 px-4 font-semibold text-secondary-800">Item</th>
                             <th className="text-left py-3 px-4 font-semibold text-secondary-800">Description</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Units</th>
-                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Total Sq Ft</th>
+                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Total Measurement</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Unit</th>
-                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Length</th>
-                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Breadth</th>
+                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Width</th>
+                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Height</th>
+                            <th className="text-right py-3 px-4 font-semibold text-secondary-800">Depth</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Unit Price</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Discount</th>
                             <th className="text-right py-3 px-4 font-semibold text-secondary-800">Amount</th>
@@ -1330,8 +1353,9 @@ const DesignerQuoteGenerator = () => {
                               <td className="py-3 px-4 text-right">{item.number_of_units}</td>
                               <td className="py-3 px-4 text-right">{item.quantity}</td>
                               <td className="py-3 px-4 text-right">{item.unit}</td>
-                              <td className="py-3 px-4 text-right">{item.length ? item.length : '-'}</td>
-                              <td className="py-3 px-4 text-right">{item.breadth ? item.breadth : '-'}</td>
+                              <td className="py-3 px-4 text-right">{item.width ? item.width : '-'}</td>
+                              <td className="py-3 px-4 text-right">{item.height ? item.height : '-'}</td>
+                              <td className="py-3 px-4 text-right">{item.depth ? item.depth : '-'}</td>
                               <td className="py-3 px-4 text-right">{formatCurrency(item.unit_price)}</td>
                               <td className="py-3 px-4 text-right">{item.discount_percent}%</td>
                               <td className="py-3 px-4 text-right font-medium">{formatCurrency(item.amount)}</td>
