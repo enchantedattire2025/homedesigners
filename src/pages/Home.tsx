@@ -280,7 +280,7 @@ const Home = () => {
                 <span className="block text-primary-500">Dream Home</span>
               </h1>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Connect with India's most talented interior designers. From traditional elegance to modern sophistication, create spaces that reflect your unique style.
+                Connect with Pune's most talented interior designers. From traditional elegance to modern sophistication, create spaces that reflect your unique style.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Link to="/designers" className="btn-primary text-center">
