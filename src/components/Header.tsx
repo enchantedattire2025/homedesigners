@@ -153,10 +153,11 @@ const Header = () => {
             <Link to="/" className="flex items-center space-x-3">
               <img
                 src="/thehomedesigners.png"
-                alt="TheHomeDesigners Logo"
+                alt=""
                 className="h-10 w-auto"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
-              <span className="text-xl font-bold text-secondary-800 hidden sm:inline">TheHomeDesigners</span>
+              <span className="text-xl font-bold text-secondary-800">TheHomeDesigners</span>
             </Link>
 
             {/* Desktop Navigation */}
