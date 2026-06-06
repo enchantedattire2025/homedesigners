@@ -24,11 +24,13 @@ import {
   Download,
   UserCheck,
   Info,
+  Mic,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
 import { generateBillPdf } from '../utils/generateBillPdf';
+import VoiceItemInput, { VoiceAddedItem } from '../components/VoiceItemInput';
 
 interface BillItem {
   id?: string;
@@ -173,6 +175,8 @@ const OfflineBillEditor = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
+  const [designerMaterials, setDesignerMaterials] = useState<any[]>([]);
 
   // Version state
   const [versions, setVersions] = useState<BillVersion[]>([]);
@@ -202,6 +206,35 @@ const OfflineBillEditor = () => {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [isEditMode, customerName, customerPhone, items]);
+
+  // Load designer's materials catalog for voice fuzzy matching
+  useEffect(() => {
+    if (!designer) return;
+    supabase
+      .from('designer_material_prices')
+      .select('id, name, category, unit, base_price, discount_price, is_discounted')
+      .eq('designer_id', designer.id)
+      .eq('is_available', true)
+      .then(({ data }) => { if (data) setDesignerMaterials(data); });
+  }, [designer]);
+
+  const handleVoiceAddItem = (voiceItem: VoiceAddedItem) => {
+    const newItem: BillItem = {
+      item_type: 'material',
+      name: voiceItem.name,
+      description: '',
+      number_of_units: 1,
+      source_unit: 'feet',
+      quantity: voiceItem.quantity,
+      target_unit: voiceItem.unit || 'sq.ft',
+      unit: voiceItem.unit || 'sq.ft',
+      unit_price: voiceItem.unitPrice,
+      amount: voiceItem.quantity * voiceItem.unitPrice,
+      width: voiceItem.width,
+      height: voiceItem.height,
+    };
+    setItems(prev => [...prev, newItem]);
+  };
 
   const fetchBillData = async (id: string) => {
     try {
@@ -757,15 +790,40 @@ const OfflineBillEditor = () => {
               Bill Items ({displayItems.length})
             </h3>
             {!viewingVersion && (
-              <button
-                onClick={addItem}
-                className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition-colors flex items-center gap-1.5 text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                Add Item
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowVoiceInput(v => !v)}
+                  className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                    showVoiceInput
+                      ? 'bg-teal-100 text-teal-700 border border-teal-300'
+                      : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                  }`}
+                  title="Add item by voice"
+                >
+                  <Mic className="w-4 h-4" />
+                  Voice
+                </button>
+                <button
+                  onClick={addItem}
+                  className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition-colors flex items-center gap-1.5 text-sm font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Item
+                </button>
+              </div>
             )}
           </div>
+
+          {showVoiceInput && !viewingVersion && (
+            <div className="px-5 py-4 border-b border-gray-100">
+              <VoiceItemInput
+                materials={designerMaterials}
+                onAddItem={handleVoiceAddItem}
+                onClose={() => setShowVoiceInput(false)}
+                accentColor="teal"
+              />
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ minWidth: '1100px' }}>

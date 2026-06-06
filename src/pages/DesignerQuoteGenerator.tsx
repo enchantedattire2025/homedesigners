@@ -23,11 +23,13 @@ import {
   Home,
   Search,
   X,
-  ShoppingCart
+  ShoppingCart,
+  Mic
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
+import VoiceItemInput, { VoiceAddedItem } from '../components/VoiceItemInput';
 
 interface Customer {
   id: string;
@@ -170,6 +172,7 @@ const DesignerQuoteGenerator = () => {
   
   const [currentStep, setCurrentStep] = useState(1);
   const [showAddItemsModal, setShowAddItemsModal] = useState(false);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState<{[key: string]: number}>({});
   const [materialSearchQuery, setMaterialSearchQuery] = useState('');
   const [quoteData, setQuoteData] = useState<QuoteData>({
@@ -410,8 +413,25 @@ const DesignerQuoteGenerator = () => {
     setShowAddItemsModal(false);
   };
 
-  const handleMaterialQuantityChange = (materialId: string, quantity: number) => {
-    setSelectedMaterials(prev => {
+  const handleVoiceAddItem = (voiceItem: VoiceAddedItem) => {
+    const newItem: QuoteItem = {
+      material_id: voiceItem.materialId,
+      item_type: 'material',
+      name: voiceItem.name,
+      description: '',
+      number_of_units: 1,
+      quantity: voiceItem.quantity,
+      unit: voiceItem.unit,
+      unit_price: voiceItem.unitPrice,
+      discount_percent: 0,
+      amount: 1 * voiceItem.quantity * voiceItem.unitPrice,
+      width: voiceItem.width,
+      height: voiceItem.height,
+    };
+    setQuoteData(prev => ({ ...prev, items: [...prev.items, newItem] }));
+  };
+
+  const handleMaterialQuantityChange = (materialId: string, quantity: number) => {    setSelectedMaterials(prev => {
       if (quantity <= 0) {
         const { [materialId]: removed, ...rest } = prev;
         return rest;
@@ -858,6 +878,18 @@ const DesignerQuoteGenerator = () => {
                       <span>Add Multiple Items</span>
                     </button>
                     <button
+                      onClick={() => setShowVoiceInput(v => !v)}
+                      className={`px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1 ${
+                        showVoiceInput
+                          ? 'bg-primary-100 text-primary-700 border border-primary-300'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                      title="Add item by voice"
+                    >
+                      <Mic className="w-4 h-4" />
+                      <span className="hidden sm:inline">Voice</span>
+                    </button>
+                    <button
                       onClick={addItem}
                       className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1"
                     >
@@ -867,6 +899,17 @@ const DesignerQuoteGenerator = () => {
                   </div>
                 </div>
                 
+                {showVoiceInput && (
+                  <div className="mt-2">
+                    <VoiceItemInput
+                      materials={materials}
+                      onAddItem={handleVoiceAddItem}
+                      onClose={() => setShowVoiceInput(false)}
+                      accentColor="primary"
+                    />
+                  </div>
+                )}
+
                 {quoteData.items.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
