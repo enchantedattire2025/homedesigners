@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Home as HomeIcon, Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
+import { Home as HomeIcon, Mail, MapPin, Download } from 'lucide-react';
+import { triggerInstallPrompt } from './InstallPrompt';
 
 const Footer = () => {
   return (
@@ -28,6 +29,15 @@ const Footer = () => {
               <li><Link to="/projects" className="text-gray-300 hover:text-accent-400 transition-colors">Project Portfolio</Link></li>
               <li><Link to="/gallery" className="text-gray-300 hover:text-accent-400 transition-colors">Gallery</Link></li>
               <li><a href="#" className="text-gray-300 hover:text-accent-400 transition-colors">About Us</a></li>
+              <li>
+                <button
+                  onClick={triggerInstallPrompt}
+                  className="flex items-center gap-1.5 text-gray-300 hover:text-accent-400 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Install App
+                </button>
+              </li>
             </ul>
           </div>
 

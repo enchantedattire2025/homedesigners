@@ -1,45 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X } from 'lucide-react';
+import { Download, X, Smartphone } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+// Global deferred prompt reference so Footer can trigger it
+let _deferredPrompt: BeforeInstallPromptEvent | null = null;
+let _showPopup: (() => void) | null = null;
+
+export function triggerInstallPrompt() {
+  if (_deferredPrompt && _showPopup) {
+    _showPopup();
+  } else if (_deferredPrompt) {
+    _deferredPrompt.prompt();
+  }
+}
+
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isInStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as any).standalone === true;
+}
+
 const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showIosBanner, setShowIosBanner] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (isInStandaloneMode()) {
       setIsInstalled(true);
       return;
     }
 
-    // Listen for beforeinstallprompt event
+    // iOS Safari — no beforeinstallprompt, show manual instructions
+    if (isIos() && !isInStandaloneMode()) {
+      const dismissed = localStorage.getItem('pwa-ios-dismissed');
+      if (!dismissed) {
+        setTimeout(() => setShowIosBanner(true), 3000);
+      }
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
+      _deferredPrompt = promptEvent;
 
-      // Check if user has previously dismissed the prompt
       const dismissed = localStorage.getItem('pwa-install-dismissed');
       if (!dismissed) {
-        // Show prompt after a delay
-        setTimeout(() => {
-          setShowPrompt(true);
-        }, 3000);
+        setTimeout(() => setShowPrompt(true), 3000);
       }
     };
 
-    // Listen for app installed event
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setShowPrompt(false);
       setDeferredPrompt(null);
+      _deferredPrompt = null;
     };
+
+    // Expose show trigger globally
+    _showPopup = () => setShowPrompt(true);
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
@@ -47,25 +75,19 @@ const InstallPrompt = () => {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      _showPopup = null;
     };
   }, []);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-
-    // Show the install prompt
     deferredPrompt.prompt();
-
-    // Wait for the user to respond
     const { outcome } = await deferredPrompt.userChoice;
-
     if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-    } else {
-      console.log('User dismissed the install prompt');
+      setIsInstalled(true);
     }
-
     setDeferredPrompt(null);
+    _deferredPrompt = null;
     setShowPrompt(false);
   };
 
@@ -74,9 +96,41 @@ const InstallPrompt = () => {
     localStorage.setItem('pwa-install-dismissed', 'true');
   };
 
-  if (isInstalled || !showPrompt || !deferredPrompt) {
-    return null;
+  const handleIosDismiss = () => {
+    setShowIosBanner(false);
+    localStorage.setItem('pwa-ios-dismissed', 'true');
+  };
+
+  if (isInstalled) return null;
+
+  // iOS Safari banner
+  if (showIosBanner) {
+    return (
+      <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 animate-slideUp">
+        <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-5">
+          <button
+            onClick={handleIosDismiss}
+            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Install App</h3>
+              <p className="text-sm text-gray-600">
+                Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong> to install the app on your iPhone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
+
+  if (!showPrompt || !deferredPrompt) return null;
 
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-md z-50 animate-slideUp">
@@ -99,7 +153,7 @@ const InstallPrompt = () => {
               Install Our App
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Install our app for a better experience. Access it quickly from your home screen.
+              Get quick access from your home screen. Works offline too!
             </p>
 
             <div className="flex space-x-3">
