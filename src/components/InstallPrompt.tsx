@@ -1,20 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Download, X, Smartphone } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Download, X, Smartphone, CheckCircle } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-// Global deferred prompt reference so Footer can trigger it
+type InstallState = 'idle' | 'available' | 'installed' | 'unavailable';
+
+// Module-level state so Footer can access it
 let _deferredPrompt: BeforeInstallPromptEvent | null = null;
-let _showPopup: (() => void) | null = null;
+let _installState: InstallState = 'idle';
+let _triggerShow: (() => void) | null = null;
 
 export function triggerInstallPrompt() {
-  if (_deferredPrompt && _showPopup) {
-    _showPopup();
-  } else if (_deferredPrompt) {
-    _deferredPrompt.prompt();
+  if (_installState === 'installed') return;
+  if (_deferredPrompt && _triggerShow) {
+    // Clear dismissed flag so footer-triggered install always works
+    localStorage.removeItem('pwa-install-dismissed');
+    _triggerShow();
+  } else if (_installState === 'unavailable' && _triggerShow) {
+    _triggerShow();
   }
 }
 
@@ -23,35 +29,48 @@ function isIos() {
 }
 
 function isInStandaloneMode() {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as any).standalone === true;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as any).standalone === true
+  );
 }
 
 const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
-  const [showIosBanner, setShowIosBanner] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [installState, setInstallState] = useState<InstallState>('idle');
+
+  const updateInstallState = useCallback((state: InstallState, prompt?: BeforeInstallPromptEvent | null) => {
+    _installState = state;
+    setInstallState(state);
+    if (prompt !== undefined) {
+      _deferredPrompt = prompt ?? null;
+      setDeferredPrompt(prompt ?? null);
+    }
+  }, []);
 
   useEffect(() => {
+    _triggerShow = () => setShowPrompt(true);
+
     if (isInStandaloneMode()) {
-      setIsInstalled(true);
+      updateInstallState('installed');
       return;
     }
 
-    // iOS Safari — no beforeinstallprompt, show manual instructions
-    if (isIos() && !isInStandaloneMode()) {
+    // iOS Safari — show manual instructions banner
+    if (isIos()) {
+      updateInstallState('unavailable');
       const dismissed = localStorage.getItem('pwa-ios-dismissed');
       if (!dismissed) {
-        setTimeout(() => setShowIosBanner(true), 3000);
+        setTimeout(() => setShowPrompt(true), 3000);
       }
+      return;
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(promptEvent);
-      _deferredPrompt = promptEvent;
+      updateInstallState('available', promptEvent);
 
       const dismissed = localStorage.getItem('pwa-install-dismissed');
       if (!dismissed) {
@@ -60,14 +79,9 @@ const InstallPrompt = () => {
     };
 
     const handleAppInstalled = () => {
-      setIsInstalled(true);
+      updateInstallState('installed', null);
       setShowPrompt(false);
-      setDeferredPrompt(null);
-      _deferredPrompt = null;
     };
-
-    // Expose show trigger globally
-    _showPopup = () => setShowPrompt(true);
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
@@ -75,53 +89,58 @@ const InstallPrompt = () => {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
-      _showPopup = null;
+      _triggerShow = null;
     };
-  }, []);
+  }, [updateInstallState]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstalled(true);
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        updateInstallState('installed', null);
+      } else {
+        // Prompt consumed — wait for browser to offer again
+        updateInstallState('idle', null);
+        localStorage.setItem('pwa-install-dismissed', 'true');
+      }
+    } catch {
+      updateInstallState('idle', null);
     }
-    setDeferredPrompt(null);
-    _deferredPrompt = null;
     setShowPrompt(false);
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem('pwa-install-dismissed', 'true');
+    if (isIos()) {
+      localStorage.setItem('pwa-ios-dismissed', 'true');
+    } else {
+      localStorage.setItem('pwa-install-dismissed', 'true');
+    }
   };
 
-  const handleIosDismiss = () => {
-    setShowIosBanner(false);
-    localStorage.setItem('pwa-ios-dismissed', 'true');
-  };
+  if (installState === 'installed' || !showPrompt) return null;
 
-  if (isInstalled) return null;
-
-  // iOS Safari banner
-  if (showIosBanner) {
+  // iOS Safari manual install instructions
+  if (isIos()) {
     return (
       <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 animate-slideUp">
-        <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-5">
+        <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-5 relative">
           <button
-            onClick={handleIosDismiss}
+            onClick={handleDismiss}
             className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
           </button>
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-11 h-11 bg-gradient-to-br from-secondary-500 to-secondary-700 rounded-xl flex items-center justify-center flex-shrink-0">
               <Smartphone className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-gray-900 mb-1">Install App</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Install App on iPhone</h3>
               <p className="text-sm text-gray-600">
-                Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong> to install the app on your iPhone.
+                Tap the <strong>Share</strong> button in Safari, then select <strong>"Add to Home Screen"</strong>.
               </p>
             </div>
           </div>
@@ -130,11 +149,34 @@ const InstallPrompt = () => {
     );
   }
 
-  if (!showPrompt || !deferredPrompt) return null;
+  // Unavailable state (prompt consumed, waiting for browser)
+  if (!deferredPrompt) {
+    return (
+      <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 animate-slideUp">
+        <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-5 relative">
+          <button onClick={() => setShowPrompt(false)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 bg-gradient-to-br from-secondary-500 to-secondary-700 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Install App</h3>
+              <p className="text-sm text-gray-600">
+                To install, tap the <strong>menu icon (⋮)</strong> in Chrome and select <strong>"Add to Home screen"</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  // Standard install prompt (Android Chrome)
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-md z-50 animate-slideUp">
-      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-6 relative">
         <button
           onClick={handleDismiss}
           className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
@@ -144,7 +186,7 @@ const InstallPrompt = () => {
         </button>
 
         <div className="flex items-start space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 bg-gradient-to-br from-secondary-500 to-secondary-700 rounded-xl flex items-center justify-center flex-shrink-0">
             <Download className="w-6 h-6 text-white" />
           </div>
 
@@ -153,13 +195,13 @@ const InstallPrompt = () => {
               Install Our App
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Get quick access from your home screen. Works offline too!
+              Add to your home screen for quick access and a better experience.
             </p>
 
             <div className="flex space-x-3">
               <button
                 onClick={handleInstallClick}
-                className="flex-1 bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
               >
                 Install
               </button>
