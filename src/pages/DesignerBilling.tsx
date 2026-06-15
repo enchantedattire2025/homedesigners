@@ -232,10 +232,11 @@ const DesignerBilling = () => {
   };
 
   const calculateItemAmount = (item: BillItem): number => {
-    const qty = item.quantity || 0;
-    const price = item.unit_price || 0;
-    const discount = item.discount_percent || 0;
-    return qty * price * (1 - discount / 100);
+    const units = item.number_of_units ?? 1;
+    const qty = item.quantity ?? 0;
+    const price = item.unit_price ?? 0;
+    const discount = item.discount_percent ?? 0;
+    return units * qty * price * (1 - discount / 100);
   };
 
   const calculateTotals = () => {
@@ -246,19 +247,19 @@ const DesignerBilling = () => {
   };
 
   const handleItemChange = (index: number, field: keyof BillItem, value: any) => {
-    const updated = [...items];
-    (updated[index] as any)[field] = value;
+    const updated = items.map((it, i) => i === index ? { ...it, [field]: value } : it);
+    const item = updated[index];
 
-    if ((field === 'width' || field === 'height' || field === 'depth') && ['sq.ft', 'sq.m', 'per meter'].includes(updated[index].unit)) {
-      const w = updated[index].width || 0;
-      const h = updated[index].height || 0;
-      const d = updated[index].depth || 0;
+    if ((field === 'width' || field === 'height' || field === 'depth') && ['sq.ft', 'sq.m', 'per meter'].includes(item.unit)) {
+      const w = item.width || 0;
+      const h = item.height || 0;
+      const d = item.depth || 0;
       if (w > 0 && h > 0) {
-        updated[index].quantity = d > 0 ? w * h * d : w * h;
+        updated[index] = { ...item, quantity: d > 0 ? w * h * d : w * h };
       }
     }
 
-    updated[index].amount = calculateItemAmount(updated[index]);
+    updated[index] = { ...updated[index], amount: calculateItemAmount(updated[index]) };
     setItems(updated);
   };
 
@@ -745,8 +746,10 @@ const DesignerBilling = () => {
                       ) : (
                         <input
                           type="number"
-                          value={item.number_of_units || ''}
-                          onChange={(e) => handleItemChange(index, 'number_of_units', parseFloat(e.target.value) || 0)}
+                          value={item.number_of_units ?? ''}
+                          onChange={(e) => handleItemChange(index, 'number_of_units', Math.max(1, parseFloat(e.target.value) || 1))}
+                          min="1"
+                          step="1"
                           className="w-16 px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                         />
                       )}
