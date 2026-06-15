@@ -42,6 +42,11 @@ function normaliseText(text: string): string {
     .replace(/[,]/g, ' ')
     .replace(/×/g, ' x ')
     .replace(/\bby\b/g, ' x ')
+    // "height is 8 and width is 4" / "width is 4 height is 8"
+    .replace(/height\s+(?:is\s+)?(\d+(?:\.\d+)?)\s+(?:and\s+)?width\s+(?:is\s+)?(\d+(?:\.\d+)?)/i, '$2 x $1')
+    .replace(/width\s+(?:is\s+)?(\d+(?:\.\d+)?)\s+(?:and\s+)?height\s+(?:is\s+)?(\d+(?:\.\d+)?)/i, '$1 x $2')
+    // slash separator: "8/4" -> "8 x 4"
+    .replace(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)/g, '$1 x $2')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -121,7 +126,7 @@ function extractQuantity(text: string): { quantity: number; restText: string } |
 
 function cleanName(text: string): string {
   // Remove leftover stop words
-  const stopWords = ['add', 'please', 'karo', 'daalo', 'jodo', 'likho', 'the', 'a', 'an', 'some', 'of', 'and'];
+  const stopWords = ['add', 'please', 'karo', 'daalo', 'jodo', 'likho', 'the', 'a', 'an', 'some', 'of', 'and', 'is', 'height', 'width'];
   let result = text;
   for (const word of stopWords) {
     result = result.replace(new RegExp(`\\b${word}\\b`, 'gi'), ' ');
