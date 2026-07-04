@@ -179,7 +179,7 @@ const Projects = () => {
           rating: 4.9,
           total_reviews: 127,
           experience: 8,
-          profile_image: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=400'
+          profile_image: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400'
         }
       },
       {
@@ -329,7 +329,7 @@ const Projects = () => {
     }
 
     // Default images based on property type
-    /*const imageMap: Record<string, string> = {
+    const imageMap: Record<string, string> = {
       '1 BHK Apartment': 'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=800',
       '2 BHK Apartment': 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
       '3 BHK Apartment': 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
@@ -338,10 +338,10 @@ const Projects = () => {
       'Penthouse': 'https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=800',
       'Commercial Space': 'https://images.pexels.com/photos/1599791/pexels-photo-1599791.jpeg?auto=compress&cs=tinysrgb&w=800',
       'Office': 'https://images.pexels.com/photos/1599791/pexels-photo-1599791.jpeg?auto=compress&cs=tinysrgb&w=800'
-    }; 
+    };
 
-    return imageMap[project.property_type] || 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800'; */
-  }; 
+    return imageMap[project.property_type] || 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800';
+  };
 
   const generateMaterialsFromProject = (project: any, quote: any) => {
     const materials = [];
