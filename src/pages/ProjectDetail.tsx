@@ -309,7 +309,9 @@ const ProjectDetail = () => {
 
     // Only add default images if no real images are available
     if (images.length === 0) {
-      const defaultImages = [
+      const defaultImages;
+      
+      /*= [
         {
           url: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
           title: 'Project Overview',
@@ -330,7 +332,7 @@ const ProjectDetail = () => {
           title: 'Kitchen',
           description: 'Modern and functional kitchen space'
         }
-      ];
+      ]; */
 
       defaultImages.forEach(img => {
         images.push({
