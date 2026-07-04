@@ -164,8 +164,9 @@ const Gallery = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-secondary-800 mb-4">
-                Design Gallery
+              <h1 className="text-3xl lg:text-4xl font-bold text-secondary-800 mb-4 flex items-center space-x-3">
+                <FaInstagram className="text-pink-500" style={{ width: '36px', height: '36px' }} />
+                <span>Insta</span>
               </h1>
               <p className="text-lg text-gray-600">
                 Explore real interior design projects from our talented designers across India.
@@ -274,6 +275,19 @@ const Gallery = () => {
                     <span>{item.date}</span>
                   </div>
                 </div>
+
+                {item.instagramUrl && (
+                  <a
+                    href={item.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-3 flex items-center space-x-2 w-full justify-center py-1.5 rounded-lg bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400 text-white text-xs font-semibold hover:opacity-90 transition-opacity"
+                  >
+                    <FaInstagram style={{ width: '14px', height: '14px' }} />
+                    <span>View on Instagram</span>
+                  </a>
+                )}
               </div>
             </div>
           ))}

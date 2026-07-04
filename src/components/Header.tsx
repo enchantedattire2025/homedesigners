@@ -25,7 +25,7 @@ const Header = () => {
     { name: 'Home', href: '/', icon: HomeIcon },
     { name: 'Designers', href: '/designers' },
     { name: 'Projects', href: '/projects' },
-    { name: 'Gallery', href: '/gallery' },
+    { name: 'Insta', href: '/gallery' },
     { name: 'Materials', href: '/materials' },
     { name: '3D Wallpaper', href: '/wallpaper-gallery' },
   ];
