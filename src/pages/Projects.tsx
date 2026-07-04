@@ -338,10 +338,10 @@ const Projects = () => {
       'Penthouse': 'https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=800',
       'Commercial Space': 'https://images.pexels.com/photos/1599791/pexels-photo-1599791.jpeg?auto=compress&cs=tinysrgb&w=800',
       'Office': 'https://images.pexels.com/photos/1599791/pexels-photo-1599791.jpeg?auto=compress&cs=tinysrgb&w=800'
-    };
+    }; 
 
-    return imageMap[project.property_type] || 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800';
-  }; */
+    return imageMap[project.property_type] || 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800'; */
+  }; 
 
   const generateMaterialsFromProject = (project: any, quote: any) => {
     const materials = [];
