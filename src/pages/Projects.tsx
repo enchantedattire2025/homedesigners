@@ -179,7 +179,7 @@ const Projects = () => {
           rating: 4.9,
           total_reviews: 127,
           experience: 8,
-          profile_image: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400'
+          profile_image: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=400'
         }
       },
       {
