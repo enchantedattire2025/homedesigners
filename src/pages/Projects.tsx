@@ -329,7 +329,7 @@ const Projects = () => {
     }
 
     // Default images based on property type
-    const imageMap: Record<string, string> = {
+    /*const imageMap: Record<string, string> = {
       '1 BHK Apartment': 'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=800',
       '2 BHK Apartment': 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
       '3 BHK Apartment': 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800',
@@ -341,7 +341,7 @@ const Projects = () => {
     };
 
     return imageMap[project.property_type] || 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800';
-  };
+  }; */
 
   const generateMaterialsFromProject = (project: any, quote: any) => {
     const materials = [];
