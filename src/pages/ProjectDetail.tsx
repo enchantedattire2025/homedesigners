@@ -705,40 +705,120 @@ const ProjectDetail = () => {
           </div>
         </div>
 
-        {/* Materials Used */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
-          <h2 className="text-2xl font-bold text-secondary-800 mb-6">Materials & Cost Breakdown</h2>
+{/* Materials & Cost Breakdown */}
+<div className="bg-white rounded-2xl shadow-lg border border-gray-200 mt-8 overflow-hidden">
 
-          {Array.isArray(project.materials) ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Material</th>
-                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Usage</th>
-                    <th className="text-right py-3 px-4 font-semibold text-secondary-800">Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {project.materials.map((material, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-secondary-800">{material.name}</td>
-                      <td className="py-3 px-4 text-gray-600">{material.usage}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-primary-600">{material.cost}</td>
-                    </tr>
-                  ))}
-                  <tr className="border-t-2 border-primary-200 bg-primary-50">
-                    <td className="py-3 px-4 font-bold text-secondary-800">Total Project Cost</td>
-                    <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4 text-right font-bold text-primary-600 text-lg">{project.budget}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-gray-600 leading-relaxed whitespace-pre-line">{project.materials}</div>
-          )}
-        </div>
+  {/* Header */}
+  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+    <h2 className="text-2xl font-bold text-white">
+      Materials & Cost Breakdown
+    </h2>
+    <p className="text-blue-100 text-sm mt-1">
+      Detailed list of materials used in this project.
+    </p>
+  </div>
+
+  {Array.isArray(project.materials) ? (
+    <div className="overflow-x-auto">
+
+      <table className="min-w-full text-sm">
+
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="px-4 py-3 text-center font-semibold">#</th>
+            <th className="px-4 py-3 text-left font-semibold">Material</th>
+            <th className="px-4 py-3 text-left font-semibold">Category</th>
+            <th className="px-4 py-3 text-center font-semibold">Unit</th>
+            <th className="px-4 py-3 text-center font-semibold">Qty</th>
+            <th className="px-4 py-3 text-right font-semibold">Rate</th>
+            <th className="px-4 py-3 text-right font-semibold">Amount</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {project.materials.map((material, index) => {
+
+            const qty = Number(material.quantity || 1);
+
+            const rate = Number(
+              String(material.cost || 0).replace(/[₹,]/g, "")
+            );
+
+            const total = qty * rate;
+
+            return (
+
+              <tr
+                key={index}
+                className="border-b hover:bg-blue-50 transition"
+              >
+
+                <td className="px-4 py-3 text-center">
+                  {index + 1}
+                </td>
+
+                <td className="px-4 py-3 font-medium">
+                  {material.name}
+                </td>
+
+                <td className="px-4 py-3">
+                  {material.category || "-"}
+                </td>
+
+                <td className="px-4 py-3 text-center">
+                  {material.unit || "Nos"}
+                </td>
+
+                <td className="px-4 py-3 text-center">
+                  {qty}
+                </td>
+
+                <td className="px-4 py-3 text-right">
+                  ₹{rate.toLocaleString()}
+                </td>
+
+                <td className="px-4 py-3 text-right font-semibold text-green-600">
+                  ₹{total.toLocaleString()}
+                </td>
+
+              </tr>
+
+            );
+
+          })}
+
+        </tbody>
+
+        <tfoot>
+
+          <tr className="bg-blue-50 border-t-2">
+
+            <td colSpan="6" className="px-4 py-4 text-right font-bold text-lg">
+              Grand Total
+            </td>
+
+            <td className="px-4 py-4 text-right font-bold text-xl text-blue-700">
+              {project.budget}
+            </td>
+
+          </tr>
+
+        </tfoot>
+
+      </table>
+
+    </div>
+
+  ) : (
+
+    <div className="p-6 text-gray-600">
+      {project.materials}
+    </div>
+
+  )}
+
+</div>.   How to fix it code I want strictly accurete steps give me
 
         {/* CTA */}
         <div className="bg-gradient-to-r from-primary-500 to-secondary-600 rounded-xl p-8 mt-8 text-center">
