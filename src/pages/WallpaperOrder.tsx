@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Image as ImageIcon, AlertCircle, Check, X, CreditCard, Shield, Sparkles, Palette, Grid3x3 as Grid3X3 } from 'lucide-react';
+import { Image as ImageIcon, AlertCircle, Check, X, CreditCard, Shield, Sparkles, Palette } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
@@ -483,32 +483,6 @@ export default function WallpaperOrder() {
             </div>
 
             {/* Mode Toggle */}
-            <div className="flex rounded-xl border border-gray-200 overflow-hidden mb-6">
-              <button
-                type="button"
-                onClick={() => { setIsCustomOrder(false); setSelectedWallpaper(null); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-semibold text-sm transition-colors ${
-                  !isCustomOrder
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <Grid3X3 className="w-4 h-4" />
-                Order from Catalogue
-              </button>
-              <button
-                type="button"
-                onClick={() => { setIsCustomOrder(true); setSelectedWallpaper(null); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-semibold text-sm transition-colors ${
-                  isCustomOrder
-                    ? 'bg-amber-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                Custom Design Request
-              </button>
-            </div>
 
             {selectedWallpaper && (
               <div className="mb-6 bg-gradient-to-r from-blue-50 to-slate-50 border-2 border-blue-200 rounded-xl p-5">
