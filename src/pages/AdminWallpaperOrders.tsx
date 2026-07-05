@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, Check, Image as ImageIcon, ExternalLink, Phone, MapPin } from 'lucide-react';
+import { Upload, X, Check, Image as ImageIcon, ExternalLink, Phone, MapPin, Sparkles, Palette } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
@@ -28,6 +28,10 @@ interface WallpaperOrder {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  is_custom_order: boolean;
+  custom_design_description: string | null;
+  custom_design_style: string | null;
+  custom_color_preferences: string | null;
 }
 
 export default function AdminWallpaperOrders() {
@@ -256,12 +260,20 @@ export default function AdminWallpaperOrders() {
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
+              <div key={order.id} className={`bg-white rounded-lg shadow-md p-6 ${order.is_custom_order ? 'ring-2 ring-amber-300' : ''}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {order.wallpaper_type === 'golden_foil' ? 'Golden Foil' : 'Normal'} 3D Wallpaper
-                    </h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {order.is_custom_order ? 'Custom Design' : (order.wallpaper_type === 'golden_foil' ? 'Golden Foil' : 'Normal')} 3D Wallpaper
+                      </h3>
+                      {order.is_custom_order && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full border border-amber-300">
+                          <Sparkles className="w-3 h-3" />
+                          Custom Order
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500">
                       Order ID: {order.id.substring(0, 8)}... | {new Date(order.order_date).toLocaleString()}
                     </p>
@@ -342,6 +354,35 @@ export default function AdminWallpaperOrders() {
                         </a>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {order.is_custom_order && (order.custom_design_style || order.custom_design_description || order.custom_color_preferences) && (
+                  <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-amber-900 flex items-center gap-2 mb-3">
+                      <Palette className="w-4 h-4" />
+                      Custom Design Requirements
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      {order.custom_design_style && (
+                        <div className="bg-white rounded-lg p-3 border border-amber-200">
+                          <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">Style</p>
+                          <p className="text-gray-800 font-medium">{order.custom_design_style}</p>
+                        </div>
+                      )}
+                      {order.custom_color_preferences && (
+                        <div className="bg-white rounded-lg p-3 border border-amber-200">
+                          <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">Colors</p>
+                          <p className="text-gray-800">{order.custom_color_preferences}</p>
+                        </div>
+                      )}
+                    </div>
+                    {order.custom_design_description && (
+                      <div className="mt-3 bg-white rounded-lg p-3 border border-amber-200">
+                        <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">Design Description</p>
+                        <p className="text-gray-800 text-sm leading-relaxed">{order.custom_design_description}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 

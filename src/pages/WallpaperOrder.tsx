@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Image as ImageIcon, AlertCircle, Check, X, CreditCard, Shield } from 'lucide-react';
+import { Image as ImageIcon, AlertCircle, Check, X, CreditCard, Shield, Sparkles, Palette, Grid3x3 as Grid3X3 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
@@ -53,6 +53,7 @@ export default function WallpaperOrder() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [orders, setOrders] = useState<WallpaperOrderData[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [isCustomOrder, setIsCustomOrder] = useState(false);
   const [selectedWallpaper, setSelectedWallpaper] = useState<SelectedWallpaper | null>(null);
   const [paymentStep, setPaymentStep] = useState<'form' | 'payment' | 'success'>('form');
   const [paypalReady, setPaypalReady] = useState(false);
@@ -71,7 +72,10 @@ export default function WallpaperOrder() {
     wall_unit: 'feet',
     reference_images: [''],
     wallpaper_type: 'normal',
-    notes: ''
+    notes: '',
+    custom_design_description: '',
+    custom_design_style: '',
+    custom_color_preferences: ''
   });
 
   const [phoneError, setPhoneError] = useState('');
@@ -91,8 +95,11 @@ export default function WallpaperOrder() {
   }, [user]);
 
   useEffect(() => {
-    const state = location.state as { selectedWallpaper?: SelectedWallpaper };
-    if (state?.selectedWallpaper) {
+    const state = location.state as { selectedWallpaper?: SelectedWallpaper; isCustomOrder?: boolean };
+    if (state?.isCustomOrder) {
+      setIsCustomOrder(true);
+      setShowForm(true);
+    } else if (state?.selectedWallpaper) {
       setSelectedWallpaper(state.selectedWallpaper);
       setShowForm(true);
 
@@ -373,7 +380,11 @@ export default function WallpaperOrder() {
           paypal_order_id: paypalOrderId,
           paypal_payer_email: payerEmail,
           payment_status: 'completed',
-          notes: formData.notes || null
+          notes: formData.notes || null,
+          is_custom_order: isCustomOrder,
+          custom_design_description: isCustomOrder ? (formData.custom_design_description || null) : null,
+          custom_design_style: isCustomOrder ? (formData.custom_design_style || null) : null,
+          custom_color_preferences: isCustomOrder ? (formData.custom_color_preferences || null) : null
         });
 
       if (error) throw error;
@@ -391,6 +402,7 @@ export default function WallpaperOrder() {
   const resetForm = () => {
     setShowForm(false);
     setSelectedWallpaper(null);
+    setIsCustomOrder(false);
     setPaymentStep('form');
     paypalButtonsRendered.current = false;
     setFormData({
@@ -405,7 +417,10 @@ export default function WallpaperOrder() {
       wall_unit: 'feet',
       reference_images: [''],
       wallpaper_type: 'normal',
-      notes: ''
+      notes: '',
+      custom_design_description: '',
+      custom_design_style: '',
+      custom_color_preferences: ''
     });
   };
 
@@ -456,12 +471,42 @@ export default function WallpaperOrder() {
         {user && showForm && paymentStep === 'form' && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">New Order</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {isCustomOrder ? 'Custom Design Request' : 'New Order'}
+              </h2>
               <button
                 onClick={resetForm}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Mode Toggle */}
+            <div className="flex rounded-xl border border-gray-200 overflow-hidden mb-6">
+              <button
+                type="button"
+                onClick={() => { setIsCustomOrder(false); setSelectedWallpaper(null); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-semibold text-sm transition-colors ${
+                  !isCustomOrder
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+                Order from Catalogue
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsCustomOrder(true); setSelectedWallpaper(null); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-semibold text-sm transition-colors ${
+                  isCustomOrder
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                Custom Design Request
               </button>
             </div>
 
@@ -488,6 +533,59 @@ export default function WallpaperOrder() {
                       <Check className="w-4 h-4" />
                       <span className="font-medium">This image has been added to your reference images</span>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Custom Design Panel */}
+            {isCustomOrder && (
+              <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Palette className="w-5 h-5 text-amber-600" />
+                  <h3 className="text-sm font-bold text-amber-900 uppercase tracking-wide">Custom Design Details</h3>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Design Style <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required={isCustomOrder}
+                      value={formData.custom_design_style}
+                      onChange={(e) => setFormData({ ...formData, custom_design_style: e.target.value })}
+                      className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
+                    >
+                      <option value="">Select preferred style...</option>
+                      {["Geometric", "Nature", "Luxury", "Modern", "Floral", "Industrial", "Texture", "Abstract", "Wood", "Zen", "Space", "Urban", "Other"].map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Color Preferences
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.custom_color_preferences}
+                      onChange={(e) => setFormData({ ...formData, custom_color_preferences: e.target.value })}
+                      placeholder="e.g., Earthy tones, Dark navy & gold, Soft pastels..."
+                      className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Describe Your Design <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      required={isCustomOrder}
+                      rows={4}
+                      value={formData.custom_design_description}
+                      onChange={(e) => setFormData({ ...formData, custom_design_description: e.target.value })}
+                      placeholder="Describe what you want — mood, patterns, textures, inspiration, any specific elements you have in mind..."
+                      className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
+                    />
                   </div>
                 </div>
               </div>
@@ -886,12 +984,20 @@ export default function WallpaperOrder() {
             ) : (
               <div className="space-y-4">
                 {orders.map((order) => (
-                  <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                  <div key={order.id} className={`border rounded-lg p-4 transition-colors ${(order as any).is_custom_order ? 'border-amber-200 hover:border-amber-400 bg-amber-50/30' : 'border-gray-200 hover:border-blue-300'}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {order.wallpaper_type === 'golden_foil' ? 'Golden Foil' : 'Normal'} 3D Wallpaper
-                        </h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-gray-900">
+                            {(order as any).is_custom_order ? 'Custom Design' : (order.wallpaper_type === 'golden_foil' ? 'Golden Foil' : 'Normal')} 3D Wallpaper
+                          </h3>
+                          {(order as any).is_custom_order && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full border border-amber-300">
+                              <Sparkles className="w-3 h-3" />
+                              Custom
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500">
                           {new Date(order.order_date).toLocaleDateString()}
                         </p>
@@ -967,6 +1073,33 @@ export default function WallpaperOrder() {
                     {order.notes && (
                       <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
                         <span className="font-medium">Notes:</span> {order.notes}
+                      </div>
+                    )}
+
+                    {(order as any).is_custom_order && ((order as any).custom_design_style || (order as any).custom_design_description || (order as any).custom_color_preferences) && (
+                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1.5 text-sm">
+                        <p className="font-semibold text-amber-900 flex items-center gap-1.5 mb-2">
+                          <Palette className="w-4 h-4" />
+                          Custom Design Details
+                        </p>
+                        {(order as any).custom_design_style && (
+                          <div className="flex gap-2">
+                            <span className="text-amber-700 font-medium w-28 flex-shrink-0">Style:</span>
+                            <span className="text-amber-900">{(order as any).custom_design_style}</span>
+                          </div>
+                        )}
+                        {(order as any).custom_color_preferences && (
+                          <div className="flex gap-2">
+                            <span className="text-amber-700 font-medium w-28 flex-shrink-0">Colors:</span>
+                            <span className="text-amber-900">{(order as any).custom_color_preferences}</span>
+                          </div>
+                        )}
+                        {(order as any).custom_design_description && (
+                          <div className="flex gap-2">
+                            <span className="text-amber-700 font-medium w-28 flex-shrink-0">Description:</span>
+                            <span className="text-amber-900">{(order as any).custom_design_description}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

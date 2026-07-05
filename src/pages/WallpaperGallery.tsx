@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, LogIn, Loader2, Search } from 'lucide-react';
+import { ShoppingCart, LogIn, Loader2, Search, Sparkles, Palette } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import AuthModal from '../components/AuthModal';
 import { supabase } from '../lib/supabase';
@@ -20,6 +20,7 @@ export default function WallpaperGallery() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [pendingWallpaper, setPendingWallpaper] = useState<Wallpaper | null>(null);
+  const [pendingCustomOrder, setPendingCustomOrder] = useState(false);
   const [wallpapers, setWallpapers] = useState<Wallpaper[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,6 +69,12 @@ export default function WallpaperGallery() {
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
 
+    if (pendingCustomOrder) {
+      navigate('/wallpaper-order', { state: { isCustomOrder: true } });
+      setPendingCustomOrder(false);
+      return;
+    }
+
     if (pendingWallpaper) {
       navigate('/wallpaper-order', {
         state: {
@@ -76,6 +83,16 @@ export default function WallpaperGallery() {
       });
       setPendingWallpaper(null);
     }
+  };
+
+  const handleCustomOrderClick = () => {
+    if (!user) {
+      setPendingCustomOrder(true);
+      setAuthMode('login');
+      setShowAuthModal(true);
+      return;
+    }
+    navigate('/wallpaper-order', { state: { isCustomOrder: true } });
   };
 
   if (loading) {
@@ -123,6 +140,32 @@ export default function WallpaperGallery() {
           <p className="text-gray-600">
             Showing <span className="font-semibold text-gray-900">{filteredWallpapers.length}</span> wallpapers
           </p>
+        </div>
+
+        {/* Custom Design CTA */}
+        <div className="mb-10 rounded-2xl overflow-hidden bg-gradient-to-r from-slate-800 to-slate-900 shadow-xl">
+          <div className="flex flex-col md:flex-row items-center gap-6 p-8">
+            <div className="flex-shrink-0 w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-amber-400" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-2xl font-bold text-white mb-1">
+                Don't see what you're looking for?
+              </h2>
+              <p className="text-slate-300 text-sm max-w-xl">
+                Describe your dream wallpaper and we'll create a completely custom 3D design just for your space — any style, any color, any pattern.
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <button
+                onClick={handleCustomOrderClick}
+                className="inline-flex items-center gap-2.5 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold px-7 py-3.5 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-amber-400/30 whitespace-nowrap"
+              >
+                <Palette className="w-5 h-5" />
+                Request Custom Design
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -188,6 +231,7 @@ export default function WallpaperGallery() {
         onClose={() => {
           setShowAuthModal(false);
           setPendingWallpaper(null);
+          setPendingCustomOrder(false);
         }}
         mode={authMode}
         onModeChange={setAuthMode}
