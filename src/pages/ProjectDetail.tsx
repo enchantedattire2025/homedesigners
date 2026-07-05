@@ -707,34 +707,114 @@ const ProjectDetail = () => {
 
         {/* Materials Used */}
         <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
-          <h2 className="text-2xl font-bold text-secondary-800 mb-6">Materials & Cost Breakdown</h2>
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <Rupee className="w-5 h-5 text-primary-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-secondary-800">Materials & Cost Breakdown</h2>
+              <p className="text-sm text-gray-500">Detailed breakdown of all materials and costs for this project</p>
+            </div>
+          </div>
 
           {Array.isArray(project.materials) ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Material</th>
-                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Usage</th>
-                    <th className="text-right py-3 px-4 font-semibold text-secondary-800">Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {project.materials.map((material, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-secondary-800">{material.name}</td>
-                      <td className="py-3 px-4 text-gray-600">{material.usage}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-primary-600">{material.cost}</td>
-                    </tr>
-                  ))}
-                  <tr className="border-t-2 border-primary-200 bg-primary-50">
-                    <td className="py-3 px-4 font-bold text-secondary-800">Total Project Cost</td>
-                    <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4 text-right font-bold text-primary-600 text-lg">{project.budget}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            (() => {
+              const parsedCosts = project.materials.map((m: any) => {
+                const raw = typeof m.cost === 'string' ? m.cost.replace(/[₹,]/g, '') : String(m.cost);
+                return parseFloat(raw) || 0;
+              });
+              const total = parsedCosts.reduce((a: number, b: number) => a + b, 0);
+              const colors = ['bg-blue-500', 'bg-teal-500', 'bg-amber-500', 'bg-rose-500', 'bg-violet-500', 'bg-emerald-500'];
+              const lightColors = ['bg-blue-50 text-blue-700', 'bg-teal-50 text-teal-700', 'bg-amber-50 text-amber-700', 'bg-rose-50 text-rose-700', 'bg-violet-50 text-violet-700', 'bg-emerald-50 text-emerald-700'];
+
+              return (
+                <div>
+                  {/* Stacked cost distribution bar */}
+                  <div className="mb-6">
+                    <p className="text-sm font-medium text-gray-600 mb-2">Cost Distribution</p>
+                    <div className="flex h-4 rounded-full overflow-hidden w-full">
+                      {project.materials.map((m: any, i: number) => {
+                        const pct = total > 0 ? (parsedCosts[i] / total) * 100 : 0;
+                        return (
+                          <div
+                            key={i}
+                            className={`${colors[i % colors.length]} transition-all`}
+                            style={{ width: `${pct}%` }}
+                            title={`${m.name}: ${pct.toFixed(1)}%`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="flex flex-wrap gap-3 mt-3">
+                      {project.materials.map((m: any, i: number) => {
+                        const pct = total > 0 ? (parsedCosts[i] / total) * 100 : 0;
+                        return (
+                          <div key={i} className="flex items-center space-x-1.5">
+                            <div className={`w-3 h-3 rounded-full ${colors[i % colors.length]}`} />
+                            <span className="text-xs text-gray-600">{m.name} ({pct.toFixed(0)}%)</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="overflow-x-auto rounded-lg border border-gray-200">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-secondary-800 text-white">
+                          <th className="text-center py-3 px-4 font-semibold w-12">#</th>
+                          <th className="text-left py-3 px-4 font-semibold">Material / Item</th>
+                          <th className="text-left py-3 px-4 font-semibold">Usage / Scope</th>
+                          <th className="text-center py-3 px-4 font-semibold w-20">Share</th>
+                          <th className="text-right py-3 px-4 font-semibold w-36">Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {project.materials.map((material: any, index: number) => {
+                          const pct = total > 0 ? (parsedCosts[index] / total) * 100 : 0;
+                          return (
+                            <tr
+                              key={index}
+                              className={`border-b border-gray-100 transition-colors hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                            >
+                              <td className="py-3.5 px-4 text-center text-gray-400 font-mono text-xs">
+                                {String(index + 1).padStart(2, '0')}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className="font-semibold text-secondary-800">{material.name}</span>
+                              </td>
+                              <td className="py-3.5 px-4 text-gray-500">{material.usage}</td>
+                              <td className="py-3.5 px-4 text-center">
+                                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${lightColors[index % lightColors.length]}`}>
+                                  {pct.toFixed(0)}%
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-right">
+                                <span className="font-bold text-primary-600 text-sm">{material.cost}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-secondary-800 text-white">
+                          <td className="py-4 px-4" colSpan={3}>
+                            <span className="font-bold text-base">Total Project Cost</span>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="text-secondary-200 text-xs">100%</span>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <span className="font-bold text-white text-lg">{project.budget}</span>
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()
           ) : (
             <div className="text-gray-600 leading-relaxed whitespace-pre-line">{project.materials}</div>
           )}
