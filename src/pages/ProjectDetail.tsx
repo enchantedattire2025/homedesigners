@@ -719,13 +719,85 @@ const ProjectDetail = () => {
   {Array.isArray(project.materials) && project.materials.length > 0 ? (
     <div className="overflow-x-auto -mx-8 px-8">
       <table className="w-full min-w-[600px] border-collapse text-left">
-        <thead>
-          <tr className="bg-slate-50/70 border-y border-slate-100">
-            <th className="py-3.5 px-4 font-semibold text-slate-700 text-sm tracking-wide">Material / Work Category</th>
-            <th className="py-3.5 px-4 font-semibold text-slate-700 text-sm tracking-wide">Description & Scope</th>
-            <th className="py-3.5 px-4 font-semibold text-slate-700 text-sm tracking-wide text-right">Amount</th>
-          </tr>
-        </thead>
+    <tbody>
+
+{project.materials.map((material, index) => {
+
+    const qty = Number(material.quantity) || 1;
+
+    const rate = Number(
+        String(material.cost || 0).replace(/[₹,]/g, "")
+    );
+
+    const total = qty * rate;
+
+    return (
+
+        <tr key={index} className="hover:bg-orange-50">
+
+            <td className="border px-4 py-3">
+                {index + 1}
+            </td>
+
+            <td className="border px-4 py-3 font-medium">
+                {material.name}
+            </td>
+
+            <td className="border px-4 py-3">
+                {material.usage || "-"}
+            </td>
+
+            <td className="border px-4 py-3 text-center">
+                {qty}
+            </td>
+
+            <td className="border px-4 py-3 text-center">
+                {material.unit || "Nos"}
+            </td>
+
+            <td className="border px-4 py-3 text-right">
+                ₹ {rate.toLocaleString("en-IN")}
+            </td>
+
+            <td className="border px-4 py-3 text-right font-semibold">
+                ₹ {total.toLocaleString("en-IN")}
+            </td>
+
+        </tr>
+
+    );
+
+})}
+
+<tr className="bg-gray-100">
+
+    <td colSpan={6} className="border px-4 py-4 text-right font-bold text-lg">
+        Grand Total
+    </td>
+
+    <td className="border px-4 py-4 text-right font-bold text-lg text-orange-600">
+
+        ₹ {
+            project.materials
+                .reduce((sum, item) => {
+
+                    const qty = Number(item.quantity) || 1;
+
+                    const rate = Number(
+                        String(item.cost || 0).replace(/[₹,]/g, "")
+                    );
+
+                    return sum + qty * rate;
+
+                }, 0)
+                .toLocaleString("en-IN")
+        }
+
+    </td>
+
+</tr>
+
+</tbody>
         <tbody className="divide-y divide-slate-100">
           {project.materials.map((material, index) => (
             <tr key={index} className="hover:bg-slate-50/50 transition-colors group">
