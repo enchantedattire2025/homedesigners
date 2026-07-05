@@ -818,7 +818,7 @@ const ProjectDetail = () => {
 
   )}
 
-</div>.   How to fix it code I want strictly accurete steps give me
+</div> 
 
         {/* CTA */}
         <div className="bg-gradient-to-r from-primary-500 to-secondary-600 rounded-xl p-8 mt-8 text-center">
