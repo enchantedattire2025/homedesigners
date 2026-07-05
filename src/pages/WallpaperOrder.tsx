@@ -443,8 +443,8 @@ export default function WallpaperOrder() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-blue-900 mb-2">Pricing Information</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>Normal 3D Wallpaper: Rs.180 per sq ft (with installation)</li>
-              <li>Golden/Silver Foil 3D Wallpaper: Rs.260 per sq ft (with installation)</li>
+              <li>Normal 3D Wallpaper: Rs.160 per sq ft (with installation)</li>
+              <li>Golden/Silver Foil 3D Wallpaper: Rs.220 per sq ft (with installation)</li>
               <li>10% advance payment required via PayPal</li>
               <li>Preview will be provided before final confirmation</li>
               <li>Delivery and execution at site after confirmation</li>
