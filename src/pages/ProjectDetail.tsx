@@ -704,136 +704,42 @@ const ProjectDetail = () => {
             )}
           </div>
         </div>
-{/* Materials & Cost Breakdown Section */}
-<div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mt-8">
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-5 mb-6 gap-2">
-    <div>
-      <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Materials & Cost Breakdown</h2>
-      <p className="text-sm text-slate-500 mt-1">Itemized transparent pricing for project execution</p>
-    </div>
-    <span className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 w-fit">
-      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified Costs
-    </span>
-  </div>
 
-  {Array.isArray(project.materials) && project.materials.length > 0 ? (
-    <div className="overflow-x-auto -mx-8 px-8">
-      <table className="w-full min-w-[600px] border-collapse text-left">
-    <tbody>
+        {/* Materials Used */}
+        <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
+          <h2 className="text-2xl font-bold text-secondary-800 mb-6">Materials & Cost Breakdown</h2>
 
-{project.materials.map((material, index) => {
+          {Array.isArray(project.materials) ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Material</th>
+                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Usage</th>
+                    <th className="text-right py-3 px-4 font-semibold text-secondary-800">Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.materials.map((material, index) => (
+                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4 font-medium text-secondary-800">{material.name}</td>
+                      <td className="py-3 px-4 text-gray-600">{material.usage}</td>
+                      <td className="py-3 px-4 text-right font-semibold text-primary-600">{material.cost}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-primary-200 bg-primary-50">
+                    <td className="py-3 px-4 font-bold text-secondary-800">Total Project Cost</td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4 text-right font-bold text-primary-600 text-lg">{project.budget}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-gray-600 leading-relaxed whitespace-pre-line">{project.materials}</div>
+          )}
+        </div>
 
-    const qty = Number(material.quantity) || 1;
-
-    const rate = Number(
-        String(material.cost || 0).replace(/[₹,]/g, "")
-    );
-
-    const total = qty * rate;
-
-    return (
-
-        <tr key={index} className="hover:bg-orange-50">
-
-            <td className="border px-4 py-3">
-                {index + 1}
-            </td>
-
-            <td className="border px-4 py-3 font-medium">
-                {material.name}
-            </td>
-
-            <td className="border px-4 py-3">
-                {material.usage || "-"}
-            </td>
-
-            <td className="border px-4 py-3 text-center">
-                {qty}
-            </td>
-
-            <td className="border px-4 py-3 text-center">
-                {material.unit || "Nos"}
-            </td>
-
-            <td className="border px-4 py-3 text-right">
-                ₹ {rate.toLocaleString("en-IN")}
-            </td>
-
-            <td className="border px-4 py-3 text-right font-semibold">
-                ₹ {total.toLocaleString("en-IN")}
-            </td>
-
-        </tr>
-
-    );
-
-})}
-
-<tr className="bg-gray-100">
-
-    <td colSpan={6} className="border px-4 py-4 text-right font-bold text-lg">
-        Grand Total
-    </td>
-
-    <td className="border px-4 py-4 text-right font-bold text-lg text-orange-600">
-
-        ₹ {
-            project.materials
-                .reduce((sum, item) => {
-
-                    const qty = Number(item.quantity) || 1;
-
-                    const rate = Number(
-                        String(item.cost || 0).replace(/[₹,]/g, "")
-                    );
-
-                    return sum + qty * rate;
-
-                }, 0)
-                .toLocaleString("en-IN")
-        }
-
-    </td>
-
-</tr>
-
-</tbody>
-        <tbody className="divide-y divide-slate-100">
-          {project.materials.map((material, index) => (
-            <tr key={index} className="hover:bg-slate-50/50 transition-colors group">
-              <td className="py-4 px-4 text-sm font-medium text-slate-900 group-hover:text-primary-600 transition-colors">
-                {material.name}
-              </td>
-              <td className="py-4 px-4 text-sm text-slate-600 max-w-md break-words">
-                {material.usage || "N/A"}
-              </td>
-              <td className="py-4 px-4 text-sm font-semibold text-slate-900 text-right font-mono">
-                {material.cost}
-              </td>
-            </tr>
-          ))}
-          
-          {/* Summary Row */}
-          <tr className="bg-slate-50/40 border-t-2 border-slate-200">
-            <td colSpan="2" className="py-5 px-4 text-base font-semibold text-slate-800 text-right">
-              Total Project Estimated Budget
-            </td>
-            <td className="py-5 px-4 text-right">
-              <span className="text-xl font-bold text-slate-900 font-mono bg-amber-50 border border-amber-200/60 px-3 py-1.5 rounded-xl shadow-xs">
-                {project.budget || "₹0"}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  ) : (
-    /* Quick Text Fallback (with a clean UI state) if data format isn't updated yet */
-    <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 text-sm text-slate-700 whitespace-pre-line leading-relaxed font-mono">
-      {project.materials}
-    </div>
-  )}
-</div>
         {/* CTA */}
         <div className="bg-gradient-to-r from-primary-500 to-secondary-600 rounded-xl p-8 mt-8 text-center">
           <h2 className="text-2xl font-bold text-white mb-4">
