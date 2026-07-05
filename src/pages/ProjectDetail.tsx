@@ -711,29 +711,85 @@ const ProjectDetail = () => {
 
           {Array.isArray(project.materials) ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Material</th>
-                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Usage</th>
-                    <th className="text-right py-3 px-4 font-semibold text-secondary-800">Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {project.materials.map((material, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-secondary-800">{material.name}</td>
-                      <td className="py-3 px-4 text-gray-600">{material.usage}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-primary-600">{material.cost}</td>
-                    </tr>
-                  ))}
-                  <tr className="border-t-2 border-primary-200 bg-primary-50">
-                    <td className="py-3 px-4 font-bold text-secondary-800">Total Project Cost</td>
-                    <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4 text-right font-bold text-primary-600 text-lg">{project.budget}</td>
-                  </tr>
-                </tbody>
-              </table>
+             <tbody>
+
+{project.materials.map((material, index) => {
+
+    const qty = Number(material.quantity) || 1;
+
+    const rate = Number(
+        String(material.cost || 0).replace(/[₹,]/g, "")
+    );
+
+    const total = qty * rate;
+
+    return (
+
+        <tr key={index} className="hover:bg-orange-50">
+
+            <td className="border px-4 py-3">
+                {index + 1}
+            </td>
+
+            <td className="border px-4 py-3 font-medium">
+                {material.name}
+            </td>
+
+            <td className="border px-4 py-3">
+                {material.usage || "-"}
+            </td>
+
+            <td className="border px-4 py-3 text-center">
+                {qty}
+            </td>
+
+            <td className="border px-4 py-3 text-center">
+                {material.unit || "Nos"}
+            </td>
+
+            <td className="border px-4 py-3 text-right">
+                ₹ {rate.toLocaleString("en-IN")}
+            </td>
+
+            <td className="border px-4 py-3 text-right font-semibold">
+                ₹ {total.toLocaleString("en-IN")}
+            </td>
+
+        </tr>
+
+    );
+
+})}
+
+<tr className="bg-gray-100">
+
+    <td colSpan={6} className="border px-4 py-4 text-right font-bold text-lg">
+        Grand Total
+    </td>
+
+    <td className="border px-4 py-4 text-right font-bold text-lg text-orange-600">
+
+        ₹ {
+            project.materials
+                .reduce((sum, item) => {
+
+                    const qty = Number(item.quantity) || 1;
+
+                    const rate = Number(
+                        String(item.cost || 0).replace(/[₹,]/g, "")
+                    );
+
+                    return sum + qty * rate;
+
+                }, 0)
+                .toLocaleString("en-IN")
+        }
+
+    </td>
+
+</tr>
+
+</tbody>
             </div>
           ) : (
             <div className="text-gray-600 leading-relaxed whitespace-pre-line">{project.materials}</div>
