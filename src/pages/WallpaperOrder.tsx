@@ -538,58 +538,7 @@ export default function WallpaperOrder() {
               </div>
             )}
 
-            {/* Custom Design Panel */}
-            {isCustomOrder && (
-              <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <Palette className="w-5 h-5 text-amber-600" />
-                  <h3 className="text-sm font-bold text-amber-900 uppercase tracking-wide">Custom Design Details</h3>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Design Style <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      required={isCustomOrder}
-                      value={formData.custom_design_style}
-                      onChange={(e) => setFormData({ ...formData, custom_design_style: e.target.value })}
-                      className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
-                    >
-                      <option value="">Select preferred style...</option>
-                      {["Geometric", "Nature", "Luxury", "Modern", "Floral", "Industrial", "Texture", "Abstract", "Wood", "Zen", "Space", "Urban", "Other"].map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Color Preferences
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.custom_color_preferences}
-                      onChange={(e) => setFormData({ ...formData, custom_color_preferences: e.target.value })}
-                      placeholder="e.g., Earthy tones, Dark navy & gold, Soft pastels..."
-                      className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Describe Your Design <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      required={isCustomOrder}
-                      rows={4}
-                      value={formData.custom_design_description}
-                      onChange={(e) => setFormData({ ...formData, custom_design_description: e.target.value })}
-                      placeholder="Describe what you want — mood, patterns, textures, inspiration, any specific elements you have in mind..."
-                      className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Custom Design Panel removed — reference images below serve as the sole requirement */}
 
             <form onSubmit={handleProceedToPayment} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -782,11 +731,13 @@ export default function WallpaperOrder() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Reference Images (Pinterest/Shutterstock URLs)
+                  {isCustomOrder && <span className="text-red-500 ml-1">*</span>}
                 </label>
                 {formData.reference_images.map((img, index) => (
                   <div key={index} className="flex gap-2 mb-2">
                     <input
                       type="url"
+                      required={isCustomOrder && index === 0}
                       value={img}
                       onChange={(e) => updateReferenceImage(index, e.target.value)}
                       placeholder="https://pinterest.com/... or https://shutterstock.com/..."
