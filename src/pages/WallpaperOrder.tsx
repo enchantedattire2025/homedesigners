@@ -681,7 +681,7 @@ export default function WallpaperOrder() {
                     />
                     <div>
                       <div className="font-semibold text-gray-900">Normal 3D Wallpaper</div>
-                      <div className="text-sm text-gray-600">Rs.180 per sq ft (with installation)</div>
+                      <div className="text-sm text-gray-600">Rs.160 per sq ft (with installation)</div>
                     </div>
                   </label>
 
@@ -696,7 +696,7 @@ export default function WallpaperOrder() {
                     />
                     <div>
                       <div className="font-semibold text-gray-900">Golden/Silver Foil 3D Wallpaper</div>
-                      <div className="text-sm text-gray-600">Rs.260 per sq ft (with installation)</div>
+                      <div className="text-sm text-gray-600">Rs.220 per sq ft (with installation)</div>
                     </div>
                   </label>
                 </div>
