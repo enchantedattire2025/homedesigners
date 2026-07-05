@@ -704,209 +704,63 @@ const ProjectDetail = () => {
             )}
           </div>
         </div>
-
-       {/* Materials & Cost Breakdown */}
-
-<div className="bg-white rounded-2xl shadow-xl border border-gray-100 mt-8 overflow-hidden">
-
-    {/* Header */}
-
-    <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-5">
-
-        <h2 className="text-2xl font-bold text-white">
-            📦 Materials & Cost Breakdown
-        </h2>
-
-        <p className="text-orange-100 mt-1">
-            Complete Material Billing Summary
-        </p>
-
+{/* Materials & Cost Breakdown Section */}
+<div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mt-8">
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-5 mb-6 gap-2">
+    <div>
+      <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Materials & Cost Breakdown</h2>
+      <p className="text-sm text-slate-500 mt-1">Itemized transparent pricing for project execution</p>
     </div>
-
-    {Array.isArray(project.materials) ? (
-
-        <>
-
-            {/* Summary */}
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 p-6">
-
-                <div className="bg-orange-50 rounded-xl p-5 border">
-
-                    <p className="text-gray-500">
-                        Total Materials
-                    </p>
-
-                    <h2 className="text-3xl font-bold text-orange-600">
-                        {project.materials.length}
-                    </h2>
-
-                </div>
-
-                <div className="bg-blue-50 rounded-xl p-5 border">
-
-                    <p className="text-gray-500">
-                        Material Cost
-                    </p>
-
-                    <h2 className="text-2xl font-bold text-blue-600">
-
-                        ₹
-                        {project.materials
-                            .reduce((sum, item) => sum + Number(item.cost), 0)
-                            .toLocaleString("en-IN")}
-
-                    </h2>
-
-                </div>
-
-                <div className="bg-green-50 rounded-xl p-5 border">
-
-                    <p className="text-gray-500">
-                        Project Budget
-                    </p>
-
-                    <h2 className="text-2xl font-bold text-green-600">
-                        {project.budget}
-                    </h2>
-
-                </div>
-
-            </div>
-
-            <div className="overflow-x-auto">
-
-                <table className="min-w-full">
-
-                    <thead className="bg-gray-100">
-
-                        <tr>
-
-                            <th className="px-5 py-4 text-left font-semibold">
-                                Sr.
-                            </th>
-
-                            <th className="px-5 py-4 text-left font-semibold">
-                                Material
-                            </th>
-
-                            <th className="px-5 py-4 text-left font-semibold">
-                                Category
-                            </th>
-
-                            <th className="px-5 py-4 text-center font-semibold">
-                                Qty
-                            </th>
-
-                            <th className="px-5 py-4 text-center font-semibold">
-                                Unit
-                            </th>
-
-                            <th className="px-5 py-4 text-right font-semibold">
-                                Rate
-                            </th>
-
-                            <th className="px-5 py-4 text-right font-semibold">
-                                Amount
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        {project.materials.map((item, index) => (
-
-                            <tr
-                                key={index}
-                                className="border-b hover:bg-orange-50 transition-all duration-200"
-                            >
-
-                                <td className="px-5 py-4">
-                                    {index + 1}
-                                </td>
-
-                                <td className="px-5 py-4 font-semibold text-gray-800">
-                                    {item.name}
-                                </td>
-
-                                <td className="px-5 py-4">
-                                    <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm">
-                                        {item.category}
-                                    </span>
-                                </td>
-
-                                <td className="px-5 py-4 text-center">
-                                    {item.quantity}
-                                </td>
-
-                                <td className="px-5 py-4 text-center">
-                                    {item.unit}
-                                </td>
-
-                                <td className="px-5 py-4 text-right">
-                                    ₹
-                                    {Number(item.rate).toLocaleString("en-IN")}
-                                </td>
-
-                                <td className="px-5 py-4 text-right font-bold text-orange-600">
-
-                                    ₹
-                                    {Number(item.cost).toLocaleString("en-IN")}
-
-                                </td>
-
-                            </tr>
-
-                        ))}
-
-                    </tbody>
-
-                    <tfoot>
-
-                        <tr className="bg-gray-50">
-
-                            <td
-                                colSpan="6"
-                                className="px-5 py-5 text-right font-bold text-lg"
-                            >
-                                Total Material Cost
-                            </td>
-
-                            <td className="px-5 py-5 text-right text-xl font-bold text-green-600">
-
-                                ₹
-                                {project.materials
-                                    .reduce(
-                                        (sum, item) =>
-                                            sum + Number(item.cost),
-                                        0
-                                    )
-                                    .toLocaleString("en-IN")}
-
-                            </td>
-
-                        </tr>
-
-                    </tfoot>
-
-                </table>
-
-            </div>
-
-        </>
-
-    ) : (
-
-        <div className="p-6 text-gray-600 whitespace-pre-line">
-
-            {project.materials}
-
-        </div>
-
-    )}
-
+    <span className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 w-fit">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified Costs
+    </span>
+  </div>
+
+  {Array.isArray(project.materials) && project.materials.length > 0 ? (
+    <div className="overflow-x-auto -mx-8 px-8">
+      <table className="w-full min-w-[600px] border-collapse text-left">
+        <thead>
+          <tr className="bg-slate-50/70 border-y border-slate-100">
+            <th className="py-3.5 px-4 font-semibold text-slate-700 text-sm tracking-wide">Material / Work Category</th>
+            <th className="py-3.5 px-4 font-semibold text-slate-700 text-sm tracking-wide">Description & Scope</th>
+            <th className="py-3.5 px-4 font-semibold text-slate-700 text-sm tracking-wide text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {project.materials.map((material, index) => (
+            <tr key={index} className="hover:bg-slate-50/50 transition-colors group">
+              <td className="py-4 px-4 text-sm font-medium text-slate-900 group-hover:text-primary-600 transition-colors">
+                {material.name}
+              </td>
+              <td className="py-4 px-4 text-sm text-slate-600 max-w-md break-words">
+                {material.usage || "N/A"}
+              </td>
+              <td className="py-4 px-4 text-sm font-semibold text-slate-900 text-right font-mono">
+                {material.cost}
+              </td>
+            </tr>
+          ))}
+          
+          {/* Summary Row */}
+          <tr className="bg-slate-50/40 border-t-2 border-slate-200">
+            <td colSpan="2" className="py-5 px-4 text-base font-semibold text-slate-800 text-right">
+              Total Project Estimated Budget
+            </td>
+            <td className="py-5 px-4 text-right">
+              <span className="text-xl font-bold text-slate-900 font-mono bg-amber-50 border border-amber-200/60 px-3 py-1.5 rounded-xl shadow-xs">
+                {project.budget || "₹0"}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    /* Quick Text Fallback (with a clean UI state) if data format isn't updated yet */
+    <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 text-sm text-slate-700 whitespace-pre-line leading-relaxed font-mono">
+      {project.materials}
+    </div>
+  )}
 </div>
         {/* CTA */}
         <div className="bg-gradient-to-r from-primary-500 to-secondary-600 rounded-xl p-8 mt-8 text-center">
