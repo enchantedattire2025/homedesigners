@@ -705,41 +705,209 @@ const ProjectDetail = () => {
           </div>
         </div>
 
-        {/* Materials Used */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
-          <h2 className="text-2xl font-bold text-secondary-800 mb-6">Materials & Cost Breakdown</h2>
+       {/* Materials & Cost Breakdown */}
 
-          {Array.isArray(project.materials) ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Material</th>
-                    <th className="text-left py-3 px-4 font-semibold text-secondary-800">Usage</th>
-                    <th className="text-right py-3 px-4 font-semibold text-secondary-800">Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {project.materials.map((material, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-secondary-800">{material.name}</td>
-                      <td className="py-3 px-4 text-gray-600">{material.usage}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-primary-600">{material.cost}</td>
-                    </tr>
-                  ))}
-                  <tr className="border-t-2 border-primary-200 bg-primary-50">
-                    <td className="py-3 px-4 font-bold text-secondary-800">Total Project Cost</td>
-                    <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4 text-right font-bold text-primary-600 text-lg">{project.budget}</td>
-                  </tr>
-                </tbody>
-              </table>
+<div className="bg-white rounded-2xl shadow-xl border border-gray-100 mt-8 overflow-hidden">
+
+    {/* Header */}
+
+    <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-5">
+
+        <h2 className="text-2xl font-bold text-white">
+            📦 Materials & Cost Breakdown
+        </h2>
+
+        <p className="text-orange-100 mt-1">
+            Complete Material Billing Summary
+        </p>
+
+    </div>
+
+    {Array.isArray(project.materials) ? (
+
+        <>
+
+            {/* Summary */}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 p-6">
+
+                <div className="bg-orange-50 rounded-xl p-5 border">
+
+                    <p className="text-gray-500">
+                        Total Materials
+                    </p>
+
+                    <h2 className="text-3xl font-bold text-orange-600">
+                        {project.materials.length}
+                    </h2>
+
+                </div>
+
+                <div className="bg-blue-50 rounded-xl p-5 border">
+
+                    <p className="text-gray-500">
+                        Material Cost
+                    </p>
+
+                    <h2 className="text-2xl font-bold text-blue-600">
+
+                        ₹
+                        {project.materials
+                            .reduce((sum, item) => sum + Number(item.cost), 0)
+                            .toLocaleString("en-IN")}
+
+                    </h2>
+
+                </div>
+
+                <div className="bg-green-50 rounded-xl p-5 border">
+
+                    <p className="text-gray-500">
+                        Project Budget
+                    </p>
+
+                    <h2 className="text-2xl font-bold text-green-600">
+                        {project.budget}
+                    </h2>
+
+                </div>
+
             </div>
-          ) : (
-            <div className="text-gray-600 leading-relaxed whitespace-pre-line">{project.materials}</div>
-          )}
+
+            <div className="overflow-x-auto">
+
+                <table className="min-w-full">
+
+                    <thead className="bg-gray-100">
+
+                        <tr>
+
+                            <th className="px-5 py-4 text-left font-semibold">
+                                Sr.
+                            </th>
+
+                            <th className="px-5 py-4 text-left font-semibold">
+                                Material
+                            </th>
+
+                            <th className="px-5 py-4 text-left font-semibold">
+                                Category
+                            </th>
+
+                            <th className="px-5 py-4 text-center font-semibold">
+                                Qty
+                            </th>
+
+                            <th className="px-5 py-4 text-center font-semibold">
+                                Unit
+                            </th>
+
+                            <th className="px-5 py-4 text-right font-semibold">
+                                Rate
+                            </th>
+
+                            <th className="px-5 py-4 text-right font-semibold">
+                                Amount
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {project.materials.map((item, index) => (
+
+                            <tr
+                                key={index}
+                                className="border-b hover:bg-orange-50 transition-all duration-200"
+                            >
+
+                                <td className="px-5 py-4">
+                                    {index + 1}
+                                </td>
+
+                                <td className="px-5 py-4 font-semibold text-gray-800">
+                                    {item.name}
+                                </td>
+
+                                <td className="px-5 py-4">
+                                    <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm">
+                                        {item.category}
+                                    </span>
+                                </td>
+
+                                <td className="px-5 py-4 text-center">
+                                    {item.quantity}
+                                </td>
+
+                                <td className="px-5 py-4 text-center">
+                                    {item.unit}
+                                </td>
+
+                                <td className="px-5 py-4 text-right">
+                                    ₹
+                                    {Number(item.rate).toLocaleString("en-IN")}
+                                </td>
+
+                                <td className="px-5 py-4 text-right font-bold text-orange-600">
+
+                                    ₹
+                                    {Number(item.cost).toLocaleString("en-IN")}
+
+                                </td>
+
+                            </tr>
+
+                        ))}
+
+                    </tbody>
+
+                    <tfoot>
+
+                        <tr className="bg-gray-50">
+
+                            <td
+                                colSpan="6"
+                                className="px-5 py-5 text-right font-bold text-lg"
+                            >
+                                Total Material Cost
+                            </td>
+
+                            <td className="px-5 py-5 text-right text-xl font-bold text-green-600">
+
+                                ₹
+                                {project.materials
+                                    .reduce(
+                                        (sum, item) =>
+                                            sum + Number(item.cost),
+                                        0
+                                    )
+                                    .toLocaleString("en-IN")}
+
+                            </td>
+
+                        </tr>
+
+                    </tfoot>
+
+                </table>
+
+            </div>
+
+        </>
+
+    ) : (
+
+        <div className="p-6 text-gray-600 whitespace-pre-line">
+
+            {project.materials}
+
         </div>
 
+    )}
+
+</div>
         {/* CTA */}
         <div className="bg-gradient-to-r from-primary-500 to-secondary-600 rounded-xl p-8 mt-8 text-center">
           <h2 className="text-2xl font-bold text-white mb-4">
