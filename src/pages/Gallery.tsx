@@ -8,7 +8,6 @@ interface DesignerCard {
   id: string;
   name: string;
   location: string;
-  city: string;
   profile_image: string | null;
   instagram_url: string;
   rating: number | null;
@@ -31,7 +30,7 @@ const Gallery = () => {
       setError(null);
       const { data, error: fetchError } = await supabase
         .from('designers')
-        .select('id, name, location, city, profile_image, instagram_url, rating, specialization')
+        .select('id, name, location, profile_image, instagram_url, rating, specialization')
         .not('instagram_url', 'is', null)
         .neq('instagram_url', '')
         .eq('verification_status', 'verified')
@@ -52,7 +51,6 @@ const Gallery = () => {
     const q = searchQuery.toLowerCase();
     return (
       d.name.toLowerCase().includes(q) ||
-      (d.city && d.city.toLowerCase().includes(q)) ||
       (d.location && d.location.toLowerCase().includes(q)) ||
       (d.specialization && d.specialization.toLowerCase().includes(q))
     );
@@ -197,10 +195,10 @@ const Gallery = () => {
                     <p className="text-xs font-semibold text-gray-800 truncate leading-tight">
                       {designer.name}
                     </p>
-                    {(designer.city || designer.location) && (
+                    {designer.location && (
                       <p className="text-xs text-gray-400 truncate flex items-center justify-center gap-0.5 mt-0.5">
                         <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                        <span>{designer.city || designer.location}</span>
+                        <span>{designer.location}</span>
                       </p>
                     )}
                   </div>
