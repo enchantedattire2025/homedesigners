@@ -704,7 +704,7 @@ export default function WallpaperOrder() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reference Images (Pinterest/Shutterstock URLs)
+                  Reference Image (Pinterest/Shutterstock URLs)
                   {isCustomOrder && <span className="text-red-500 ml-1">*</span>}
                 </label>
                 {formData.reference_images.map((img, index) => (
