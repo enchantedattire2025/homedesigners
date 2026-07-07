@@ -229,12 +229,12 @@ export default function WallpaperOrder() {
     }
   };
 
-  const addReferenceImageField = () => {
+ /* const addReferenceImageField = () => {
     setFormData(prev => ({
       ...prev,
       reference_images: [...prev.reference_images, '']
     }));
-  };
+  };*/
 
   const updateReferenceImage = (index: number, value: string) => {
     setFormData(prev => ({
@@ -728,13 +728,7 @@ export default function WallpaperOrder() {
                     )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={addReferenceImageField}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  + Add Another Reference Image
-                </button>
+               
               </div>
 
               <div>
