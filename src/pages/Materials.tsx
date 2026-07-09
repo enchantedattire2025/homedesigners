@@ -325,9 +325,12 @@ const Materials = () => {
 
   const filteredMaterials = materials.filter(material => {
     const matchesCategory = selectedCategory === 'All' || material.category === selectedCategory;
-    const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         material.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         material.applications.some(app => app.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = !searchTerm ||
+      material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.applications.some(app => app.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      material.brands.some(brand => brand.name.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -419,7 +422,7 @@ const Materials = () => {
                 </div>
                 {material.ecoFriendly && (
                   <div className="absolute top-4 right-4">
-                    <div className="bg-green-500 text-white p-2 rounded-full">
+                    <div className="bg-green-500 text-white p-2 rounded-full" title="Eco-Friendly">
                       <Layers className="w-4 h-4" />
                     </div>
                   </div>
@@ -459,6 +462,15 @@ const Materials = () => {
                       'bg-red-100 text-red-800'
                     }`}>
                       {material.maintenance}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Eco-Friendly:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      material.ecoFriendly ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {material.ecoFriendly ? 'Yes' : 'No'}
                     </span>
                   </div>
 

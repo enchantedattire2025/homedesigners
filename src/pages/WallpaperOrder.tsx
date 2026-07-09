@@ -229,12 +229,18 @@ export default function WallpaperOrder() {
     }
   };
 
- /* const addReferenceImageField = () => {
+  const addReferenceImageField = () => {
+    // Only allow adding a new field if all existing ones are filled
+    const hasEmpty = formData.reference_images.some(img => img.trim() === '');
+    if (hasEmpty) {
+      alert('Please fill in the existing reference image URL before adding another');
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       reference_images: [...prev.reference_images, '']
     }));
-  };*/
+  };
 
   const updateReferenceImage = (index: number, value: string) => {
     setFormData(prev => ({
@@ -260,11 +266,15 @@ export default function WallpaperOrder() {
       setPhoneError('Phone number must be exactly 10 digits');
       return false;
     }
+    if (/^0+$/.test(cleaned)) {
+      setPhoneError('Please enter a valid phone number');
+      return false;
+    }
     setPhoneError('');
     return true;
   };
 
-  const validatePincode = (pincode: string) => {
+  const validatePincode = (pincode: string, city?: string) => {
     const cleaned = pincode.replace(/\s/g, '');
     if (!/^\d+$/.test(cleaned)) {
       setPincodeError('Pincode must contain only numbers');
@@ -276,6 +286,18 @@ export default function WallpaperOrder() {
     }
     if (!validPincodes.includes(cleaned)) {
       setPincodeError('Service available only in Pune (411001-411060) and Mumbai (400001-400104)');
+      return false;
+    }
+    // Validate that pincode matches selected city
+    const selectedCity = city || formData.customer_city;
+    const isPunePin = parseInt(cleaned) >= 411001 && parseInt(cleaned) <= 411061;
+    const isMumbaiPin = parseInt(cleaned) >= 400001 && parseInt(cleaned) <= 400104;
+    if (selectedCity.toLowerCase() === 'pune' && !isPunePin) {
+      setPincodeError('This pincode does not belong to Pune. Please enter a valid Pune pincode (411001-411060)');
+      return false;
+    }
+    if (selectedCity.toLowerCase() === 'mumbai' && !isMumbaiPin) {
+      setPincodeError('This pincode does not belong to Mumbai. Please enter a valid Mumbai pincode (400001-400104)');
       return false;
     }
     setPincodeError('');
@@ -317,6 +339,12 @@ export default function WallpaperOrder() {
     const cityLower = formData.customer_city.toLowerCase();
     if (cityLower !== 'pune' && cityLower !== 'mumbai') {
       alert('Service is currently available only in Pune and Mumbai, Maharashtra');
+      return;
+    }
+
+    // Validate pincode matches selected city
+    if (!validatePincode(formData.customer_pincode)) {
+      alert('Please enter a valid pincode matching your selected city');
       return;
     }
 
@@ -573,7 +601,11 @@ export default function WallpaperOrder() {
                   <select
                     required
                     value={formData.customer_city}
-                    onChange={(e) => setFormData({ ...formData, customer_city: e.target.value })}
+                    onChange={(e) => {
+                      const newCity = e.target.value;
+                      setFormData({ ...formData, customer_city: newCity });
+                      if (formData.customer_pincode) validatePincode(formData.customer_pincode, newCity);
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="Pune">Pune</option>
@@ -728,7 +760,13 @@ export default function WallpaperOrder() {
                     )}
                   </div>
                 ))}
-               
+                <button
+                  type="button"
+                  onClick={addReferenceImageField}
+                  className="mt-1 text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                >
+                  + Add Another Reference Image
+                </button>
               </div>
 
               <div>

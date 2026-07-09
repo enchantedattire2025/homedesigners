@@ -423,7 +423,24 @@ const Projects = () => {
   const filteredProjects = projects.filter(project => {
     const matchesCategory = !selectedCategory || project.category === selectedCategory;
     const matchesBudget = !selectedBudget || (() => {
-      const budgetValue = parseInt(project.budget.replace(/[₹,]/g, ''));
+      const budgetStr = project.budget || '';
+      // Try to extract numeric value - handle both "₹13,004.78" and "₹15-20 Lakhs" formats
+      let budgetValue = 0;
+      if (budgetStr.toLowerCase().includes('lakh') || budgetStr.toLowerCase().includes('l')) {
+        // Handle lakh-based strings like "₹15-20 Lakhs", "₹8-12 Lakhs", "Above ₹50 Lakhs"
+        const nums = budgetStr.match(/[\d.]+/g);
+        if (nums && nums.length > 0) {
+          // Use the average of range, or single value
+          const avg = nums.length > 1
+            ? (parseFloat(nums[0]) + parseFloat(nums[1])) / 2
+            : parseFloat(nums[0]);
+          budgetValue = avg * 100000; // Convert lakhs to rupees
+        }
+      } else {
+        // Handle plain rupee values like "₹13,004.78"
+        budgetValue = parseFloat(budgetStr.replace(/[₹,\s]/g, '')) || 0;
+      }
+
       switch (selectedBudget) {
         case 'Under ₹5L':
           return budgetValue < 500000;
@@ -444,6 +461,7 @@ const Projects = () => {
       project.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
       project.materials.some((material: string) => material.toLowerCase().includes(searchQuery.toLowerCase()))
     );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, MapPin, IndianRupee as Rupee, Clock, Edit, Eye, Trash2, AlertCircle, Send, Activity, Compass, FileText, CheckCircle, MessageSquare } from 'lucide-react';
+import { Plus, Calendar, MapPin, IndianRupee as Rupee, Clock, CreditCard as Edit, Eye, Trash2, AlertCircle, Send, Activity, Compass, FileText, CheckCircle, MessageSquare } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import type { Customer } from '../lib/supabase';
@@ -137,8 +137,8 @@ const MyProjects = () => {
 
       if (error) throw error;
 
-      // Remove from local state
-      setProjects(prev => prev.filter(p => p.id !== projectId));
+      // Re-fetch from DB to ensure state matches actual DB state
+      await fetchProjects();
     } catch (error: any) {
       console.error('Error deleting project:', error);
       alert('Failed to delete project: ' + error.message);

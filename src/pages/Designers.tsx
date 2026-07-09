@@ -54,20 +54,20 @@ const Designers = () => {
       designer.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
       designer.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // City filter
-    const matchesCity = !selectedCity || designer.location === selectedCity;
+    // City filter - use includes to handle "Pune, Maharashtra" etc.
+    const matchesCity = !selectedCity || designer.location.toLowerCase().includes(selectedCity.toLowerCase());
 
     // Specialization filter
     const matchesSpecialization = !selectedSpecialization || designer.specialization === selectedSpecialization;
 
-    // Experience filter - fixed logic
+    // Experience filter
     const matchesExperience = !selectedExperience || (() => {
       const experience = designer.experience;
       switch (selectedExperience) {
         case '0-5 years':
           return experience >= 0 && experience <= 5;
         case '5-10 years':
-          return experience > 5 && experience <= 10;
+          return experience >= 5 && experience <= 10;
         case '10+ years':
           return experience > 10;
         default:
@@ -226,54 +226,39 @@ const Designers = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredDesigners.map((designer) => (
-                  <div key={designer.id} className="card overflow-hidden">
-                    <div className="flex">
-                      <div className="w-1/3">
+                  <div key={designer.id} className="card overflow-hidden flex flex-col">
+                    <div className="flex flex-1">
+                      <div className="w-1/3 flex-shrink-0">
                         <img
                           src={designer.profile_image || 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=400'}
                           alt={`${designer.name}'s profile`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover min-h-[200px]"
                         />
                       </div>
-                      <div className="w-2/3 p-6">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            {designer.profile_image ? (
-                              <img
-                                src={designer.profile_image}
-                                alt={designer.name}
-                                className="w-12 h-12 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 bg-primary-500 rounded-full flex items-center justify-center">
-                                <span className="text-white font-semibold">
-                                  {designer.name.charAt(0)}
-                                </span>
-                              </div>
-                            )}
-                            <div>
-                              <h3 className="text-lg font-semibold text-secondary-800">
-                                {designer.name}
-                              </h3>
-                              <p className="text-primary-600 font-medium text-sm">
-                                {designer.specialization}
-                              </p>
-                            </div>
+                      <div className="w-2/3 p-4 flex flex-col">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0 mr-2">
+                            <h3 className="text-base font-semibold text-secondary-800 truncate">
+                              {designer.name}
+                            </h3>
+                            <p className="text-primary-600 font-medium text-xs">
+                              {designer.specialization}
+                            </p>
                           </div>
-                          <div className="flex flex-col items-end gap-1">
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
                             {designer.is_verified && (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                              <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap">
                                 Verified
                               </span>
                             )}
                             {designer.business_type === 'google_location' && (
-                              <span className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full text-xs font-medium">
+                              <span className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap">
                                 <Building2 className="w-3 h-3" />
-                                Physical Studio
+                                Physical
                               </span>
                             )}
                             {designer.business_type === 'virtual' && (
-                              <span className="flex items-center gap-1 bg-teal-50 text-teal-700 border border-teal-200 px-2 py-1 rounded-full text-xs font-medium">
+                              <span className="flex items-center gap-1 bg-teal-50 text-teal-700 border border-teal-200 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap">
                                 <Wifi className="w-3 h-3" />
                                 Virtual
                               </span>
@@ -281,13 +266,13 @@ const Designers = () => {
                           </div>
                         </div>
 
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                        <p className="text-gray-600 text-xs mb-3 line-clamp-2">
                           {designer.bio || 'Professional interior designer with expertise in creating beautiful spaces.'}
                         </p>
 
-                        <div className="flex items-center space-x-4 mb-4 text-sm text-gray-600">
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-xs text-gray-600">
                           <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
+                            <MapPin className="w-3 h-3 flex-shrink-0" />
                             {designer.business_type === 'google_location' && designer.google_location_url ? (
                               <a
                                 href={designer.google_location_url.startsWith('http') ? designer.google_location_url : `https://maps.google.com/?q=${encodeURIComponent(designer.google_location_url)}`}
@@ -302,19 +287,17 @@ const Designers = () => {
                               <span>{designer.location}</span>
                             )}
                           </div>
-                          <span>•</span>
-                          <span>{designer.experience} years exp</span>
-                          <span>•</span>
+                          <span>{designer.experience} yrs exp</span>
                           <span>{designer.total_projects} projects</span>
                         </div>
 
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-1">
                             <div className="flex items-center">
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-4 h-4 ${
+                                  className={`w-3 h-3 ${
                                     i < Math.floor(designer.rating)
                                       ? 'text-yellow-400 fill-current'
                                       : 'text-gray-300'
@@ -322,12 +305,12 @@ const Designers = () => {
                                 />
                               ))}
                             </div>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-xs text-gray-600">
                               {designer.rating.toFixed(1)} ({designer.total_reviews})
                             </span>
                           </div>
                           {designer.starting_price && (
-                            <div className="text-lg font-semibold text-secondary-800">
+                            <div className="text-sm font-semibold text-secondary-800">
                               {designer.starting_price}
                             </div>
                           )}
@@ -335,7 +318,7 @@ const Designers = () => {
 
                         <Link
                           to={`/designers/${designer.id}`}
-                          className="block w-full bg-primary-500 hover:bg-primary-600 text-white text-center py-2 rounded-lg font-medium transition-colors"
+                          className="block w-full bg-primary-500 hover:bg-primary-600 text-white text-center py-2 rounded-lg text-sm font-medium transition-colors mt-auto"
                         >
                           View Profile
                         </Link>

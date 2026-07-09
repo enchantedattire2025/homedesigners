@@ -244,6 +244,10 @@ const EditProject = () => {
       setError('Name is required');
       return false;
     }
+    if (/^\d+$/.test(formData.name.trim())) {
+      setError('Please enter a valid name (cannot be all numbers)');
+      return false;
+    }
     if (!formData.email.trim()) {
       setError('Email is required');
       return false;
@@ -349,9 +353,10 @@ const EditProject = () => {
       if (error) throw error;
 
       setSuccess('Project updated successfully!');
-      
+
       // Navigate back to appropriate page after a short delay
       setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         if (isDesigner) {
           navigate('/customer-projects');
         } else {
@@ -792,7 +797,7 @@ const EditProject = () => {
             )}
 
             {/* Project Schedule & Discount (Customer View) */}
-            {!isDesigner && project && (project.work_begin_date || project.work_end_date || (project.per_day_discount && project.per_day_discount > 0)) && (
+            {!isDesigner && project && (project.work_begin_date || project.work_end_date || (project.per_day_discount !== null && project.per_day_discount !== undefined && Number(project.per_day_discount) > 0)) && (
               <div className="bg-green-50 rounded-lg p-6 border border-green-200">
                 <h2 className="text-xl font-semibold text-secondary-800 mb-2">Project Schedule & Pricing</h2>
                 <p className="text-sm text-green-700 mb-4">
@@ -829,7 +834,7 @@ const EditProject = () => {
                     </div>
                   )}
 
-                  {project.per_day_discount && project.per_day_discount > 0 && (
+                  {project.per_day_discount !== null && project.per_day_discount !== undefined && Number(project.per_day_discount) > 0 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Per Day Discount
