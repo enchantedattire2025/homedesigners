@@ -124,7 +124,9 @@ const MyProjects = () => {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    if (!confirm(
+      'Warning: Deleting this project will lose the sync of the project — all assigned designer details, quotes, activity history, and design data linked to it will be permanently removed.\n\nThis action cannot be undone. Are you sure you want to delete this project?'
+    )) {
       return;
     }
 
