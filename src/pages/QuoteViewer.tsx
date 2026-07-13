@@ -25,6 +25,13 @@ interface QuoteItem {
   depth?: number;
   length?: number;
   breadth?: number;
+  number_of_units?: number;
+  section?: string;
+  width_unit?: string;
+  height_unit?: string;
+  depth_unit?: string;
+  area_sqft?: number;
+  per_sqft_rate?: number;
 }
 
 interface Quote {
@@ -317,21 +324,50 @@ const QuoteViewer = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {quote.items.map((item, index) => (
-                    <tr key={item.id} className="border-b border-gray-100">
-                      <td className="py-3 px-4 font-medium text-gray-800">{item.name}</td>
-                      <td className="py-3 px-4 text-gray-600 text-sm">{item.description || '-'}</td>
-                      <td className="py-3 px-4 text-right text-gray-800">{item.number_of_units || 1}</td>
-                      <td className="py-3 px-4 text-right text-gray-800">{item.quantity}</td>
-                      <td className="py-3 px-4 text-right text-gray-600">{item.unit}</td>
-                      <td className="py-3 px-4 text-right text-gray-600">{(item.width ?? item.length) ? (item.width ?? item.length) : '-'}</td>
-                      <td className="py-3 px-4 text-right text-gray-600">{(item.height ?? item.breadth) ? (item.height ?? item.breadth) : '-'}</td>
-                      <td className="py-3 px-4 text-right text-gray-600">{item.depth ? item.depth : '-'}</td>
-                      <td className="py-3 px-4 text-right text-gray-800">{formatCurrency(item.unit_price)}</td>
-                      <td className="py-3 px-4 text-right text-gray-600">{item.discount_percent}%</td>
-                      <td className="py-3 px-4 text-right font-medium text-gray-800">{formatCurrency(item.amount)}</td>
-                    </tr>
-                  ))}
+                  {quote.items.filter(i => i.section !== 'modular').length > 0 && (
+                    <>
+                      <tr className="bg-primary-50">
+                        <td colSpan={11} className="py-2 px-4 font-semibold text-primary-700 text-sm border-b">On-Site Work</td>
+                      </tr>
+                      {quote.items.filter(i => i.section !== 'modular').map((item) => (
+                        <tr key={item.id} className="border-b border-gray-100">
+                          <td className="py-3 px-4 font-medium text-gray-800">{item.name}</td>
+                          <td className="py-3 px-4 text-gray-600 text-sm">{item.description || '-'}</td>
+                          <td className="py-3 px-4 text-right text-gray-800">{item.number_of_units || 1}</td>
+                          <td className="py-3 px-4 text-right text-gray-800">{item.quantity}</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{item.unit}</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{(item.width ?? item.length) ? (item.width ?? item.length) : '-'}</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{(item.height ?? item.breadth) ? (item.height ?? item.breadth) : '-'}</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{item.depth ? item.depth : '-'}</td>
+                          <td className="py-3 px-4 text-right text-gray-800">{formatCurrency(item.unit_price)}</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{item.discount_percent}%</td>
+                          <td className="py-3 px-4 text-right font-medium text-gray-800">{formatCurrency(item.amount)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+                  {quote.items.filter(i => i.section === 'modular').length > 0 && (
+                    <>
+                      <tr className="bg-primary-50">
+                        <td colSpan={11} className="py-2 px-4 font-semibold text-primary-700 text-sm border-b">Modular Work</td>
+                      </tr>
+                      {quote.items.filter(i => i.section === 'modular').map((item) => (
+                        <tr key={item.id} className="border-b border-gray-100">
+                          <td className="py-3 px-4 font-medium text-gray-800">{item.name}</td>
+                          <td className="py-3 px-4 text-gray-600 text-sm">{item.description || '-'}</td>
+                          <td className="py-3 px-4 text-right text-gray-800">{item.number_of_units || 1}</td>
+                          <td className="py-3 px-4 text-right text-gray-800">{item.area_sqft ?? 0} sq ft</td>
+                          <td className="py-3 px-4 text-right text-gray-600">sq.ft</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{item.width ? `${item.width} ${item.width_unit || ''}` : '-'}</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{item.height ? `${item.height} ${item.height_unit || ''}` : '-'}</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{item.depth ? `${item.depth} ${item.depth_unit || ''}` : '-'}</td>
+                          <td className="py-3 px-4 text-right text-gray-800">{formatCurrency(item.per_sqft_rate ?? item.unit_price)}/sq ft</td>
+                          <td className="py-3 px-4 text-right text-gray-600">{item.discount_percent}%</td>
+                          <td className="py-3 px-4 text-right font-medium text-gray-800">{formatCurrency(item.amount)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>

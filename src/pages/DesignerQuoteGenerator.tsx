@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Home,
+  Layers,
   Search,
   X,
   ShoppingCart,
@@ -58,6 +59,9 @@ interface Material {
   quality_grade: string;
 }
 
+type QuoteSection = 'on_site' | 'modular';
+type DimensionUnit = 'mm' | 'inch' | 'feet';
+
 interface QuoteItem {
   id?: string;
   material_id?: string;
@@ -73,7 +77,35 @@ interface QuoteItem {
   width?: number;
   height?: number;
   depth?: number;
+  section: QuoteSection;
+  width_unit?: DimensionUnit;
+  height_unit?: DimensionUnit;
+  depth_unit?: DimensionUnit;
+  area_sqft?: number;
+  per_sqft_rate?: number;
 }
+
+const toFeet = (value: number, unit: DimensionUnit): number => {
+  if (!value || value <= 0) return 0;
+  switch (unit) {
+    case 'mm': return value / 304.8;
+    case 'inch': return value / 12;
+    case 'feet': return value;
+    default: return value;
+  }
+};
+
+const computeModularArea = (
+  width?: number,
+  widthUnit?: DimensionUnit,
+  height?: number,
+  heightUnit?: DimensionUnit
+): number => {
+  const w = toFeet(width || 0, widthUnit || 'feet');
+  const h = toFeet(height || 0, heightUnit || 'feet');
+  if (w <= 0 || h <= 0) return 0;
+  return w * h;
+};
 
 interface QuoteData {
   title: string;
@@ -175,6 +207,7 @@ const DesignerQuoteGenerator = () => {
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState<{[key: string]: number}>({});
   const [materialSearchQuery, setMaterialSearchQuery] = useState('');
+  const [modularPerSqftRate, setModularPerSqftRate] = useState<number>(0);
   const [quoteData, setQuoteData] = useState<QuoteData>({
     title: '',
     description: '',
@@ -368,13 +401,82 @@ const DesignerQuoteGenerator = () => {
       unit: 'sq.ft',
       unit_price: '' as any,
       discount_percent: 0,
-      amount: 0
+      amount: 0,
+      section: 'on_site'
     };
 
     setQuoteData(prev => ({
       ...prev,
       items: [...prev.items, newItem]
     }));
+  };
+
+  const addModularItem = () => {
+    const newItem: QuoteItem = {
+      item_type: 'other',
+      name: '',
+      description: '',
+      number_of_units: 1,
+      quantity: 1,
+      unit: 'sq.ft',
+      unit_price: modularPerSqftRate || 0,
+      discount_percent: 0,
+      amount: 0,
+      section: 'modular',
+      width: 0,
+      height: 0,
+      depth: 0,
+      width_unit: 'feet',
+      height_unit: 'feet',
+      depth_unit: 'feet',
+      area_sqft: 0,
+      per_sqft_rate: modularPerSqftRate || 0
+    };
+
+    setQuoteData(prev => ({
+      ...prev,
+      items: [...prev.items, newItem]
+    }));
+  };
+
+  const updateModularRate = (rate: number) => {
+    setModularPerSqftRate(rate);
+    setQuoteData(prev => ({
+      ...prev,
+      items: prev.items.map(item => {
+        if (item.section !== 'modular') return item;
+        return {
+          ...item,
+          per_sqft_rate: rate,
+          unit_price: rate,
+          amount: computeModularAmount(
+            item.width,
+            item.height,
+            item.number_of_units,
+            rate,
+            item.discount_percent
+          )
+        };
+      })
+    }));
+  };
+
+  const computeModularAmount = (
+    width: number | undefined,
+    height: number | undefined,
+    numberOfUnits: number | undefined,
+    rate: number,
+    discountPercent: number | undefined
+  ): number => {
+    const units = numberOfUnits || 1;
+    const area = computeModularArea(
+      width,
+      'feet' as DimensionUnit,
+      height,
+      'feet' as DimensionUnit
+    );
+    const gross = area * units * (rate || 0);
+    return gross * (1 - (discountPercent || 0) / 100);
   };
 
   const handleAddMultipleItems = () => {
@@ -459,6 +561,19 @@ const DesignerQuoteGenerator = () => {
       };
 
       const item = updatedItems[index];
+
+      if (item.section === 'modular') {
+        const fieldsRequiringRecompute = ['width', 'height', 'depth', 'width_unit', 'height_unit', 'depth_unit', 'number_of_units', 'unit_price', 'discount_percent', 'per_sqft_rate'];
+        if (fieldsRequiringRecompute.includes(field as string)) {
+          const area = computeModularArea(item.width, item.width_unit, item.height, item.height_unit);
+          item.area_sqft = parseFloat(area.toFixed(2));
+          item.quantity = parseFloat((area * (item.number_of_units || 1)).toFixed(2));
+          const rate = item.per_sqft_rate ?? item.unit_price ?? 0;
+          const gross = area * (item.number_of_units || 1) * rate;
+          item.amount = gross * (1 - (item.discount_percent || 0) / 100);
+        }
+        return { ...prev, items: updatedItems };
+      }
 
       // Check if unit is area-based (should auto-calculate quantity from width x height)
       const isAreaBasedUnit = ['sq.ft', 'sq.m', 'per meter'].includes(item.unit.toLowerCase());
@@ -574,7 +689,13 @@ const DesignerQuoteGenerator = () => {
         breadth: item.height,
         width: item.width,
         height: item.height,
-        depth: item.depth
+        depth: item.depth,
+        section: item.section,
+        width_unit: item.section === 'modular' ? item.width_unit : null,
+        height_unit: item.section === 'modular' ? item.height_unit : null,
+        depth_unit: item.section === 'modular' ? item.depth_unit : null,
+        area_sqft: item.section === 'modular' ? item.area_sqft : null,
+        per_sqft_rate: item.section === 'modular' ? item.per_sqft_rate : null
       }));
       
       const { error: itemsError } = await supabase
@@ -922,8 +1043,15 @@ const DesignerQuoteGenerator = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    {quoteData.items.map((item, index) => (
+                  <div className="space-y-8">
+                    {/* On-Site Work Section */}
+                    <div className="space-y-6">
+                      <div className="flex items-center space-x-2 border-b border-gray-200 pb-3">
+                        <Home className="w-5 h-5 text-primary-500" />
+                        <h3 className="text-lg font-semibold text-secondary-800">On-Site Work</h3>
+                        <span className="text-sm text-gray-500">(materials from material list)</span>
+                      </div>
+                    {quoteData.items.map((item, index) => item.section === 'modular' ? null : (
                       <div key={index} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="font-medium text-secondary-800">Item #{index + 1}</h3>
@@ -1291,8 +1419,227 @@ const DesignerQuoteGenerator = () => {
                       className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-500 hover:text-primary-600 hover:border-primary-500 transition-colors flex items-center justify-center space-x-2"
                     >
                       <Plus className="w-5 h-5" />
-                      <span>Add Another Item</span>
+                      <span>Add Another On-Site Item</span>
                     </button>
+                    </div>
+
+                    {/* Modular Work Section */}
+                    <div className="space-y-6">
+                      <div className="flex items-center space-x-2 border-b border-gray-200 pb-3">
+                        <Layers className="w-5 h-5 text-primary-500" />
+                        <h3 className="text-lg font-semibold text-secondary-800">Modular Work</h3>
+                        <span className="text-sm text-gray-500">(width x height x depth, priced per sq ft)</span>
+                      </div>
+
+                      <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+                        <label className="block text-sm font-medium text-secondary-800 mb-1">
+                          Rate per sq ft (applies to all modular items)
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={modularPerSqftRate || ''}
+                              onChange={(e) => updateModularRate(parseFloat(e.target.value) || 0)}
+                              placeholder="e.g. 850"
+                              className="w-40 pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                          <span className="text-sm text-gray-500">per sq ft</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Enter the per-sq-ft rate once. Each modular item's amount = area (sq ft) × units × rate × (1 - discount%).
+                          Dimensions entered in mm, inch, or feet are auto-converted to feet for area calculation.
+                        </p>
+                      </div>
+
+                      {quoteData.items.filter(i => i.section === 'modular').length === 0 && (
+                        <div className="text-center py-6 bg-gray-50 rounded-lg">
+                          <Layers className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                          <p className="text-gray-600 mb-3">No modular items yet</p>
+                          <button
+                            onClick={addModularItem}
+                            className="btn-primary"
+                          >
+                            <Plus className="w-4 h-4 inline mr-1" />
+                            Add Modular Item
+                          </button>
+                        </div>
+                      )}
+
+                      {quoteData.items.map((item, index) => item.section !== 'modular' ? null : (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-medium text-secondary-800">Modular Item #{index + 1}</h3>
+                            <button
+                              onClick={() => removeItem(index)}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
+                              <input
+                                type="text"
+                                value={item.name}
+                                onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                                placeholder="e.g. Kitchen Lower Cabinets"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                              <input
+                                type="text"
+                                value={item.description}
+                                onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                placeholder="Optional description"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Width</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={item.width ?? ''}
+                                onChange={(e) => handleItemChange(index, 'width', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
+                                placeholder="e.g. 8"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Width Unit</label>
+                              <select
+                                value={item.width_unit || 'feet'}
+                                onChange={(e) => handleItemChange(index, 'width_unit', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              >
+                                <option value="feet">feet</option>
+                                <option value="inch">inch</option>
+                                <option value="mm">mm</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Height</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={item.height ?? ''}
+                                onChange={(e) => handleItemChange(index, 'height', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
+                                placeholder="e.g. 26"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Height Unit</label>
+                              <select
+                                value={item.height_unit || 'feet'}
+                                onChange={(e) => handleItemChange(index, 'height_unit', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              >
+                                <option value="feet">feet</option>
+                                <option value="inch">inch</option>
+                                <option value="mm">mm</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Depth</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={item.depth ?? ''}
+                                onChange={(e) => handleItemChange(index, 'depth', e.target.value === '' ? undefined : parseFloat(e.target.value) || 0)}
+                                placeholder="optional"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Depth Unit</label>
+                              <select
+                                value={item.depth_unit || 'feet'}
+                                onChange={(e) => handleItemChange(index, 'depth_unit', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              >
+                                <option value="feet">feet</option>
+                                <option value="inch">inch</option>
+                                <option value="mm">mm</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">No. of Units</label>
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={item.number_of_units}
+                                onChange={(e) => handleItemChange(index, 'number_of_units', parseFloat(e.target.value) || 1)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                value={item.discount_percent}
+                                onChange={(e) => handleItemChange(index, 'discount_percent', parseFloat(e.target.value) || 0)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-gray-50 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+                            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                              <span className="text-gray-600">
+                                Dimensions:
+                                <span className="font-medium text-gray-800 ml-1">
+                                  {item.width ?? 0} {item.width_unit} × {item.height ?? 0} {item.height_unit}
+                                  {item.depth ? ` × ${item.depth} ${item.depth_unit}` : ''}
+                                </span>
+                              </span>
+                              <span className="text-gray-600">
+                                Area: <span className="font-medium text-gray-800">{item.area_sqft ?? 0} sq ft</span>
+                              </span>
+                              <span className="text-gray-600">
+                                Rate: <span className="font-medium text-gray-800">{formatCurrency(item.per_sqft_rate ?? 0)}/sq ft</span>
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-gray-600">Amount:</span>
+                              <span className="font-semibold text-secondary-800">{formatCurrency(item.amount)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {quoteData.items.filter(i => i.section === 'modular').length > 0 && (
+                        <button
+                          onClick={addModularItem}
+                          className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-500 hover:text-primary-600 hover:border-primary-500 transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <Plus className="w-5 h-5" />
+                          <span>Add Another Modular Item</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1389,21 +1736,50 @@ const DesignerQuoteGenerator = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {quoteData.items.map((item, index) => (
-                            <tr key={index} className="border-b border-gray-100">
-                              <td className="py-3 px-4 font-medium text-secondary-800">{item.name}</td>
-                              <td className="py-3 px-4 text-gray-600">{item.description || '-'}</td>
-                              <td className="py-3 px-4 text-right">{item.number_of_units}</td>
-                              <td className="py-3 px-4 text-right">{item.quantity}</td>
-                              <td className="py-3 px-4 text-right">{item.unit}</td>
-                              <td className="py-3 px-4 text-right">{item.width ? item.width : '-'}</td>
-                              <td className="py-3 px-4 text-right">{item.height ? item.height : '-'}</td>
-                              <td className="py-3 px-4 text-right">{item.depth ? item.depth : '-'}</td>
-                              <td className="py-3 px-4 text-right">{formatCurrency(item.unit_price)}</td>
-                              <td className="py-3 px-4 text-right">{item.discount_percent}%</td>
-                              <td className="py-3 px-4 text-right font-medium">{formatCurrency(item.amount)}</td>
-                            </tr>
-                          ))}
+                          {quoteData.items.filter(i => i.section !== 'modular').length > 0 && (
+                            <>
+                              <tr className="bg-primary-50">
+                                <td colSpan={11} className="py-2 px-4 font-semibold text-primary-700 text-sm">On-Site Work</td>
+                              </tr>
+                              {quoteData.items.filter(i => i.section !== 'modular').map((item, index) => (
+                                <tr key={`os-${index}`} className="border-b border-gray-100">
+                                  <td className="py-3 px-4 font-medium text-secondary-800">{item.name}</td>
+                                  <td className="py-3 px-4 text-gray-600">{item.description || '-'}</td>
+                                  <td className="py-3 px-4 text-right">{item.number_of_units}</td>
+                                  <td className="py-3 px-4 text-right">{item.quantity}</td>
+                                  <td className="py-3 px-4 text-right">{item.unit}</td>
+                                  <td className="py-3 px-4 text-right">{item.width ? item.width : '-'}</td>
+                                  <td className="py-3 px-4 text-right">{item.height ? item.height : '-'}</td>
+                                  <td className="py-3 px-4 text-right">{item.depth ? item.depth : '-'}</td>
+                                  <td className="py-3 px-4 text-right">{formatCurrency(item.unit_price)}</td>
+                                  <td className="py-3 px-4 text-right">{item.discount_percent}%</td>
+                                  <td className="py-3 px-4 text-right font-medium">{formatCurrency(item.amount)}</td>
+                                </tr>
+                              ))}
+                            </>
+                          )}
+                          {quoteData.items.filter(i => i.section === 'modular').length > 0 && (
+                            <>
+                              <tr className="bg-primary-50">
+                                <td colSpan={11} className="py-2 px-4 font-semibold text-primary-700 text-sm">Modular Work</td>
+                              </tr>
+                              {quoteData.items.filter(i => i.section === 'modular').map((item, index) => (
+                                <tr key={`mod-${index}`} className="border-b border-gray-100">
+                                  <td className="py-3 px-4 font-medium text-secondary-800">{item.name}</td>
+                                  <td className="py-3 px-4 text-gray-600">{item.description || '-'}</td>
+                                  <td className="py-3 px-4 text-right">{item.number_of_units}</td>
+                                  <td className="py-3 px-4 text-right">{item.area_sqft ?? 0} sq ft</td>
+                                  <td className="py-3 px-4 text-right">sq.ft</td>
+                                  <td className="py-3 px-4 text-right">{item.width ? `${item.width} ${item.width_unit}` : '-'}</td>
+                                  <td className="py-3 px-4 text-right">{item.height ? `${item.height} ${item.height_unit}` : '-'}</td>
+                                  <td className="py-3 px-4 text-right">{item.depth ? `${item.depth} ${item.depth_unit}` : '-'}</td>
+                                  <td className="py-3 px-4 text-right">{formatCurrency(item.per_sqft_rate ?? item.unit_price)}/sq ft</td>
+                                  <td className="py-3 px-4 text-right">{item.discount_percent}%</td>
+                                  <td className="py-3 px-4 text-right font-medium">{formatCurrency(item.amount)}</td>
+                                </tr>
+                              ))}
+                            </>
+                          )}
                         </tbody>
                       </table>
                     </div>
