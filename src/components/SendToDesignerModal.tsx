@@ -123,6 +123,48 @@ const SendToDesignerModal: React.FC<SendToDesignerModalProps> = ({ isOpen, onClo
 
       if (updateError) throw updateError;
 
+      // Insert into project_shares so the designer's RLS policy
+      // (has_project_share_access) can see the project
+      const { error: shareError } = await supabase
+        .from('project_shares')
+        .insert({
+          project_id: project.id,
+          customer_id: user.id,
+          designer_email: selectedDesigner.email,
+          designer_id: selectedDesigner.id,
+          message: message || null,
+          status: 'shared'
+        });
+
+      if (shareError) {
+        console.error('Error creating project share record:', shareError);
+      }
+
+      // Fetch the designer's user_id to send them a notification
+      const { data: designerRecord, error: designerFetchError } = await supabase
+        .from('designers')
+        .select('user_id')
+        .eq('id', selectedDesigner.id)
+        .maybeSingle();
+
+      if (!designerFetchError && designerRecord?.user_id) {
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: designerRecord.user_id,
+            user_type: 'designer',
+            title: 'New Project Shared With You',
+            message: `A customer has shared their project "${project.project_name}" with you. Check your Shared Projects to view details and create a quote.`,
+            type: 'project_shared',
+            reference_id: project.id,
+            reference_type: 'project'
+          });
+
+        if (notifError) {
+          console.error('Error creating designer notification:', notifError);
+        }
+      }
+
       setSuccess(true);
 
       setTimeout(() => {
