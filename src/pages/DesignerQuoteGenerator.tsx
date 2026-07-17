@@ -31,6 +31,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDesignerProfile } from '../hooks/useDesignerProfile';
 import { supabase } from '../lib/supabase';
 import VoiceItemInput, { VoiceAddedItem } from '../components/VoiceItemInput';
+import ModularVoiceInput from '../components/ModularVoiceInput';
 
 interface Customer {
   id: string;
@@ -99,12 +100,15 @@ const computeModularArea = (
   width?: number,
   widthUnit?: DimensionUnit,
   height?: number,
-  heightUnit?: DimensionUnit
+  heightUnit?: DimensionUnit,
+  depth?: number,
+  depthUnit?: DimensionUnit
 ): number => {
   const w = toFeet(width || 0, widthUnit || 'feet');
   const h = toFeet(height || 0, heightUnit || 'feet');
+  const d = depth && depth > 0 ? toFeet(depth, depthUnit || 'feet') : 1;
   if (w <= 0 || h <= 0) return 0;
-  return w * h;
+  return w * h * d;
 };
 
 interface QuoteData {
@@ -208,6 +212,10 @@ const DesignerQuoteGenerator = () => {
   const [selectedMaterials, setSelectedMaterials] = useState<{[key: string]: number}>({});
   const [materialSearchQuery, setMaterialSearchQuery] = useState('');
   const [modularPerSqftRate, setModularPerSqftRate] = useState<number>(0);
+  const [quoteType, setQuoteType] = useState<'material' | 'modular'>('material');
+  const [showModularVoiceInput, setShowModularVoiceInput] = useState(false);
+
+  const MODULAR_PRESET_RATES = [1600, 1800, 2000, 2200];
   const [quoteData, setQuoteData] = useState<QuoteData>({
     title: '',
     description: '',
@@ -454,7 +462,8 @@ const DesignerQuoteGenerator = () => {
             item.height,
             item.number_of_units,
             rate,
-            item.discount_percent
+            item.discount_percent,
+            item.depth
           )
         };
       })
@@ -466,16 +475,19 @@ const DesignerQuoteGenerator = () => {
     height: number | undefined,
     numberOfUnits: number | undefined,
     rate: number,
-    discountPercent: number | undefined
+    discountPercent: number | undefined,
+    depth?: number
   ): number => {
     const units = numberOfUnits || 1;
-    const area = computeModularArea(
+    const measurement = computeModularArea(
       width,
       'feet' as DimensionUnit,
       height,
+      'feet' as DimensionUnit,
+      depth,
       'feet' as DimensionUnit
     );
-    const gross = area * units * (rate || 0);
+    const gross = measurement * units * (rate || 0);
     return gross * (1 - (discountPercent || 0) / 100);
   };
 
@@ -533,6 +545,32 @@ const DesignerQuoteGenerator = () => {
     setQuoteData(prev => ({ ...prev, items: [...prev.items, newItem] }));
   };
 
+  const handleModularVoiceAdd = (item: { name: string; width: number; height: number; depth?: number; rate: number }) => {
+    const measurement = computeModularArea(item.width, 'feet', item.height, 'feet', item.depth, 'feet');
+    const amount = measurement * item.rate;
+    const newItem: QuoteItem = {
+      item_type: 'other',
+      name: item.name,
+      description: '',
+      number_of_units: 1,
+      quantity: parseFloat(measurement.toFixed(2)),
+      unit: 'sq.ft',
+      unit_price: item.rate,
+      discount_percent: 0,
+      amount,
+      section: 'modular',
+      width: item.width,
+      height: item.height,
+      depth: item.depth || 0,
+      width_unit: 'feet',
+      height_unit: 'feet',
+      depth_unit: 'feet',
+      area_sqft: parseFloat(measurement.toFixed(2)),
+      per_sqft_rate: item.rate
+    };
+    setQuoteData(prev => ({ ...prev, items: [...prev.items, newItem] }));
+  };
+
   const handleMaterialQuantityChange = (materialId: string, quantity: number) => {    setSelectedMaterials(prev => {
       if (quantity <= 0) {
         const { [materialId]: removed, ...rest } = prev;
@@ -565,11 +603,11 @@ const DesignerQuoteGenerator = () => {
       if (item.section === 'modular') {
         const fieldsRequiringRecompute = ['width', 'height', 'depth', 'width_unit', 'height_unit', 'depth_unit', 'number_of_units', 'unit_price', 'discount_percent', 'per_sqft_rate'];
         if (fieldsRequiringRecompute.includes(field as string)) {
-          const area = computeModularArea(item.width, item.width_unit, item.height, item.height_unit);
-          item.area_sqft = parseFloat(area.toFixed(2));
-          item.quantity = parseFloat((area * (item.number_of_units || 1)).toFixed(2));
+          const measurement = computeModularArea(item.width, item.width_unit, item.height, item.height_unit, item.depth, item.depth_unit);
+          item.area_sqft = parseFloat(measurement.toFixed(2));
+          item.quantity = parseFloat((measurement * (item.number_of_units || 1)).toFixed(2));
           const rate = item.per_sqft_rate ?? item.unit_price ?? 0;
-          const gross = area * (item.number_of_units || 1) * rate;
+          const gross = measurement * (item.number_of_units || 1) * rate;
           item.amount = gross * (1 - (item.discount_percent || 0) / 100);
         }
         return { ...prev, items: updatedItems };
@@ -990,38 +1028,98 @@ const DesignerQuoteGenerator = () => {
               <div className="bg-white rounded-xl shadow-lg p-6 animate-fadeIn">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-secondary-800">Quote Items</h2>
-                  <div className="flex space-x-2">
+                  {quoteType === 'material' && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setShowAddItemsModal(true)}
+                        className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Multiple Items</span>
+                      </button>
+                      <button
+                        onClick={() => setShowVoiceInput(v => !v)}
+                        className={`px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1 ${
+                          showVoiceInput
+                            ? 'bg-primary-100 text-primary-700 border border-primary-300'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                        title="Add item by voice"
+                      >
+                        <Mic className="w-4 h-4" />
+                        <span className="hidden sm:inline">Voice</span>
+                      </button>
+                      <button
+                        onClick={addItem}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Custom</span>
+                      </button>
+                    </div>
+                  )}
+                  {quoteType === 'modular' && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setShowModularVoiceInput(v => !v)}
+                        className={`px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1 ${
+                          showModularVoiceInput
+                            ? 'bg-primary-100 text-primary-700 border border-primary-300'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                        title="Add modular item by voice"
+                      >
+                        <Mic className="w-4 h-4" />
+                        <span className="hidden sm:inline">Voice</span>
+                      </button>
+                      <button
+                        onClick={addModularItem}
+                        className="bg-primary-500 hover:bg-primary-600 text-white px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Modular Item</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quote Type Selector */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Quotation Type</label>
+                  <div className="grid grid-cols-2 gap-3 max-w-md">
                     <button
-                      onClick={() => setShowAddItemsModal(true)}
-                      className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Multiple Items</span>
-                    </button>
-                    <button
-                      onClick={() => setShowVoiceInput(v => !v)}
-                      className={`px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1 ${
-                        showVoiceInput
-                          ? 'bg-primary-100 text-primary-700 border border-primary-300'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      onClick={() => setQuoteType('material')}
+                      className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition-all ${
+                        quoteType === 'material'
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
                       }`}
-                      title="Add item by voice"
                     >
-                      <Mic className="w-4 h-4" />
-                      <span className="hidden sm:inline">Voice</span>
+                      <Home className="w-5 h-5" />
+                      <div className="text-left">
+                        <div className="text-sm font-semibold">Material Quote</div>
+                        <div className="text-xs text-gray-500">On-site materials & labor</div>
+                      </div>
                     </button>
                     <button
-                      onClick={addItem}
-                      className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg font-medium transition-colors flex items-center space-x-1"
+                      onClick={() => setQuoteType('modular')}
+                      className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition-all ${
+                        quoteType === 'modular'
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Custom</span>
+                      <Layers className="w-5 h-5" />
+                      <div className="text-left">
+                        <div className="text-sm font-semibold">Modular Quote</div>
+                        <div className="text-xs text-gray-500">W × H × D × Rate</div>
+                      </div>
                     </button>
                   </div>
                 </div>
-                
-                {showVoiceInput && (
-                  <div className="mt-2">
+
+                {quoteType === 'material' && showVoiceInput && (
+                  <div className="mt-2 mb-4">
                     <VoiceItemInput
                       materials={materials}
                       onAddItem={handleVoiceAddItem}
@@ -1031,7 +1129,19 @@ const DesignerQuoteGenerator = () => {
                   </div>
                 )}
 
-                {quoteData.items.length === 0 ? (
+                {quoteType === 'modular' && showModularVoiceInput && (
+                  <div className="mt-2 mb-4">
+                    <ModularVoiceInput
+                      onAddItem={handleModularVoiceAdd}
+                      onClose={() => setShowModularVoiceInput(false)}
+                      presetRates={MODULAR_PRESET_RATES}
+                      currentRate={modularPerSqftRate}
+                      onRateChange={updateModularRate}
+                    />
+                  </div>
+                )}
+
+                {quoteType === 'material' && quoteData.items.filter(i => i.section !== 'modular').length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-4">No items added yet</p>
@@ -1042,9 +1152,22 @@ const DesignerQuoteGenerator = () => {
                       Add Items from Materials
                     </button>
                   </div>
+                ) : quoteType === 'modular' && quoteData.items.filter(i => i.section === 'modular').length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <Layers className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-4">No modular items added yet</p>
+                    <button
+                      onClick={addModularItem}
+                      className="btn-primary"
+                    >
+                      <Plus className="w-4 h-4 inline mr-1" />
+                      Add Modular Item
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-8">
                     {/* On-Site Work Section */}
+                    {quoteType === 'material' && (
                     <div className="space-y-6">
                       <div className="flex items-center space-x-2 border-b border-gray-200 pb-3">
                         <Home className="w-5 h-5 text-primary-500" />
@@ -1422,8 +1545,10 @@ const DesignerQuoteGenerator = () => {
                       <span>Add Another On-Site Item</span>
                     </button>
                     </div>
+                    )}
 
                     {/* Modular Work Section */}
+                    {quoteType === 'modular' && (
                     <div className="space-y-6">
                       <div className="flex items-center space-x-2 border-b border-gray-200 pb-3">
                         <Layers className="w-5 h-5 text-primary-500" />
@@ -1432,9 +1557,24 @@ const DesignerQuoteGenerator = () => {
                       </div>
 
                       <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
-                        <label className="block text-sm font-medium text-secondary-800 mb-1">
+                        <label className="block text-sm font-medium text-secondary-800 mb-2">
                           Rate per sq ft (applies to all modular items)
                         </label>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {MODULAR_PRESET_RATES.map(rate => (
+                            <button
+                              key={rate}
+                              onClick={() => updateModularRate(rate)}
+                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                                modularPerSqftRate === rate
+                                  ? 'bg-primary-500 text-white shadow-md'
+                                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                              }`}
+                            >
+                              ₹{rate}
+                            </button>
+                          ))}
+                        </div>
                         <div className="flex items-center space-x-2">
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
@@ -1444,15 +1584,14 @@ const DesignerQuoteGenerator = () => {
                               step="0.01"
                               value={modularPerSqftRate || ''}
                               onChange={(e) => updateModularRate(parseFloat(e.target.value) || 0)}
-                              placeholder="e.g. 850"
+                              placeholder="or enter custom rate"
                               className="w-40 pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                             />
                           </div>
                           <span className="text-sm text-gray-500">per sq ft</span>
                         </div>
                         <p className="text-xs text-gray-500 mt-2">
-                          Enter the per-sq-ft rate once. Each modular item's amount = area (sq ft) × units × rate × (1 - discount%).
-                          Dimensions entered in mm, inch, or feet are auto-converted to feet for area calculation.
+                          Pick a preset rate or enter a custom value. Each modular item's amount = measurement (W × H × D) × units × rate × (1 - discount%).
                         </p>
                       </div>
 
@@ -1640,6 +1779,7 @@ const DesignerQuoteGenerator = () => {
                         </button>
                       )}
                     </div>
+                    )}
                   </div>
                 )}
               </div>
